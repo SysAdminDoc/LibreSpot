@@ -1,3 +1,4 @@
+using System.Linq;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Windows;
@@ -117,15 +118,34 @@ public sealed class ThemeManagerTests
         // one and a half cards, which contradicts README's "the page has a
         // single scrollbar". The gallery now grows to its content, so the fade
         // and its palette brush are gone and this guards the replacement.
-        foreach (var section in new[]
-                 {
-                     "CustomAppearanceSection.xaml",
-                     "CustomProfileSummarySection.xaml",
-                 })
+        // Two sections keep their own scroll and the README says why: the
+        // feature list is virtualized over 348 flags, and the patches editor is
+        // a text editor. Everything else in Settings flows with the page. The
+        // first version of this test named two files by hand and missed the
+        // feature list entirely, so it is enumerated now.
+        var expectedExceptions = new[]
         {
-            var view = ReadFile("src", "LibreSpot.Desktop", "Views", section);
-            Assert.DoesNotContain("ScrollFadeBrush", view);
-            Assert.DoesNotContain("ScrollViewer.VerticalScrollBarVisibility=\"Auto\"", view);
+            "CustomLiveCustomizationSection.xaml",
+            "CustomPatchesSection.xaml",
+        };
+
+        var viewsDirectory = Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Views");
+        var withOwnScroll = Directory
+            .EnumerateFiles(viewsDirectory, "Custom*Section.xaml")
+            .Where(path =>
+            {
+                var text = File.ReadAllText(path);
+                return text.Contains("VerticalScrollBarVisibility=\"Auto\"", StringComparison.Ordinal);
+            })
+            .Select(Path.GetFileName)
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.Equal(expectedExceptions.OrderBy(name => name, StringComparer.Ordinal), withOwnScroll);
+
+        foreach (var section in Directory.EnumerateFiles(viewsDirectory, "Custom*Section.xaml"))
+        {
+            Assert.DoesNotContain("ScrollFadeBrush", File.ReadAllText(section));
         }
 
         var gallery = ReadFile("src", "LibreSpot.Desktop", "Views", "CustomAppearanceSection.xaml");

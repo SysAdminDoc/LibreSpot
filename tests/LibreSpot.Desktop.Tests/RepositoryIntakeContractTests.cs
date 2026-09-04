@@ -63,30 +63,41 @@ public sealed class RepositoryIntakeContractTests
             "Roadmap_Blocked.md",
         };
 
-        var tracked = Git(root, "ls-files -- *.md")
+        var listing = Git(root, "ls-files -- *.md");
+        // git returns 128 outside a work tree and writes nothing to stdout. Left
+        // unchecked the whole gate became a silent no-op in a source zip or a
+        // checkout without .git.
+        Assert.True(
+            listing.ExitCode == 0,
+            $"git ls-files failed with exit {listing.ExitCode}, so this gate checked nothing: {listing.Error}");
+
+        var tracked = listing.Output
             .Split('\n', StringSplitOptions.RemoveEmptyEntries)
             .Select(line => line.Trim())
             .Where(line => !line.Contains('/'))
             .ToArray();
 
-        var unexpected = tracked.Except(allowed, StringComparer.Ordinal).ToArray();
-        Assert.True(
-            unexpected.Length == 0,
-            "These root markdown files are tracked but are not in the documented set: "
-                + string.Join(", ", unexpected));
+        // Set equality, not one-way containment: a documented file that stops
+        // being tracked is as wrong as an undocumented one that starts.
+        Assert.Equal(
+            allowed.OrderBy(name => name, StringComparer.Ordinal),
+            tracked.OrderBy(name => name, StringComparer.Ordinal));
 
         // And nothing tracked may also be listed as ignored, because the ignore
         // silently does nothing and the next reader cannot tell which rule won.
         foreach (var file in tracked)
         {
-            var ignored = Git(root, $"check-ignore --no-index -- {file}").Trim();
+            var ignored = Git(root, $"check-ignore --no-index -- {file}");
             Assert.True(
-                ignored.Length == 0,
+                ignored.ExitCode is 0 or 1,
+                $"git check-ignore failed with exit {ignored.ExitCode}: {ignored.Error}");
+            Assert.True(
+                ignored.Output.Trim().Length == 0,
                 $"{file} is tracked and also ignored by .gitignore. Pick one.");
         }
     }
 
-    private static string Git(string root, string arguments)
+    private static (int ExitCode, string Output, string Error) Git(string root, string arguments)
     {
         using var process = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
         {
@@ -98,9 +109,12 @@ public sealed class RepositoryIntakeContractTests
             CreateNoWindow = true,
         })!;
 
-        var output = process.StandardOutput.ReadToEnd();
+        // Both pipes are read before waiting; reading one to the end first can
+        // deadlock when the other fills its buffer.
+        var output = process.StandardOutput.ReadToEndAsync();
+        var error = process.StandardError.ReadToEndAsync();
         process.WaitForExit();
-        return output;
+        return (process.ExitCode, output.GetAwaiter().GetResult(), error.GetAwaiter().GetResult());
     }
 
     private static string RepoRoot()

@@ -2360,6 +2360,9 @@ function Get-LibreSpotJavaScriptInstallScriptFindings {
     $findings = @()
     $workspaceFile = Join-Path $WorkspacePath 'pnpm-workspace.yaml'
     if (-not (Test-Path -LiteralPath $workspaceFile -PathType Leaf)) {
+        # Silence here would report a clean gate on a tree where the
+        # allowlist had simply been deleted.
+        $findings += "Install-script allowlist missing: no pnpm-workspace.yaml at $workspaceFile."
         return , $findings
     }
 
@@ -2373,8 +2376,15 @@ function Get-LibreSpotJavaScriptInstallScriptFindings {
         }
     }
 
+    if ($allowed.Count -eq 0) {
+        $findings += "Install-script allowlist is empty or unreadable in $workspaceFile; the reviewed packages should be named there."
+    }
+
     $modules = Join-Path $WorkspacePath 'node_modules'
     if (-not (Test-Path -LiteralPath $modules -PathType Container)) {
+        # Not installed is not the same as nothing to find. Say which it
+        # was so a green report cannot mean an unrun scan.
+        $findings += "Install-script scan skipped: no node_modules at $modules. Run pnpm install before the dependency gate."
         return , $findings
     }
 

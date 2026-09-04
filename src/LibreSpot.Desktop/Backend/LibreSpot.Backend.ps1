@@ -874,6 +874,10 @@ function Complete-OperationJournalRun {
         $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
         [System.IO.File]::WriteAllText($global:RUN_RECEIPT_PATH, ($receipt | ConvertTo-Json -Depth 6), $utf8NoBom)
     } catch {
+        # Recorded where the run's own result line can read it. A WARN in the
+        # log is a log line; the desktop only promotes a run to a warning from
+        # the result, so without this the run still finished as a success.
+        $global:LibreSpotRunReceiptFailure = "The run receipt could not be written to $($global:RUN_RECEIPT_PATH). This run changed your system but cannot be undone from the receipt."
         # The receipt is what the undo surface reads. A run that changed the
         # machine and left no receipt has to say so: without this the run
         # reported success and undo simply had nothing to offer, with no
@@ -8215,6 +8219,14 @@ try {
     }
     if ($Action -ne 'RemoveSelfData') {
         Complete-OperationJournalRun -Result 'Succeeded' -Message "Backend action $Action completed."
+    }
+    # Complete-OperationJournalRun writes the receipt, so this is the first
+    # point that knows whether it survived. A run that mutated the machine and
+    # left no receipt has to reach the user as a warning, not as a clean run
+    # with a line in the log.
+    if (-not [string]::IsNullOrWhiteSpace($global:LibreSpotRunReceiptFailure)) {
+        Write-EventLine -Kind 'result' -Level 'WARN' -Payload $global:LibreSpotRunReceiptFailure
+        exit 0
     }
     Write-EventLine -Kind 'result' -Level 'SUCCESS' -Payload 'LibreSpot backend completed successfully.'
     exit 0

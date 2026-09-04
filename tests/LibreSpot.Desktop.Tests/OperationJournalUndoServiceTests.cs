@@ -287,6 +287,38 @@ public sealed class OperationJournalUndoServiceTests
     }
 
     [Fact]
+    public async Task ExecuteUndoAsync_SaysSoWhenTheFailureCouldNotBeRecorded()
+    {
+        // Both failure-path writes used to sit in empty catches, so an undo that
+        // failed on a machine where the journal could not be written left no
+        // trace and the user was told only that it failed.
+        using var fixture = new OperationJournalFixture();
+        var item = new OperationJournalUndoItem(
+            Guid.NewGuid().ToString(),
+            "Install",
+            "patch",
+            "Spotify",
+            "applied",
+            "Restore manually.",
+            "spotxPatch",
+            "missing.json",
+            "patched",
+            "Restore manually.",
+            "medium");
+        var service = new OperationJournalUndoService(new FakeUndoEnvironment(string.Empty));
+
+        // A file where the journal directory has to be: every write under it
+        // fails, which is what a locked-down or full profile looks like.
+        var unwritable = Path.Combine(fixture.ConfigDirectory, "unwritable");
+        File.WriteAllText(unwritable, "not a directory");
+
+        var result = await service.ExecuteUndoAsync(item, unwritable);
+
+        Assert.False(result.Success);
+        Assert.Contains("will not appear in a support bundle", result.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task ExecuteUndoAsync_RecordsPolicyRefusalWithNewOperationId()
     {
         using var fixture = new OperationJournalFixture();

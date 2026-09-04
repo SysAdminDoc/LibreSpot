@@ -366,6 +366,126 @@ public sealed class WpfUiAutomationSmokeTests
                 + string.Join(", ", violations.Select(violation => violation.Key).Distinct().OrderBy(key => key, StringComparer.Ordinal)));
     }
 
+    /// <summary>
+    /// WCAG 2.2 success criterion 2.5.8 asks for a 24 by 24 minimum target,
+    /// and WCAG2ICT applies it to desktop software. Axe.Windows 2.4.2 has no
+    /// rule for it, so a shrunken button or a tiny disclosure chevron would
+    /// pass every existing scan.
+    /// </summary>
+    private const double MinimumTargetSizeDips = 24d;
+
+    /// <summary>
+    /// Automation ids WPF gives the parts of a platform scrollbar. Their size
+    /// comes from Windows, which is the user-agent exception in WCAG 2.5.8.
+    /// Nothing else may be added here without the same justification.
+    /// </summary>
+    private static readonly HashSet<string> ScrollBarParts = new(StringComparer.Ordinal)
+    {
+        "PageUp",
+        "PageDown",
+        "PageLeft",
+        "PageRight",
+        "LineUp",
+        "LineDown",
+        "LineLeft",
+        "LineRight",
+        "UpButton",
+        "DownButton",
+        "LeftButton",
+        "RightButton",
+        "Thumb",
+        "HorizontalThumb",
+        "VerticalThumb",
+    };
+
+    [Theory]
+    [InlineData("recommended")]
+    [InlineData("custom")]
+    [InlineData("maintenance")]
+    public void InteractiveTargets_AreAtLeastTwentyFourByTwentyFourDips(string state)
+    {
+        using var app = LaunchSmokeState(state);
+        var window = WaitForMainWindow(app.Process, MainWindowTimeout);
+        WaitForSnapshotContaining(window, "Home", SmokeReadyTimeout);
+
+        var undersized = UndersizedTargets(window, out var scale, out var charted);
+
+        // Without this the rule could report nothing because the walk
+        // charted nothing, which is not the same as a clean result.
+        Assert.True(charted > 1, $"The walk charted {charted} elements for {state}, so this proved nothing.");
+        Assert.True(scale > 0, "Could not determine the display scale.");
+
+        Assert.True(
+            undersized.Count == 0,
+            $"These targets in the {state} state are smaller than {MinimumTargetSizeDips} by {MinimumTargetSizeDips} "
+                + "device-independent pixels, which WCAG 2.2 success criterion 2.5.8 asks for:"
+                + Environment.NewLine
+                + string.Join(Environment.NewLine, undersized));
+    }
+
+    [Fact]
+    public void TargetSizeRule_ReportsAPlantedButtonThatIsTooSmall()
+    {
+        // Positive control. The planted button carries a real accessible name,
+        // so only the size rule can report it and a pass here cannot be
+        // borrowed from the unnamed-button control beside it.
+        using var app = LaunchSmokeState("axe-positive-control");
+        var window = WaitForMainWindow(app.Process, MainWindowTimeout);
+        WaitForSnapshotContaining(window, "Home", SmokeReadyTimeout);
+
+        var undersized = UndersizedTargets(window, out _, out var charted);
+        Assert.True(charted > 1, "The walk charted nothing, so this control proved nothing.");
+
+        Assert.True(
+            undersized.Any(entry => entry.Contains(MainWindow.UiAutomationTargetSizeControlAutomationId, StringComparison.Ordinal)),
+            "The rule did not report the undersized button planted in the axe-positive-control state, so it is "
+                + "not checking anything. Reported: "
+                + string.Join(", ", undersized));
+    }
+
+    private static IReadOnlyList<string> UndersizedTargets(
+        AutomationElement window,
+        out double scale,
+        out int charted)
+    {
+        var nodes = Snapshot(window);
+        charted = nodes.Count;
+        var displayScale = DisplayScale();
+        scale = displayScale;
+        var minimum = MinimumTargetSizeDips * displayScale;
+
+        return nodes
+            .Where(node => node.IsInteractive && node.IsEnabled)
+            // WCAG 2.5.8 exempts a control whose size the user agent determines.
+            // These are the parts of the platform scrollbar, which is 17 pixels
+            // wide because Windows says so; LibreSpot neither sets nor can set
+            // their size, and widening the app's scrollbars would not make the
+            // target any easier to hit than the page scroll it already has.
+            .Where(node => !ScrollBarParts.Contains(node.AutomationId))
+            // An offscreen or collapsed element has an empty rect; it is not a
+            // target until it is shown, and states that show it will catch it.
+            .Where(node => node.BoundingRectangle.Width > 0 && node.BoundingRectangle.Height > 0)
+            .Where(node => node.BoundingRectangle.Width < minimum || node.BoundingRectangle.Height < minimum)
+            .Select(node => $"{node.AutomationId}|{node.Name}|{node.ControlType.ProgrammaticName}|"
+                + $"{node.BoundingRectangle.Width / displayScale:0.#}x{node.BoundingRectangle.Height / displayScale:0.#} dips")
+            .OrderBy(entry => entry, StringComparer.Ordinal)
+            .ToArray();
+    }
+
+    /// <summary>
+    /// Bounding rectangles come back in physical pixels, so the rule needs the
+    /// scale to talk in device-independent ones. At 125% a 20 dip button
+    /// measures 25 physical pixels and would slip past a raw comparison.
+    /// </summary>
+    private static double DisplayScale()
+    {
+        var dpi = GetDpiForSystem();
+        return dpi > 0 ? dpi / 96d : 1d;
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern uint GetDpiForSystem();
+
     private sealed record AxeScan(int WindowsScanned, int ElementsCharted, IReadOnlyList<AxeViolation> Violations)
     {
         public AxeScanShape Shape =>
@@ -804,7 +924,8 @@ public sealed class WpfUiAutomationSmokeTests
         bool IsKeyboardFocusable,
         string AutomationId,
         string ClassName,
-        Rect BoundingRectangle)
+        Rect BoundingRectangle,
+        bool IsInteractive)
     {
         public string DebugLabel =>
             $"{ControlType.ProgrammaticName}:{Name}:{AutomationId}:class={ClassName}:enabled={IsEnabled}:focusable={IsKeyboardFocusable}:bounds={BoundingRectangle}";
@@ -817,7 +938,36 @@ public sealed class WpfUiAutomationSmokeTests
                 TryGet(element, AutomationElement.IsKeyboardFocusableProperty, false),
                 TryGet(element, AutomationElement.AutomationIdProperty, string.Empty),
                 TryGet(element, AutomationElement.ClassNameProperty, string.Empty),
-                TryGet(element, AutomationElement.BoundingRectangleProperty, Rect.Empty));
+                TryGet(element, AutomationElement.BoundingRectangleProperty, Rect.Empty),
+                SupportsAnInteractionPattern(element));
+
+        /// <summary>
+        /// Whether a person can operate this element. WCAG 2.2's target-size
+        /// criterion applies to the thing being pointed at, not to every node
+        /// in the tree, and the patterns are what say which is which.
+        /// </summary>
+        private static bool SupportsAnInteractionPattern(AutomationElement element)
+        {
+            try
+            {
+                foreach (var pattern in element.GetSupportedPatterns())
+                {
+                    if (pattern == InvokePattern.Pattern
+                        || pattern == TogglePattern.Pattern
+                        || pattern == SelectionItemPattern.Pattern
+                        || pattern == ExpandCollapsePattern.Pattern)
+                    {
+                        return true;
+                    }
+                }
+            }
+            catch (ElementNotAvailableException)
+            {
+                // A node that vanished mid-walk is not a target.
+            }
+
+            return false;
+        }
     }
 
     private sealed class SmokeApp : IDisposable

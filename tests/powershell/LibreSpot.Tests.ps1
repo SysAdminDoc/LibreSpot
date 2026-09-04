@@ -3599,7 +3599,12 @@ Describe 'Silenced failure-path writes' {
         $rollback | Should -Match 'ErrorAction Stop'
     }
 
-    It 'reports the rescue path from a real failed rollback' {
+    It 'names the rescue copy when the restore itself fails' {
+        # The first attempt held the destination open, which made the rescue
+        # move fail first and never reached the branch under test: it passed
+        # against the old code too. Failing the staged copy instead walks the
+        # real path: Replace fails on a missing source, the rescue move
+        # succeeds, the forward move fails, and the restore is made to fail.
         $root = Join-Path ([System.IO.Path]::GetTempPath()) ('LibreSpot.Rollback.' + [Guid]::NewGuid().ToString('N'))
         New-Item -ItemType Directory -Path $root -Force | Out-Null
         try {
@@ -3608,17 +3613,37 @@ Describe 'Silenced failure-path writes' {
             Set-Content -LiteralPath $stage -Value '{"a":1}' -Encoding UTF8
             Set-Content -LiteralPath $destination -Value '{"a":0}' -Encoding UTF8
 
-            # Hold the destination open so Replace and the forward Move both
-            # fail, which is the branch that used to swallow its own recovery.
-            $handle = [System.IO.File]::Open($destination, 'Open', 'ReadWrite', 'None')
-            try {
-                { Install-LibreSpotStagedConfig -StagePath $stage -DestinationPath $destination } |
-                    Should -Throw
-            } finally {
-                $handle.Dispose()
+            Mock -CommandName Copy-LibreSpotFileDurable -MockWith { }
+            Mock -CommandName Move-Item -MockWith { throw 'restore refused' } -ParameterFilter {
+                $LiteralPath -like '*.rescue'
             }
+
+            $err = $null
+            try { Install-LibreSpotStagedConfig -StagePath $stage -DestinationPath $destination }
+            catch { $err = $_ }
+
+            $err | Should -Not -BeNullOrEmpty
+            $err.Exception.Message | Should -Match 'has to be moved back to'
+            $err.Exception.Message | Should -Match ([regex]::Escape($destination))
+            $err.Exception.Message | Should -Match 'restore refused'
         } finally {
             Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue
         }
+    }
+
+    It 'turns a failed receipt write into the run result, not just a log line' {
+        # Write-Log at WARN emits a 'log' event, which the desktop appends to
+        # the panel. Only a 'result' line promotes the run to a warning, so the
+        # failure has to travel through a global the completion path reads.
+        $sharedRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..\src\powershell\shared')).Path
+        $writer = [System.IO.File]::ReadAllText((Join-Path $sharedRoot 'Complete-OperationJournalRun.ps1'))
+        $writer | Should -Match 'LibreSpotRunReceiptFailure'
+
+        $backendHost = (Resolve-Path (Join-Path $PSScriptRoot '..\..\src\LibreSpot.Desktop\Backend\LibreSpot.Backend.ps1')).Path
+        $backend = [System.IO.File]::ReadAllText($backendHost)
+        $completion = [regex]::Match($backend, "(?ms)Complete-OperationJournalRun -Result 'Succeeded' -Message .Backend action.+?exit 0").Value
+        $completion | Should -Not -BeNullOrEmpty
+        $completion | Should -Match 'LibreSpotRunReceiptFailure'
+        $completion | Should -Match "-Kind 'result' -Level 'WARN'"
     }
 }

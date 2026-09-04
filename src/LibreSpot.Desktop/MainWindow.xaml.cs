@@ -40,6 +40,13 @@ public partial class MainWindow : Window
     /// </summary>
     internal const string UiAutomationPositiveControlAutomationId = "AxePositiveControlUnnamedButton";
 
+    /// <summary>
+    /// Automation id of the deliberately undersized button planted in the same
+    /// state, so the target-size rule has a control of its own. It carries a
+    /// real accessible name, so only the size rule can report it.
+    /// </summary>
+    internal const string UiAutomationTargetSizeControlAutomationId = "TargetSizeControlSmallButton";
+
     private readonly MainViewModel _viewModel;
     private readonly string? _uiAutomationSmokeState;
     private readonly string _uiAutomationSmokeCulture;
@@ -253,6 +260,26 @@ public partial class MainWindow : Window
                         plantedButton,
                         UiAutomationPositiveControlAutomationId);
                     SimpleShellHost.Children.Add(plantedButton);
+
+                    // Second control, for the target-size rule. WCAG 2.2 asks for
+                    // 24 by 24; this is 20 by 20 and named, so a rule that reports
+                    // it is measuring size rather than borrowing the missing-name
+                    // result from the button above.
+                    var undersizedButton = new System.Windows.Controls.Button
+                    {
+                        Width = 20,
+                        Height = 20,
+                        Content = "x",
+                        HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
+                        VerticalAlignment = System.Windows.VerticalAlignment.Top
+                    };
+                    System.Windows.Automation.AutomationProperties.SetName(
+                        undersizedButton,
+                        "Undersized target control");
+                    System.Windows.Automation.AutomationProperties.SetAutomationId(
+                        undersizedButton,
+                        UiAutomationTargetSizeControlAutomationId);
+                    SimpleShellHost.Children.Add(undersizedButton);
                 }
                 if (string.Equals(uiAutomationSmokeState, "provenance", StringComparison.OrdinalIgnoreCase))
                 {

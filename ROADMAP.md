@@ -20,13 +20,6 @@ Added 2026-09-04 from RESEARCH.md. IDs continue the RD scheme; RD-180 was the la
   Acceptance: WHEN Settings opens, the theme gallery SHALL render every card without an inner scrollbar and the page SHALL have one scrollbar; an offscreen capture at the 1080x720 minimum window SHALL reach the last card through page scroll alone; the fixed-width `TextBlock`s in live views SHALL either trim with a tooltip or wrap; the README screenshot SHALL be recaptured.
   Complexity: M
 
-- [ ] P3: RD-193: Fail the offscreen UIA scan on invokable elements smaller than 24 by 24 device-independent pixels
-  Why: WCAG2ICT (2025-12-11) applies success criterion 2.5.8 Target Size Minimum to desktop software and Axe.Windows 2.4.2 has no rule for it, so the current scan cannot catch a shrunken button or a tiny disclosure chevron.
-  Evidence: https://www.w3.org/TR/wcag2ict-22/; https://github.com/microsoft/axe-windows/blob/main/docs/RulesDescription.md (rule set unchanged since 2.4.2); `tests/LibreSpot.Desktop.Tests/WpfUiAutomationSmokeTests.cs` `Walk`.
-  Touches: `WpfUiAutomationSmokeTests.cs`, `tests/LibreSpot.Desktop.Tests/AxeScanShape.cs`, `schemas/keyboard-focus-contract.json` or a new baseline file for intentional exceptions.
-  Acceptance: the walk SHALL record every element exposing Invoke, Toggle, SelectionItem or ExpandCollapse whose bounding rectangle is under 24 by 24 DIPs and fail with the automation id; a smoke state with a planted 20 by 20 button SHALL fail; the baseline SHALL start empty.
-  Complexity: M
-
 - [ ] P3: RD-196: Reset Marketplace storage from the engine's Health panel after exporting a Marketplace backup
   Why: Marketplace 1.0.11 migrated keys but stale IndexedDB and localStorage from older installs still restore themes after a full Spicetify reinstall and can block uninstalling a theme; upstream closed the report as not planned. LibreSpot already names the `spicetify-marketplace` database and exports Marketplace's own backup JSON.
   Evidence: https://github.com/spicetify/marketplace/issues/1231 (opened 2026-09-02, closed not planned); https://github.com/spicetify/marketplace/releases/tag/v1.0.11; `src/LibreSpot.App/src/core/backup.ts:11`; `src/LibreSpot.App/src/extensions/librespot-engine.ts:522`; `CLAUDE.md` note on the Marketplace `settings` store's in-line key.

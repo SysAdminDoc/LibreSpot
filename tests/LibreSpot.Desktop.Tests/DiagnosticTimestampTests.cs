@@ -58,6 +58,16 @@ public sealed class DiagnosticTimestampTests
         Assert.Contains("DateTime.UtcNow", expression, StringComparison.Ordinal);
         Assert.Contains("CultureInfo.InvariantCulture", expression, StringComparison.Ordinal);
         Assert.DoesNotContain("DateTime.Now", expression, StringComparison.Ordinal);
+        Assert.DoesNotContain("ToLocalTime", expression, StringComparison.Ordinal);
+
+        // And prove the format actually produces a UTC-marked stamp, rather than
+        // only that the source mentions UtcNow. Uppercase Z is not a custom
+        // format specifier, so it is copied through literally.
+        var format = Regex.Match(expression, @"ToString\(""(?<format>[^""]+)""");
+        Assert.True(format.Success, "The stamp must use an explicit format string.");
+        var produced = new DateTime(2026, 9, 4, 16, 33, 10, 575, DateTimeKind.Utc)
+            .ToString(format.Groups["format"].Value, CultureInfo.InvariantCulture);
+        Assert.Equal("20260904-163310-575Z", produced);
     }
 
     [Fact]

@@ -198,10 +198,14 @@ public sealed class ReleaseTruthTests
         Assert.True(builtIn > 0 && community > 0, "Could not read either extension block.");
 
         var total = builtIn + community;
-        Assert.Contains(
-            $"select from {total} extensions, {NumberWord(builtIn)} built in and {NumberWord(community)} community,",
-            readme,
-            StringComparison.Ordinal);
+        // The counts have to match; whether the prose spells them as words or
+        // digits is the writer's call, so the pattern accepts either. Pinning
+        // one spelling would fail a correct sentence for the wrong reason.
+        Assert.Matches(
+            new Regex(
+                $@"select from {total} extensions, (?:{builtIn}|{NumberWord(builtIn)}) built in and "
+                    + $@"(?:{community}|{NumberWord(community)}) community,"),
+            readme);
         Assert.Contains($"### {total} Extensions ({builtIn} Built-in + {community} Community)", readme, StringComparison.Ordinal);
     }
 
@@ -215,10 +219,14 @@ public sealed class ReleaseTruthTests
             : 0;
     }
 
+    // Only the spellings the README uses today. Anything else falls back to the
+    // digits, and the caller accepts either form.
     private static string NumberWord(int value) => value switch
     {
         5 => "five",
         10 => "ten",
+        11 => "eleven",
+        12 => "twelve",
         _ => value.ToString(System.Globalization.CultureInfo.InvariantCulture),
     };
 

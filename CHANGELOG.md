@@ -18,6 +18,7 @@ All notable changes to LibreSpot will be documented in this file.
 - The dependency gate now refuses an installed JavaScript package that runs an install script without being on the reviewed allowlist, which is the boundary a compromised package crosses first.
 - Diagnostic timestamps are the same on every machine now. On a Thai or Arabic Windows the health output was showing a Buddhist or Hijri year, and crash filenames used local time so two an hour apart could collide across a clock change.
 - A run that changes your system and then cannot write its receipt now says so, and names the file, instead of finishing quietly with nothing for undo to offer. A failed config rollback names the rescue copy, and a failed undo says when it could not be recorded.
+- The offscreen accessibility scan now also checks that anything you click is at least 24 by 24 points, which is what WCAG 2.2 asks for and what Axe.Windows does not check.
 
 ### Added
 
