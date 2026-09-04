@@ -1,3 +1,4 @@
+using System.Linq;
 using System.IO;
 using Xunit;
 
@@ -41,6 +42,76 @@ public sealed class RepositoryIntakeContractTests
         Assert.Contains("Build-Scripts.ps1 -Lint", template);
         Assert.Contains("Invoke-Pester", template);
         Assert.DoesNotContain("CI checks this", template);
+    }
+
+    [Fact]
+    public void RootMarkdown_IsExactlyTheDocumentSetTheHygieneRuleAllows()
+    {
+        // AGENTS.md names the tracked root documents. design-qa.md sat outside
+        // that list and was listed in .gitignore at the same time, which does
+        // nothing for an already tracked file: the rule and the tree disagreed
+        // and only the tree counted.
+        var root = RepoRoot();
+        var allowed = new[]
+        {
+            "README.md",
+            "CHANGELOG.md",
+            "ROADMAP.md",
+            "RESEARCH.md",
+            "SECURITY.md",
+            "SIGNPATH.md",
+            "Roadmap_Blocked.md",
+        };
+
+        var tracked = Git(root, "ls-files -- *.md")
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            .Select(line => line.Trim())
+            .Where(line => !line.Contains('/'))
+            .ToArray();
+
+        var unexpected = tracked.Except(allowed, StringComparer.Ordinal).ToArray();
+        Assert.True(
+            unexpected.Length == 0,
+            "These root markdown files are tracked but are not in the documented set: "
+                + string.Join(", ", unexpected));
+
+        // And nothing tracked may also be listed as ignored, because the ignore
+        // silently does nothing and the next reader cannot tell which rule won.
+        foreach (var file in tracked)
+        {
+            var ignored = Git(root, $"check-ignore --no-index -- {file}").Trim();
+            Assert.True(
+                ignored.Length == 0,
+                $"{file} is tracked and also ignored by .gitignore. Pick one.");
+        }
+    }
+
+    private static string Git(string root, string arguments)
+    {
+        using var process = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+        {
+            FileName = "git",
+            Arguments = $"-C \"{root}\" {arguments}",
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+        })!;
+
+        var output = process.StandardOutput.ReadToEnd();
+        process.WaitForExit();
+        return output;
+    }
+
+    private static string RepoRoot()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "LibreSpot.ps1")))
+        {
+            directory = directory.Parent;
+        }
+
+        return directory?.FullName ?? throw new InvalidOperationException("Could not locate repo root.");
     }
 
     private static string ReadRepoFile(params string[] relativeParts)
