@@ -7,7 +7,7 @@
     "schemas/theme-preview-manifest.json"
   ],
   "sourceDigests": {
-    "schemas/community-assets.json": "63de2cac70435020eaf40c8f7dc0fc967cbb420b2dcd9aaba81c2e98a1620a34",
+    "schemas/community-assets.json": "75c06f68d13448d9faf73745c3b2c805e9ee115911aa187142cf8881bb670e06",
     "schemas/theme-preview-manifest.json": "544a7637bdab607521a70b766d8c62fa44ee3d38e40ff415d5df06827378f722"
   },
   "counts": {
@@ -117,7 +117,7 @@
       "supportDetail": null,
       "supportIssueUrl": null,
       "fallbackBehavior": "skip-with-warning",
-      "notes": "Migrated from beautifulLyrics.js to .mjs build",
+      "notes": "Optional only. The pinned file is a remote loader whose downloaded runtime code is not covered by LibreSpot's hash, so it is never eligible for Recommended Setup.",
       "preview": null
     },
     {
