@@ -354,6 +354,7 @@
                     MaxWidth="820"
                     ItemsSource="{Binding SimpleHomeReadinessChecks}"
                     ItemTemplate="{StaticResource SimpleReadinessCheckTemplate}"
+                    AutomationProperties.Name="{services:Loc Ui_RecommendedReadinessChecks}"
                     Margin="0,66,0,0"
                     HorizontalAlignment="Stretch">
         <ItemsControl.ItemsPanel>

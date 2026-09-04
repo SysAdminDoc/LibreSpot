@@ -3,13 +3,7 @@
   "schemaVersion": 1,
   "lastUpdated": "2026-09-03",
   "states": {
-    "recommended": [
-      {
-        "key": "NameNotNull|List(50008)|(none)",
-        "count": 1,
-        "reason": "A list on the Home workspace exposes no accessible name of its own. Its items are named and reachable, but a screen reader announces the container as an unnamed list. Tracked as RD-168."
-      }
-    ],
+    "recommended": [],
     "custom": [],
     "maintenance": []
   }

@@ -414,6 +414,7 @@
   <data name="Ui_RelaunchLibreSpotAsAdministrator" xml:space="preserve"><value>Relaunch LibreSpot as administrator</value><comment>User-facing WPF text</comment></data>
   <data name="Ui_RestartsLibreSpotWithAdministratorAccessBeforeApplyingChanges" xml:space="preserve"><value>Restarts LibreSpot with administrator access before applying changes.</value><comment>User-facing WPF text</comment></data>
   <data name="Ui_RecommendedWorkspace" xml:space="preserve"><value>Recommended workspace</value><comment>User-facing WPF text</comment></data>
+  <data name="Ui_RecommendedReadinessChecks" xml:space="preserve"><value>Recommended setup readiness checks</value><comment>Accessibility name for the Home readiness list</comment></data>
   <data name="Ui_RecommendedFirstRunChecklist" xml:space="preserve"><value>Recommended setup checklist</value><comment>Accessibility name for the first-run narrative</comment></data>
   <data name="Ui_RunsLibreSpotSMostReliableInstallPathWith" xml:space="preserve"><value>Runs LibreSpot&apos;s most reliable install path with the saved default profile.</value><comment>User-facing WPF text</comment></data>
   <data name="Ui_CustomWorkspace" xml:space="preserve"><value>Custom workspace</value><comment>User-facing WPF text</comment></data>

@@ -6,6 +6,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Fixed
 
+- Home's readiness list now has a translated accessibility name in every shipped interface language. Screen readers can identify the list before announcing its four checks, and the former Axe.Windows exception is gone.
 - Community catalog generation now resolves the repository correctly when launched as a script in Windows PowerShell 5.1. Both supported PowerShell editions use the same JSON formatter, so a given source commit produces the same publishable bytes.
 
 ### Changed

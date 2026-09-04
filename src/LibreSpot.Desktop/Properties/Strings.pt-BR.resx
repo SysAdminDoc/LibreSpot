@@ -1364,6 +1364,10 @@
     <value>Espaço de trabalho recomendado</value>
     <comment>User-facing WPF text</comment>
   </data>
+  <data name="Ui_RecommendedReadinessChecks" xml:space="preserve">
+    <value>Verificações de prontidão da configuração recomendada</value>
+    <comment>Accessibility name for the Home readiness list</comment>
+  </data>
   <data name="Ui_RecommendedFirstRunChecklist" xml:space="preserve">
     <value>Lista de verificação da configuração recomendada</value>
     <comment>Accessibility name for the first-run narrative</comment>
