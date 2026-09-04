@@ -62,6 +62,7 @@ public sealed class SupportBundleService
     private const int MaxMinidumpFiles = 1;
     private const int MinidumpHeaderBytes = 32;
     private const int MinidumpDirectoryEntryBytes = 12;
+    private const uint MinidumpVersion = 0xA793;
     private const uint MaxMinidumpStreamCount = 4096;
     private const int MaxDiagnosticWindowBytes = 1024 * 1024;
     private const long MaxMinidumpBytes = 256L * 1024 * 1024;
@@ -870,15 +871,39 @@ public sealed class SupportBundleService
             return false;
         }
 
+        var version = BinaryPrimitives.ReadUInt32LittleEndian(header.Slice(4, sizeof(uint)));
         var streamCount = BinaryPrimitives.ReadUInt32LittleEndian(header.Slice(8, sizeof(uint)));
         var directoryRva = BinaryPrimitives.ReadUInt32LittleEndian(header.Slice(12, sizeof(uint)));
-        if (streamCount is 0 or > MaxMinidumpStreamCount || directoryRva < MinidumpHeaderBytes)
+        if ((version & ushort.MaxValue) != MinidumpVersion ||
+            streamCount is 0 or > MaxMinidumpStreamCount ||
+            directoryRva < MinidumpHeaderBytes)
         {
             return false;
         }
 
         var directoryEnd = (long)directoryRva + ((long)streamCount * MinidumpDirectoryEntryBytes);
-        return directoryEnd <= input.Length;
+        if (directoryEnd > input.Length)
+        {
+            return false;
+        }
+
+        input.Position = directoryRva;
+        Span<byte> directoryEntry = stackalloc byte[MinidumpDirectoryEntryBytes];
+        for (var index = 0u; index < streamCount; index++)
+        {
+            input.ReadExactly(directoryEntry);
+            var streamType = BinaryPrimitives.ReadUInt32LittleEndian(directoryEntry[..sizeof(uint)]);
+            var dataSize = BinaryPrimitives.ReadUInt32LittleEndian(directoryEntry.Slice(4, sizeof(uint)));
+            var dataRva = BinaryPrimitives.ReadUInt32LittleEndian(directoryEntry.Slice(8, sizeof(uint)));
+            var dataEnd = (long)dataRva + dataSize;
+
+            if (streamType <= 2 || dataSize == 0 || dataRva < directoryEnd || dataEnd > input.Length)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private string ReadSupportFileWindow(string path, int maxLines) =>

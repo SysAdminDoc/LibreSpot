@@ -474,8 +474,8 @@ public sealed class SupportBundleServiceTests
         Directory.CreateDirectory(fixture.CrashDirectory);
         var older = Path.Combine(fixture.CrashDirectory, "LibreSpot-100-1.dmp");
         var newest = Path.Combine(fixture.CrashDirectory, "LibreSpot-200-2.dmp");
-        var olderBytes = CreateMinimalMinidump(streamType: 1);
-        var newestBytes = CreateMinimalMinidump(streamType: 2);
+        var olderBytes = CreateMinimalMinidump(payloadMarker: 1);
+        var newestBytes = CreateMinimalMinidump(payloadMarker: 2);
         File.WriteAllBytes(older, olderBytes);
         File.WriteAllBytes(newest, newestBytes);
         File.SetLastWriteTimeUtc(older, new DateTime(2026, 7, 1, 12, 0, 0, DateTimeKind.Utc));
@@ -510,7 +510,7 @@ public sealed class SupportBundleServiceTests
         Directory.CreateDirectory(fixture.CrashDirectory);
         var older = Path.Combine(fixture.CrashDirectory, "LibreSpot-100-1.dmp");
         var newest = Path.Combine(fixture.CrashDirectory, "LibreSpot-200-2.dmp");
-        var olderBytes = CreateMinimalMinidump(streamType: 1);
+        var olderBytes = CreateMinimalMinidump(payloadMarker: 1);
         File.WriteAllBytes(older, olderBytes);
         File.WriteAllBytes(newest, "not a minidump"u8.ToArray());
         File.SetLastWriteTimeUtc(older, new DateTime(2026, 7, 1, 12, 0, 0, DateTimeKind.Utc));
@@ -545,14 +545,74 @@ public sealed class SupportBundleServiceTests
         Assert.DoesNotContain(archive.Entries, entry => entry.FullName.EndsWith(".dmp", StringComparison.OrdinalIgnoreCase));
     }
 
-    private static byte[] CreateMinimalMinidump(uint streamType)
+    [Fact]
+    public async Task ExportAsync_RejectsMinidumpWithUnsupportedHeaderVersion()
     {
-        var dump = new byte[44];
+        using var fixture = new SupportBundleFixture();
+        Directory.CreateDirectory(fixture.CrashDirectory);
+        var fake = CreateMinimalMinidump(payloadMarker: 1);
+        BinaryPrimitives.WriteUInt32LittleEndian(fake.AsSpan(4, sizeof(uint)), 0x0000A792);
+        File.WriteAllBytes(Path.Combine(fixture.CrashDirectory, "LibreSpot-wrong-version.dmp"), fake);
+
+        var options = new SupportBundleOptions(IncludeMinidump: true);
+        var preview = fixture.Service.CreatePreview(fixture.GetSnapshot(), options);
+        var result = await fixture.ExportAsync(options);
+
+        Assert.Equal(0, Assert.Single(preview.Entries, entry => entry.Id == "minidump").FileCount);
+        using var archive = ZipFile.OpenRead(result.Path);
+        Assert.DoesNotContain(archive.Entries, entry => entry.FullName.EndsWith(".dmp", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task ExportAsync_RejectsMinidumpWithEmptyDirectoryEntry()
+    {
+        using var fixture = new SupportBundleFixture();
+        Directory.CreateDirectory(fixture.CrashDirectory);
+        var fake = new byte[44];
+        "MDMP"u8.CopyTo(fake);
+        BinaryPrimitives.WriteUInt32LittleEndian(fake.AsSpan(4, sizeof(uint)), 0x0000A793);
+        BinaryPrimitives.WriteUInt32LittleEndian(fake.AsSpan(8, sizeof(uint)), 1);
+        BinaryPrimitives.WriteUInt32LittleEndian(fake.AsSpan(12, sizeof(uint)), 32);
+        File.WriteAllBytes(Path.Combine(fixture.CrashDirectory, "LibreSpot-empty-directory.dmp"), fake);
+
+        var options = new SupportBundleOptions(IncludeMinidump: true);
+        var preview = fixture.Service.CreatePreview(fixture.GetSnapshot(), options);
+        var result = await fixture.ExportAsync(options);
+
+        Assert.Equal(0, Assert.Single(preview.Entries, entry => entry.Id == "minidump").FileCount);
+        using var archive = ZipFile.OpenRead(result.Path);
+        Assert.DoesNotContain(archive.Entries, entry => entry.FullName.EndsWith(".dmp", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task ExportAsync_RejectsMinidumpWithPayloadOutsideFile()
+    {
+        using var fixture = new SupportBundleFixture();
+        Directory.CreateDirectory(fixture.CrashDirectory);
+        var fake = CreateMinimalMinidump(payloadMarker: 1);
+        BinaryPrimitives.WriteUInt32LittleEndian(fake.AsSpan(40, sizeof(uint)), 48);
+        File.WriteAllBytes(Path.Combine(fixture.CrashDirectory, "LibreSpot-out-of-range-payload.dmp"), fake);
+
+        var options = new SupportBundleOptions(IncludeMinidump: true);
+        var preview = fixture.Service.CreatePreview(fixture.GetSnapshot(), options);
+        var result = await fixture.ExportAsync(options);
+
+        Assert.Equal(0, Assert.Single(preview.Entries, entry => entry.Id == "minidump").FileCount);
+        using var archive = ZipFile.OpenRead(result.Path);
+        Assert.DoesNotContain(archive.Entries, entry => entry.FullName.EndsWith(".dmp", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static byte[] CreateMinimalMinidump(byte payloadMarker)
+    {
+        var dump = new byte[48];
         "MDMP"u8.CopyTo(dump);
         BinaryPrimitives.WriteUInt32LittleEndian(dump.AsSpan(4, 4), 0x0000A793);
         BinaryPrimitives.WriteUInt32LittleEndian(dump.AsSpan(8, 4), 1);
         BinaryPrimitives.WriteUInt32LittleEndian(dump.AsSpan(12, 4), 32);
-        BinaryPrimitives.WriteUInt32LittleEndian(dump.AsSpan(32, 4), streamType);
+        BinaryPrimitives.WriteUInt32LittleEndian(dump.AsSpan(32, 4), 10);
+        BinaryPrimitives.WriteUInt32LittleEndian(dump.AsSpan(36, 4), 4);
+        BinaryPrimitives.WriteUInt32LittleEndian(dump.AsSpan(40, 4), 44);
+        dump.AsSpan(44, 4).Fill(payloadMarker);
         return dump;
     }
 
