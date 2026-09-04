@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.IO;
 using System.IO.Compression;
 using System.Reflection;
@@ -59,6 +60,9 @@ public sealed class SupportBundleService
     private const int MaxRollingLogFiles = 3;
     private const int MaxCrashFiles = 3;
     private const int MaxMinidumpFiles = 1;
+    private const int MinidumpHeaderBytes = 32;
+    private const int MinidumpDirectoryEntryBytes = 12;
+    private const uint MaxMinidumpStreamCount = 4096;
     private const int MaxDiagnosticWindowBytes = 1024 * 1024;
     private const long MaxMinidumpBytes = 256L * 1024 * 1024;
     private const long MetadataEstimateBytes = 16 * 1024;
@@ -759,9 +763,28 @@ public sealed class SupportBundleService
         LatestFiles(_crashDirectory, "crash-*.log", MaxCrashFiles)
             .Select(path => new SupportBundleFile(path, "Crash report"));
 
-    private IEnumerable<SupportBundleFile> MinidumpFiles() =>
-        LatestFiles(_crashDirectory, "*.dmp", MaxMinidumpFiles)
-            .Select(path => new SupportBundleFile(path, "Local Triage minidump"));
+    private IEnumerable<SupportBundleFile> MinidumpFiles()
+    {
+        if (!Directory.Exists(_crashDirectory))
+        {
+            return Array.Empty<SupportBundleFile>();
+        }
+
+        try
+        {
+            return Directory.EnumerateFiles(_crashDirectory, "*.dmp")
+                .Select(path => new FileInfo(path))
+                .OrderByDescending(file => file.LastWriteTimeUtc)
+                .Where(file => IsValidMinidumpFile(file, MaxMinidumpBytes))
+                .Take(MaxMinidumpFiles)
+                .Select(file => new SupportBundleFile(file.FullName, "Local Triage minidump"))
+                .ToArray();
+        }
+        catch
+        {
+            return Array.Empty<SupportBundleFile>();
+        }
+    }
 
     private bool TryAddRedactedFileWindow(ZipArchive archive, string folder, SupportBundleFile file, int maxLines)
     {
@@ -790,11 +813,13 @@ public sealed class SupportBundleService
             }
 
             input = new FileStream(info.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
-            if (input.Length is <= 0 || input.Length > maxBytes)
+            if (!IsValidMinidump(input, maxBytes))
             {
                 input.Dispose();
                 return false;
             }
+
+            input.Position = 0;
         }
         catch
         {
@@ -809,6 +834,51 @@ public sealed class SupportBundleService
             input.CopyTo(output);
             return true;
         }
+    }
+
+    private static bool IsValidMinidumpFile(FileInfo info, long maxBytes)
+    {
+        try
+        {
+            if (!info.Exists || info.Length < MinidumpHeaderBytes || info.Length > maxBytes ||
+                (info.Attributes & FileAttributes.ReparsePoint) != 0)
+            {
+                return false;
+            }
+
+            using var input = new FileStream(info.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
+            return IsValidMinidump(input, maxBytes);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static bool IsValidMinidump(Stream input, long maxBytes)
+    {
+        if (!input.CanSeek || input.Length < MinidumpHeaderBytes || input.Length > maxBytes)
+        {
+            return false;
+        }
+
+        input.Position = 0;
+        Span<byte> header = stackalloc byte[MinidumpHeaderBytes];
+        input.ReadExactly(header);
+        if (!header[..4].SequenceEqual("MDMP"u8))
+        {
+            return false;
+        }
+
+        var streamCount = BinaryPrimitives.ReadUInt32LittleEndian(header.Slice(8, sizeof(uint)));
+        var directoryRva = BinaryPrimitives.ReadUInt32LittleEndian(header.Slice(12, sizeof(uint)));
+        if (streamCount is 0 or > MaxMinidumpStreamCount || directoryRva < MinidumpHeaderBytes)
+        {
+            return false;
+        }
+
+        var directoryEnd = (long)directoryRva + ((long)streamCount * MinidumpDirectoryEntryBytes);
+        return directoryEnd <= input.Length;
     }
 
     private string ReadSupportFileWindow(string path, int maxLines) =>

@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.IO;
 using System.IO.Compression;
 using System.Security.Cryptography;
@@ -473,8 +474,10 @@ public sealed class SupportBundleServiceTests
         Directory.CreateDirectory(fixture.CrashDirectory);
         var older = Path.Combine(fixture.CrashDirectory, "LibreSpot-100-1.dmp");
         var newest = Path.Combine(fixture.CrashDirectory, "LibreSpot-200-2.dmp");
-        File.WriteAllBytes(older, "older dump"u8.ToArray());
-        File.WriteAllBytes(newest, "newest dump"u8.ToArray());
+        var olderBytes = CreateMinimalMinidump(streamType: 1);
+        var newestBytes = CreateMinimalMinidump(streamType: 2);
+        File.WriteAllBytes(older, olderBytes);
+        File.WriteAllBytes(newest, newestBytes);
         File.SetLastWriteTimeUtc(older, new DateTime(2026, 7, 1, 12, 0, 0, DateTimeKind.Utc));
         File.SetLastWriteTimeUtc(newest, new DateTime(2026, 7, 1, 12, 1, 0, DateTimeKind.Utc));
 
@@ -492,12 +495,65 @@ public sealed class SupportBundleServiceTests
         using var archive = ZipFile.OpenRead(result.Path);
         var dump = Assert.Single(archive.Entries, entry => entry.FullName.EndsWith(".dmp", StringComparison.OrdinalIgnoreCase));
         Assert.Equal("crashes/LibreSpot-200-2.dmp", dump.FullName);
-        Assert.Equal("newest dump", ReadEntry(dump));
+        Assert.Equal(newestBytes, ReadEntryBytes(dump));
         using var manifest = JsonDocument.Parse(ReadEntry(archive.GetEntry("manifest.json")!));
         Assert.True(manifest.RootElement.GetProperty("options").GetProperty("includeMinidump").GetBoolean());
         Assert.Contains(
             manifest.RootElement.GetProperty("redactionRules").EnumerateArray(),
             rule => rule.GetString()?.Contains("runtime filters personal paths and passwords", StringComparison.OrdinalIgnoreCase) == true);
+    }
+
+    [Fact]
+    public async Task ExportAsync_SkipsInvalidNewestMinidumpAndIncludesOlderValidDump()
+    {
+        using var fixture = new SupportBundleFixture();
+        Directory.CreateDirectory(fixture.CrashDirectory);
+        var older = Path.Combine(fixture.CrashDirectory, "LibreSpot-100-1.dmp");
+        var newest = Path.Combine(fixture.CrashDirectory, "LibreSpot-200-2.dmp");
+        var olderBytes = CreateMinimalMinidump(streamType: 1);
+        File.WriteAllBytes(older, olderBytes);
+        File.WriteAllBytes(newest, "not a minidump"u8.ToArray());
+        File.SetLastWriteTimeUtc(older, new DateTime(2026, 7, 1, 12, 0, 0, DateTimeKind.Utc));
+        File.SetLastWriteTimeUtc(newest, new DateTime(2026, 7, 1, 12, 1, 0, DateTimeKind.Utc));
+
+        var options = new SupportBundleOptions(IncludeMinidump: true);
+        var preview = fixture.Service.CreatePreview(fixture.GetSnapshot(), options);
+        var result = await fixture.ExportAsync(options);
+
+        Assert.Equal(1, Assert.Single(preview.Entries, entry => entry.Id == "minidump").FileCount);
+        using var archive = ZipFile.OpenRead(result.Path);
+        var dump = Assert.Single(archive.Entries, entry => entry.FullName.EndsWith(".dmp", StringComparison.OrdinalIgnoreCase));
+        Assert.Equal("crashes/LibreSpot-100-1.dmp", dump.FullName);
+        Assert.Equal(olderBytes, ReadEntryBytes(dump));
+    }
+
+    [Fact]
+    public async Task ExportAsync_RejectsPlainTextFileWithMinidumpSignature()
+    {
+        using var fixture = new SupportBundleFixture();
+        Directory.CreateDirectory(fixture.CrashDirectory);
+        var fake = new byte[64];
+        "MDMP plain text pretending to be a dump"u8.CopyTo(fake);
+        File.WriteAllBytes(Path.Combine(fixture.CrashDirectory, "LibreSpot-fake.dmp"), fake);
+
+        var options = new SupportBundleOptions(IncludeMinidump: true);
+        var preview = fixture.Service.CreatePreview(fixture.GetSnapshot(), options);
+        var result = await fixture.ExportAsync(options);
+
+        Assert.Equal(0, Assert.Single(preview.Entries, entry => entry.Id == "minidump").FileCount);
+        using var archive = ZipFile.OpenRead(result.Path);
+        Assert.DoesNotContain(archive.Entries, entry => entry.FullName.EndsWith(".dmp", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static byte[] CreateMinimalMinidump(uint streamType)
+    {
+        var dump = new byte[44];
+        "MDMP"u8.CopyTo(dump);
+        BinaryPrimitives.WriteUInt32LittleEndian(dump.AsSpan(4, 4), 0x0000A793);
+        BinaryPrimitives.WriteUInt32LittleEndian(dump.AsSpan(8, 4), 1);
+        BinaryPrimitives.WriteUInt32LittleEndian(dump.AsSpan(12, 4), 32);
+        BinaryPrimitives.WriteUInt32LittleEndian(dump.AsSpan(32, 4), streamType);
+        return dump;
     }
 
     private static IReadOnlyDictionary<string, string> ReadZipText(string path)
@@ -517,6 +573,14 @@ public sealed class SupportBundleServiceTests
     {
         using var reader = new StreamReader(entry.Open());
         return reader.ReadToEnd();
+    }
+
+    private static byte[] ReadEntryBytes(ZipArchiveEntry entry)
+    {
+        using var input = entry.Open();
+        using var output = new MemoryStream();
+        input.CopyTo(output);
+        return output.ToArray();
     }
 
     private sealed class SupportBundleFixture : IDisposable
