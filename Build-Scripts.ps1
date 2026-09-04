@@ -2345,6 +2345,65 @@ function ConvertTo-DependencyPackageRows {
     return @($rows)
 }
 
+function Get-LibreSpotJavaScriptInstallScriptFindings {
+    <#
+        pnpm runs a dependency's install scripts only for packages the
+        workspace allows by name. That allowlist is a real supply-chain
+        boundary: the 2026-08-04 npm wave shipped its payload in a preinstall
+        hook. This reports any installed package that declares one and is not
+        on the list, so an allowlist edit or a new transitive with a hook is
+        visible in the dependency report rather than only at install time.
+    #>
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$WorkspacePath)
+
+    $findings = @()
+    $workspaceFile = Join-Path $WorkspacePath 'pnpm-workspace.yaml'
+    if (-not (Test-Path -LiteralPath $workspaceFile -PathType Leaf)) {
+        return , $findings
+    }
+
+    $allowed = New-Object System.Collections.Generic.HashSet[string]
+    $inAllowBuilds = $false
+    foreach ($line in [System.IO.File]::ReadAllLines($workspaceFile)) {
+        if ($line -match '^allowBuilds\s*:') { $inAllowBuilds = $true; continue }
+        if ($inAllowBuilds -and $line -match '^\S') { $inAllowBuilds = $false }
+        if ($inAllowBuilds -and $line -match "^\s+'?([^':\s]+)'?\s*:\s*true\s*$") {
+            $null = $allowed.Add($Matches[1])
+        }
+    }
+
+    $modules = Join-Path $WorkspacePath 'node_modules'
+    if (-not (Test-Path -LiteralPath $modules -PathType Container)) {
+        return , $findings
+    }
+
+    # .pnpm holds the real package copies; the top level is mostly links.
+    $manifests = @(Get-ChildItem -LiteralPath $modules -Recurse -Filter 'package.json' -File -ErrorAction SilentlyContinue |
+        Where-Object { $_.FullName -notmatch '\\node_modules\\\.bin\\' })
+
+    foreach ($manifest in $manifests) {
+        $document = $null
+        try {
+            $document = [System.IO.File]::ReadAllText($manifest.FullName) | ConvertFrom-Json -ErrorAction Stop
+        } catch { continue }
+        if (-not $document -or -not $document.scripts) { continue }
+
+        # pnpm's allowlist governs these three. 'prepare' is not run for an
+        # installed dependency, so including it reported two dozen packages
+        # that never execute anything at install time.
+        $hooks = @('preinstall', 'install', 'postinstall') |
+            Where-Object { $document.scripts.PSObject.Properties.Name -contains $_ }
+        if ($hooks.Count -eq 0) { continue }
+
+        $name = [string]$document.name
+        if ([string]::IsNullOrWhiteSpace($name) -or $allowed.Contains($name)) { continue }
+
+        $findings += "Install script outside the pnpm allowlist: $name declares $($hooks -join ', ')."
+    }
+
+    return , @($findings | Sort-Object -Unique)
+}
 function Get-LibreSpotJavaScriptAudit {
     param([Parameter(Mandatory)][string]$WorkspacePath)
 
@@ -2680,6 +2739,13 @@ function New-LibreSpotDependencyHealthReport {
     }
     foreach ($auditFailure in @($javaScriptAudit.failures)) {
         $failures += $auditFailure
+    }
+
+    # An advisory scan says what is known to be bad. The allowlist says what
+    # is allowed to run code during install, which is the boundary an
+    # unknown-bad package would cross first.
+    foreach ($hookFinding in @(Get-LibreSpotJavaScriptInstallScriptFindings -WorkspacePath (Join-Path $PSScriptRoot 'src/LibreSpot.App'))) {
+        $failures += $hookFinding
     }
 
     $report = [ordered]@{

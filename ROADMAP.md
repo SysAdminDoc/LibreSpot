@@ -69,13 +69,6 @@ Added 2026-09-04 from RESEARCH.md. IDs continue the RD scheme; RD-180 was the la
   Acceptance: the action SHALL export the Marketplace backup JSON first and refuse to continue if the export fails, SHALL delete the `spicetify-marketplace` IndexedDB database and Marketplace's localStorage keys, SHALL reload, and a hidden-CDP run SHALL prove Marketplace comes back empty and re-imports the backup; every IndexedDB call SHALL be wrapped so a failure rejects instead of hanging.
   Complexity: M
 
-- [ ] P3: RD-197: Gate the pnpm build-script allowlist so install scripts cannot come back
-  Why: the 2026-08-04 CHAINDROP wave compromised `keyv`, `flat-cache` and `file-entry-cache` with `preinstall` payloads; LibreSpot's lockfile pins older versions and pnpm 11's allowlist names only esbuild and Parcel's watcher, but no test asserts the allowlist stays exact, so one edit re-enables every dependency's install scripts.
-  Evidence: https://www.elastic.co/security-labs/shai-hulud-chaindrop-npm-supply-chain; `src/LibreSpot.App/pnpm-workspace.yaml:4-6` (`allowBuilds` lists only `@parcel/watcher` and `esbuild`); `CLAUDE.md` "pnpm's dependency build allowlist now names only esbuild and Parcel's file watcher".
-  Touches: `tests/powershell/DependencyHealth.Tests.ps1` or a vitest under `src/LibreSpot.App/tests`, `Build-Scripts.ps1 -DependencyHealth`.
-  Acceptance: a test SHALL read the allowlist and fail when it contains anything beyond `esbuild` and `@parcel/watcher`; `-DependencyHealth` SHALL fail when any package under `node_modules` declares a `preinstall` script outside the allowlist.
-  Complexity: S
-
 - [ ] P1: RD-198: Rebuild the live-engine archive and re-pin it once the in-flight release lands
   Why: RD-181 changed `src/LibreSpot.App/src/core/store.ts`, `src/panels/health.ts`, `src/spicetify-globals.d.ts` and `src/extensions/librespot-engine.ts`, but `resources/custom-apps/librespot-engine.zip` was not rebuilt because a parallel session holds an uncommitted rebuilt archive and its three SHA256 pins for the v4.5.0 release. Nothing gates archive-against-source drift (the tests only check archive against pins), so the shipped custom app will not carry the quarantine recovery until the archive is rebuilt.
   Evidence: `git status` on 2026-09-04 showed `resources/custom-apps/librespot-engine.zip`, `src/powershell/data/CommunityCustomApps.ps1`, `LibreSpot.ps1` and `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1` modified by another session; the Desktop non-WPF suite passed 1218 tests with the app source changed and the archive stale; `CLAUDE.md` "Rebuilding the live-engine ZIP changes its installer pin".

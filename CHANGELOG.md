@@ -15,6 +15,7 @@ All notable changes to LibreSpot will be documented in this file.
 - Maintenance now shows which Chromium version the installed Spotify runs, and the trust disclosure explains that pinning Spotify pins that browser engine.
 - The Spotify drift check now works out the highest build that SpotX, a published classmap and Spicetify's declared range all cover, and says which of the three set that ceiling.
 - The theme gallery in Settings no longer scrolls inside the page. At the smallest window it showed a second scrollbar beside the page's own and one and a half cards; it now grows with the page.
+- The dependency gate now refuses an installed JavaScript package that runs an install script without being on the reviewed allowlist, which is the boundary a compromised package crosses first.
 
 ### Added
 
