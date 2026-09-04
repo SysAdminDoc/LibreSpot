@@ -641,8 +641,9 @@ exception: ps2exe does not build reproducibly, so verify that one against the
 PowerShell process permits that reviewed local module to load even when the
 current user's execution policy blocks unsigned module scripts.
 `-GenerateSbom` restores the pinned CycloneDX 6.2.0 local tool and writes
-`publish\LibreSpot.sbom.cdx.json` for the desktop project. Manifest
-generation then re-checks that file version against the script, checks the
+`publish\LibreSpot.sbom.cdx.json` for the desktop project. It reads the assets
+already restored by `-PublishRelease` without changing the locked dependency
+graph. Manifest generation then re-checks that file version against the script, checks the
 SBOM is CycloneDX 1.7 from that tool with per-component hashes and licenses,
 and measures the desktop executable against the publish footprint budget, so a
 mismatched or oversized artifact fails before the release is uploaded.

@@ -2087,6 +2087,7 @@ function Invoke-LibreSpotSbomGenerate {
             (Join-Path $PSScriptRoot 'src/LibreSpot.Desktop/LibreSpot.Desktop.csproj') `
             --json `
             --exclude-dev `
+            --disable-package-restore `
             -o $outputDirectory `
             -fn $fileName
         if ($LASTEXITCODE -ne 0) {

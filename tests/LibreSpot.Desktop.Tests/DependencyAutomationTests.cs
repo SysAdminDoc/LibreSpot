@@ -169,6 +169,16 @@ public sealed class DependencyAutomationTests
     }
 
     [Fact]
+    public void DesktopReleaseLinkerInput_IsExplicitlyLocked()
+    {
+        var project = ReadRepoFile("src", "LibreSpot.Desktop", "LibreSpot.Desktop.csproj");
+        var lockFile = ReadRepoFile("src", "LibreSpot.Desktop", "packages.lock.json");
+
+        Assert.Contains("<PackageReference Include=\"Microsoft.NET.ILLink.Tasks\" Version=\"10.0.11\" PrivateAssets=\"all\" />", project);
+        Assert.Contains("\"Microsoft.NET.ILLink.Tasks\"", lockFile);
+    }
+
+    [Fact]
     public void BuildScripts_CanEmitDependencyHealthReportAndFailUnapprovedDrift()
     {
         var script = ReadRepoFile("Build-Scripts.ps1");
