@@ -34,13 +34,6 @@ Added 2026-09-04 from RESEARCH.md. IDs continue the RD scheme; RD-180 was the la
   Acceptance: WHEN the receipt cannot be written after a mutating run, the run SHALL finish as a warning that names the receipt path and says undo is unavailable for it; WHEN a rollback fails, the error SHALL name the rescue file; WHEN the undo failure-path writes fail, the result message SHALL say the journal was not updated; tests SHALL plant an unwritable path for each.
   Complexity: M
 
-- [ ] P3: RD-192: Format diagnostic timestamps with the invariant culture and UTC
-  Why: three sites format dates with no culture, so a non-Gregorian default calendar (th-TH, ar-SA) writes a non-ISO date into health output and support bundles, and crash filenames use local time so they collide across a DST fall-back hour and misorder against the UTC journal.
-  Evidence: `src/LibreSpot.Core/AppCatalog.cs:693`; `src/LibreSpot.Core/EnvironmentSnapshotService.cs:2504`; `src/LibreSpot.Desktop/Services/CrashReporter.cs:171`.
-  Touches: those three files, the existing crash-reporter tests in `tests/LibreSpot.Desktop.Tests` (grep `CrashReporter` to find them), a culture-scoped test in the Localization collection.
-  Acceptance: under th-TH and ar-SA the three outputs SHALL be Gregorian ISO strings; crash filenames SHALL use UTC with a trailing `Z`; tests SHALL run under those cultures inside the serialized Localization collection.
-  Complexity: S
-
 - [ ] P3: RD-193: Fail the offscreen UIA scan on invokable elements smaller than 24 by 24 device-independent pixels
   Why: WCAG2ICT (2025-12-11) applies success criterion 2.5.8 Target Size Minimum to desktop software and Axe.Windows 2.4.2 has no rule for it, so the current scan cannot catch a shrunken button or a tiny disclosure chevron.
   Evidence: https://www.w3.org/TR/wcag2ict-22/; https://github.com/microsoft/axe-windows/blob/main/docs/RulesDescription.md (rule set unchanged since 2.4.2); `tests/LibreSpot.Desktop.Tests/WpfUiAutomationSmokeTests.cs` `Walk`.

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.IO;
 using System.Reflection;
 using System.Threading;
@@ -168,7 +169,9 @@ public static class CrashReporter
             safeSource = "Unknown";
         }
 
-        var stamp = DateTime.Now.ToString("yyyyMMdd-HHmmss-fff");
+        // UTC, so two crashes an hour apart across a DST fall-back cannot
+        // collide and the names sort the same way the journal does.
+        var stamp = DateTime.UtcNow.ToString("yyyyMMdd-HHmmss-fffZ", CultureInfo.InvariantCulture);
 
         for (var attempt = 0; attempt < 10; attempt++)
         {

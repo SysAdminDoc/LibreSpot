@@ -2581,7 +2581,7 @@ public sealed class EnvironmentSnapshotService
         values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
 
     private static string FormatMaybe(DateTime? value) =>
-        value?.ToString("yyyy-MM-dd HH:mm") ?? L("HealthValueUnknown");
+        value?.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) ?? L("HealthValueUnknown");
 
     private static string FormatMaybe(string? value) =>
         string.IsNullOrWhiteSpace(value) ? L("HealthValueUnknown") : value;

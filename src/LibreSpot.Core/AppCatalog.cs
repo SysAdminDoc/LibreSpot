@@ -690,7 +690,11 @@ public sealed record StackHealthComponent(
     public bool HasPath => !string.IsNullOrWhiteSpace(Path);
     public bool HasLastChanged => LastChanged.HasValue;
     public bool HasRecommendedActions => RecommendedActionIds.Count > 0;
-    public string LastChangedDisplay => LastChanged?.ToString("yyyy-MM-dd HH:mm") ?? string.Empty;
+    // InvariantCulture keeps this Gregorian and ISO-shaped. Under a
+    // non-Gregorian default calendar such as ar-SA or th-TH the current
+    // culture renders a year no diagnostic reader would recognise.
+    public string LastChangedDisplay =>
+        LastChanged?.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) ?? string.Empty;
     public string RecommendedActionText => HasRecommendedActions
         ? string.Join(", ", RecommendedActionIds.Select(LocalizeActionId))
         : Resource("HealthActionNoAction");
