@@ -237,7 +237,8 @@ public sealed class FleetSchemaTests
             .ToHashSet();
 
         var expected = new[] { "install", "reapply", "detect", "status", "validate", "plan",
-            "repair", "watcher install", "watcher remove", "uninstall", "export-support", "version" };
+            "repair", "watcher install", "watcher remove", "uninstall", "cache export", "cache import",
+            "export-support", "version" };
 
         foreach (var verb in expected)
             Assert.Contains(verb, verbs);
@@ -247,7 +248,7 @@ public sealed class FleetSchemaTests
     public void CliContract_ReadOnlyVerbsDoNotMutate()
     {
         using var doc = LoadJson("fleet-cli-contract.json");
-        var readOnlyVerbs = new[] { "detect", "status", "validate", "plan", "export-support", "version" };
+        var readOnlyVerbs = new[] { "detect", "status", "validate", "plan", "cache export", "export-support", "version" };
 
         foreach (var entry in doc.RootElement.GetProperty("verbs").EnumerateArray())
         {

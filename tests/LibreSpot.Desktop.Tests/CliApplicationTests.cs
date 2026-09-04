@@ -684,6 +684,89 @@ public sealed class CliApplicationTests
     }
 
     [Fact]
+    public void CacheExportAndImport_RoundTripVerifiedAssetWithoutNetwork()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "LibreSpot.Cli.Cache.Tests", Guid.NewGuid().ToString("N"));
+        var sourceConfig = Path.Combine(root, "source", "config.json");
+        var targetConfig = Path.Combine(root, "target", "config.json");
+        var bundlePath = Path.Combine(root, "fleet-cache.zip");
+        try
+        {
+            var sourceCache = Path.Combine(Path.GetDirectoryName(sourceConfig)!, "cache");
+            var asset = WriteCliCacheEntry(sourceCache, "Offline fixture", "https://example.invalid/offline", "offline asset bytes");
+
+            var export = Run("cache", "export", "--output", bundlePath, "--config-path", sourceConfig, "--json");
+
+            Assert.Equal(0, export.ExitCode);
+            Assert.Equal(string.Empty, export.Stderr);
+            using (var document = JsonDocument.Parse(export.Stdout))
+            {
+                Assert.Equal("export", document.RootElement.GetProperty("operation").GetString());
+                Assert.Equal(1, document.RootElement.GetProperty("entryCount").GetInt32());
+                Assert.Equal("spotify-installer", document.RootElement.GetProperty("externalRequirement").GetProperty("id").GetString());
+            }
+
+            var import = Run("cache", "import", bundlePath, "--config-path", targetConfig, "--json");
+
+            Assert.Equal(0, import.ExitCode);
+            Assert.Equal(string.Empty, import.Stderr);
+            using (var document = JsonDocument.Parse(import.Stdout))
+            {
+                Assert.Equal("import", document.RootElement.GetProperty("operation").GetString());
+                Assert.Contains("SpotX's Spotify installer chain", document.RootElement.GetProperty("externalRequirement").GetProperty("reason").GetString());
+            }
+            var importedCache = Path.Combine(Path.GetDirectoryName(targetConfig)!, "cache");
+            Assert.Equal(asset.Bytes, File.ReadAllBytes(Path.Combine(importedCache, asset.Hash)));
+            using var importedIndex = JsonDocument.Parse(File.ReadAllText(Path.Combine(importedCache, "asset-cache-index.json")));
+            Assert.Equal(asset.Hash, Assert.Single(importedIndex.RootElement.GetProperty("entries").EnumerateArray()).GetProperty("sha256").GetString());
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void CacheImport_RejectsTamperedBundleBeforeCreatingTargetCache()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "LibreSpot.Cli.Cache.Tests", Guid.NewGuid().ToString("N"));
+        var sourceConfig = Path.Combine(root, "source", "config.json");
+        var targetConfig = Path.Combine(root, "target", "config.json");
+        var bundlePath = Path.Combine(root, "tampered.zip");
+        try
+        {
+            WriteCliCacheEntry(Path.Combine(Path.GetDirectoryName(sourceConfig)!, "cache"), "Offline fixture", "https://example.invalid/offline", "offline asset bytes");
+            Assert.Equal(0, Run("cache", "export", "--output", bundlePath, "--config-path", sourceConfig).ExitCode);
+            using (var archive = ZipFile.Open(bundlePath, ZipArchiveMode.Update))
+            {
+                var asset = Assert.Single(archive.Entries, entry => entry.FullName.StartsWith("assets/", StringComparison.Ordinal));
+                var name = asset.FullName;
+                var length = asset.Length;
+                asset.Delete();
+                using var stream = archive.CreateEntry(name).Open();
+                stream.Write(Enumerable.Repeat((byte)'x', checked((int)length)).ToArray());
+            }
+
+            var import = Run("cache", "import", bundlePath, "--config-path", targetConfig);
+
+            Assert.Equal(2, import.ExitCode);
+            Assert.Contains("failed SHA256 verification", import.Stderr, StringComparison.Ordinal);
+            Assert.Equal(string.Empty, import.Stdout);
+            Assert.False(Directory.Exists(Path.Combine(Path.GetDirectoryName(targetConfig)!, "cache")));
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public void Undo_RequiresExplicitConfirmationAfterMachineReadablePreview()
     {
         using var fixture = new CliUndoFixture();
@@ -1603,6 +1686,8 @@ public sealed class CliApplicationTests
             "reapply" => (new[] { "reapply", "--dry-run", "--answer-file", sample, "--ndjson" }, null),
             "uninstall" => (new[] { "uninstall", "--dry-run", "--ndjson" }, null),
             "repair" => (new[] { "repair", "--repair-id", "RepairMarketplace", "--dry-run", "--ndjson" }, null),
+            "cache export" => CacheExportSmokeArgs(),
+            "cache import" => CacheImportSmokeArgs(),
             "export-support" => (new[] { "export-support", "--output", supportBundlePath }, supportBundlePath),
             "undo" => UndoSmokeArgs(),
             "watcher install" => (new[] { "watcher", "install", "--silent" }, null),
@@ -1622,6 +1707,62 @@ public sealed class CliApplicationTests
             },
             fixture.Root);
     }
+
+    private static (string[] Args, string? CleanupPath) CacheExportSmokeArgs()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "LibreSpot.Cli.Cache.Smoke", Guid.NewGuid().ToString("N"));
+        var configPath = Path.Combine(root, "source", "config.json");
+        WriteCliCacheEntry(Path.Combine(Path.GetDirectoryName(configPath)!, "cache"), "Smoke asset", "https://example.invalid/smoke", "smoke bytes");
+        return (new[] { "cache", "export", "--output", Path.Combine(root, "cache.zip"), "--config-path", configPath }, root);
+    }
+
+    private static (string[] Args, string? CleanupPath) CacheImportSmokeArgs()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "LibreSpot.Cli.Cache.Smoke", Guid.NewGuid().ToString("N"));
+        var sourceConfig = Path.Combine(root, "source", "config.json");
+        var targetConfig = Path.Combine(root, "target", "config.json");
+        var bundlePath = Path.Combine(root, "cache.zip");
+        WriteCliCacheEntry(Path.Combine(Path.GetDirectoryName(sourceConfig)!, "cache"), "Smoke asset", "https://example.invalid/smoke", "smoke bytes");
+        new LibreSpot.Desktop.Services.AssetCacheBundleService().Export(
+            Path.Combine(Path.GetDirectoryName(sourceConfig)!, "cache"),
+            bundlePath,
+            "4.4.0");
+        return (new[] { "cache", "import", bundlePath, "--config-path", targetConfig }, root);
+    }
+
+    private static CliCacheAsset WriteCliCacheEntry(string cacheDirectory, string label, string sourceUrl, string content)
+    {
+        Directory.CreateDirectory(cacheDirectory);
+        var bytes = Encoding.UTF8.GetBytes(content);
+        var hash = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+        File.WriteAllBytes(Path.Combine(cacheDirectory, hash), bytes);
+        var timestamp = DateTimeOffset.Parse("2026-09-04T00:00:00Z").ToString("O");
+        File.WriteAllText(
+            Path.Combine(cacheDirectory, "asset-cache-index.json"),
+            JsonSerializer.Serialize(new
+            {
+                schemaVersion = 1,
+                generatedAtUtc = timestamp,
+                entries = new[]
+                {
+                    new
+                    {
+                        sha256 = hash,
+                        label,
+                        sourceUrl,
+                        byteSize = bytes.LongLength,
+                        firstSeenAtUtc = timestamp,
+                        lastUsedAtUtc = timestamp,
+                        lastVerifiedAtUtc = timestamp,
+                        status = "present",
+                        quarantinedPath = (string?)null
+                    }
+                }
+            }));
+        return new CliCacheAsset(hash, bytes);
+    }
+
+    private sealed record CliCacheAsset(string Hash, byte[] Bytes);
 
     private static void AssertNdjsonRequiredFields(JsonElement line)
     {

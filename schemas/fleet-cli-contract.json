@@ -254,6 +254,41 @@
       "notes": "Default behavior removes LibreSpot and Spicetify customizations but keeps Spotify intact. --purge also removes LibreSpot config, logs, and backups. --keep-spotify is the default and is accepted for explicitness."
     },
     {
+      "verb": "cache export",
+      "description": "Export every verified asset-cache entry and its provenance metadata to a portable ZIP bundle.",
+      "requiresAdmin": false,
+      "mutates": false,
+      "implementationStatus": "implemented",
+      "supportsDryRun": false,
+      "supportsJson": true,
+      "supportsNdjson": false,
+      "defaultExitCodes": [0, 1, 2],
+      "flags": [
+        "--output",
+        "--json",
+        "--config-path",
+        "--scope"
+      ],
+      "notes": "Refuses an empty, stale, missing, corrupt, oversized, duplicate, or reparse-point cache entry. The manifest lists Spotify's vendor installer as the one dependency outside LibreSpot's cache."
+    },
+    {
+      "verb": "cache import",
+      "description": "Import a portable asset-cache bundle after verifying its manifest, ZIP layout, sizes, and every SHA256 digest.",
+      "requiresAdmin": false,
+      "mutates": true,
+      "implementationStatus": "implemented",
+      "supportsDryRun": false,
+      "supportsJson": true,
+      "supportsNdjson": false,
+      "defaultExitCodes": [0, 1, 2],
+      "flags": [
+        "--json",
+        "--config-path",
+        "--scope"
+      ],
+      "notes": "The ZIP path is positional. Validation finishes in a private staging directory before cache files change, and imported metadata is merged into the local index. No network request is made."
+    },
+    {
       "verb": "export-support",
       "description": "Export a redacted support bundle containing logs, config, and diagnostics.",
       "requiresAdmin": false,

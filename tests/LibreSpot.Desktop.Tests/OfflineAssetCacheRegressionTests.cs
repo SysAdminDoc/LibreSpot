@@ -53,6 +53,26 @@ public sealed class OfflineAssetCacheRegressionTests
         Assert.True(corrupt.GetProperty("quarantined").GetBoolean());
     }
 
+    [Fact]
+    public async Task ImportedBundle_SatisfiesEveryLibreSpotAssetWithoutNetworkAndReportsSpotifyRequirement()
+    {
+        using var result = await RunHarnessAsync();
+
+        var bundle = result.RootElement.GetProperty("bundle");
+        Assert.True(bundle.GetProperty("succeeded").GetBoolean(), result.RawOutput);
+        Assert.Equal(5, bundle.GetProperty("exportedEntryCount").GetInt32());
+        Assert.Equal(5, bundle.GetProperty("importedEntryCount").GetInt32());
+        Assert.Equal(0, bundle.GetProperty("networkAttemptCount").GetInt32());
+        Assert.Equal(5, bundle.GetProperty("verifiedCacheUseCount").GetInt32());
+        Assert.Equal("spotify-installer", bundle.GetProperty("externalRequirementId").GetString());
+        Assert.Contains("SpotX's Spotify installer chain", bundle.GetProperty("externalRequirement").GetString());
+        Assert.True(bundle.GetProperty("spotxInvoked").GetBoolean());
+        Assert.True(bundle.GetProperty("spicetifyCliInvoked").GetBoolean());
+        Assert.True(bundle.GetProperty("themeInstalled").GetBoolean());
+        Assert.True(bundle.GetProperty("marketplaceInstalled").GetBoolean());
+        Assert.True(bundle.GetProperty("statsInstalled").GetBoolean());
+    }
+
     private static async Task<HarnessResult> RunHarnessAsync()
     {
         var root = Path.Combine(Path.GetTempPath(), "LibreSpot.OfflineCache.Tests", Guid.NewGuid().ToString("N"));
@@ -185,6 +205,8 @@ $sharedRoot = Join-Path $RepoRoot 'src\powershell\shared'
 foreach ($name in @(
     'Get-FileSha256Lower',
     'Confirm-FileHash',
+    'Export-LibreSpotAssetCacheBundle',
+    'Import-LibreSpotAssetCacheBundle',
     'Update-AssetCacheIndexEntry',
     'Get-FromAssetCache',
     'Save-ToAssetCache',
@@ -515,10 +537,43 @@ function Run-CorruptScenario {
     }
 }
 
+function Run-BundleScenario {
+    Reset-Scenario -Name 'bundle'
+    $assets = New-AssetSet
+    Configure-Pins -Assets $assets
+    foreach ($asset in $assets.Values) {
+        Write-AssetToCache -Asset $asset
+        Update-AssetCacheIndexEntry -SHA256Hash $asset.hash -Label $asset.name -SourceUrl $asset.uri -ByteSize $asset.bytes.Length -Status 'present' -MarkVerified
+    }
+
+    $bundlePath = Join-Path $script:ScenarioRoot 'asset-cache.zip'
+    $export = Export-LibreSpotAssetCacheBundle -OutputPath $bundlePath -ProductVersion 'test'
+    Remove-Item -LiteralPath $global:CACHE_DIR -Recurse -Force
+    New-Item -Path $global:CACHE_DIR -ItemType Directory -Force | Out-Null
+    $import = Import-LibreSpotAssetCacheBundle -BundlePath $bundlePath
+    Invoke-InstallSet
+
+    return [pscustomobject]@{
+        succeeded = $true
+        exportedEntryCount = $export.EntryCount
+        importedEntryCount = $import.EntryCount
+        networkAttemptCount = @($script:NetworkAttempts).Count
+        verifiedCacheUseCount = @($script:LogEntries | Where-Object { $_.level -ne 'WARN' -and $_.message -like '  Using verified cached copy*' }).Count
+        externalRequirementId = $import.ExternalRequirementId
+        externalRequirement = $import.ExternalRequirement
+        spotxInvoked = @($script:ExternalScripts).Count -eq 1
+        spicetifyCliInvoked = @($script:SpicetifyCliCalls | Where-Object { $_ -like 'config --bypass-admin*' }).Count -gt 0
+        themeInstalled = Test-Path -LiteralPath (Join-Path $script:Integration.ThemesDirectory 'Dribbblish\color.ini') -PathType Leaf
+        marketplaceInstalled = Test-Path -LiteralPath (Join-Path $script:Integration.CustomAppsDirectory 'marketplace\manifest.json') -PathType Leaf
+        statsInstalled = Test-Path -LiteralPath (Join-Path $script:Integration.CustomAppsDirectory 'stats\manifest.json') -PathType Leaf
+    }
+}
+
 $report = [ordered]@{
     fallback = Run-FallbackScenario
     missing = Run-MissingScenario
     corrupt = Run-CorruptScenario
+    bundle = Run-BundleScenario
 }
 
 $report | ConvertTo-Json -Depth 12

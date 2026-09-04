@@ -1,0 +1,140 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/SysAdminDoc/LibreSpot/schemas/asset-cache-bundle.json",
+  "title": "LibreSpot asset-cache bundle manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "bundleType",
+    "productVersion",
+    "generatedAtUtc",
+    "entryCount",
+    "totalBytes",
+    "entries",
+    "externalRequirements"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "bundleType": {
+      "const": "librespot-asset-cache"
+    },
+    "productVersion": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "generatedAtUtc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "entryCount": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 2048
+    },
+    "totalBytes": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967296
+    },
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 2048,
+      "items": {
+        "$ref": "#/$defs/entry"
+      }
+    },
+    "externalRequirements": {
+      "type": "array",
+      "minItems": 1,
+      "contains": {
+        "type": "object",
+        "required": ["id"],
+        "properties": {
+          "id": {
+            "const": "spotify-installer"
+          }
+        }
+      },
+      "items": {
+        "$ref": "#/$defs/externalRequirement"
+      }
+    }
+  },
+  "$defs": {
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sha256",
+        "label",
+        "sourceUrl",
+        "byteSize",
+        "firstSeenAtUtc",
+        "lastUsedAtUtc",
+        "lastVerifiedAtUtc",
+        "status",
+        "quarantinedPath"
+      ],
+      "properties": {
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "sourceUrl": {
+          "type": ["string", "null"],
+          "maxLength": 2048
+        },
+        "byteSize": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1073741824
+        },
+        "firstSeenAtUtc": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        },
+        "lastUsedAtUtc": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        },
+        "lastVerifiedAtUtc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "status": {
+          "const": "present"
+        },
+        "quarantinedPath": {
+          "type": "null"
+        }
+      }
+    },
+    "externalRequirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "reason"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      }
+    }
+  }
+}

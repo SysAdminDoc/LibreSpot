@@ -84,6 +84,7 @@ public static class CliApplication
         "--answer-file",
         "--config-path",
         "--correlation-id",
+        "--input",
         "--log-dir",
         "--output",
         "--operation-id",
@@ -160,6 +161,8 @@ public static class CliApplication
                 "repair" => RunPlannedOperation("repair", options, stdout, stderr, backendRunner),
                 "undo" => RunUndo(options, stdout, stderr),
                 "plan" => RunPlannedOperation("install", options, stdout, stderr, planVerb: true),
+                "cache export" => RunCacheBundle("export", options, stdout, stderr),
+                "cache import" => RunCacheBundle("import", options, stdout, stderr),
                 "export-support" => RunExportSupport(options, stdout, stderr, snapshotFactory),
                 "watcher install" => RunWatcher("install", options, stdout, stderr, backendRunner),
                 "watcher remove" => RunWatcher("remove", options, stdout, stderr, backendRunner),
@@ -183,6 +186,24 @@ public static class CliApplication
             if (subverb is "install" or "remove")
             {
                 return ($"watcher {subverb}", args.Skip(2).ToArray());
+            }
+        }
+
+        if (string.Equals(verb, "cache", StringComparison.OrdinalIgnoreCase) && args.Length >= 2)
+        {
+            var subverb = args[1].Trim().ToLowerInvariant();
+            if (subverb is "export" or "import")
+            {
+                var optionArgs = args.Skip(2).ToList();
+                if (subverb == "import" && optionArgs.Count > 0 && !optionArgs[0].StartsWith("--", StringComparison.Ordinal))
+                {
+                    var inputPath = optionArgs[0];
+                    optionArgs.RemoveAt(0);
+                    optionArgs.Insert(0, inputPath);
+                    optionArgs.Insert(0, "--input");
+                }
+
+                return ($"cache {subverb}", optionArgs.ToArray());
             }
         }
 
@@ -460,6 +481,83 @@ public static class CliApplication
             stdout.WriteLine($"Operation ID: {result.OperationId}");
         }
         return Success;
+    }
+
+    private static int RunCacheBundle(
+        string operation,
+        CliOptions options,
+        TextWriter stdout,
+        TextWriter stderr)
+    {
+        var allowed = operation == "export"
+            ? options.OnlyContains("--output", "--json", "--config-path", "--scope")
+            : options.OnlyContains("--input", "--json", "--config-path", "--scope");
+        if (!allowed)
+        {
+            stderr.WriteLine($"cache {operation} received an unsupported flag.");
+            return ValidationError;
+        }
+
+        if (!TryResolveConfigPath(options, out var configPath, out var configPathError))
+        {
+            stderr.WriteLine(configPathError);
+            return ValidationError;
+        }
+
+        var path = operation == "export"
+            ? options.GetValue("--output")
+            : options.GetValue("--input");
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            stderr.WriteLine(operation == "export"
+                ? "cache export requires --output <zip>."
+                : "cache import requires <zip>.");
+            return ValidationError;
+        }
+
+        try
+        {
+            var configDirectory = Path.GetDirectoryName(Path.GetFullPath(configPath))
+                ?? throw new AssetCacheBundleException("The configuration path has no parent directory.");
+            var cacheDirectory = Path.Combine(configDirectory, "cache");
+            var service = new AssetCacheBundleService();
+            var result = operation == "export"
+                ? service.Export(cacheDirectory, path, ProductVersion)
+                : service.Import(cacheDirectory, path);
+
+            if (options.HasFlag("--json"))
+            {
+                WriteJson(stdout, new
+                {
+                    schemaVersion = 1,
+                    operation,
+                    result.Path,
+                    result.EntryCount,
+                    result.TotalBytes,
+                    result.ProductVersion,
+                    externalRequirement = new
+                    {
+                        id = result.ExternalRequirementId,
+                        reason = result.ExternalRequirement
+                    }
+                });
+            }
+            else
+            {
+                stdout.WriteLine(operation == "export"
+                    ? $"Asset-cache bundle exported: {result.Path}"
+                    : $"Asset-cache bundle imported: {result.Path}");
+                stdout.WriteLine($"Entries: {result.EntryCount}; Bytes: {result.TotalBytes}");
+                stdout.WriteLine($"External requirement: {result.ExternalRequirement}");
+            }
+
+            return Success;
+        }
+        catch (AssetCacheBundleException ex)
+        {
+            stderr.WriteLine(ex.Message);
+            return ValidationError;
+        }
     }
 
     private static int RunWatcher(
@@ -2048,6 +2146,8 @@ public static class CliApplication
         writer.WriteLine("  LibreSpot.Cli undo --operation-id <id> --token-kind <kind> [--config-path <path>] [--dry-run] [--yes] [--json] [--correlation-id <guid>] [--log-dir <path>] [--scope <user|machine>]");
         writer.WriteLine("  LibreSpot.Cli validate [--json] --answer-file <path> [--config-path <path>] [--correlation-id <guid>] [--log-dir <path>]");
         writer.WriteLine("  LibreSpot.Cli plan [--json] --answer-file <path> [--profile <name>] [--config-path <path>] [--correlation-id <guid>] [--log-dir <path>] [--scope <user|machine>]");
+        writer.WriteLine("  LibreSpot.Cli cache export --output <zip> [--json] [--config-path <path>] [--scope <user|machine>]");
+        writer.WriteLine("  LibreSpot.Cli cache import <zip> [--json] [--config-path <path>] [--scope <user|machine>]");
         writer.WriteLine("  LibreSpot.Cli repair (--repair-id <id> | --safe-mode) [--answer-file <path>] [--profile <name>] [--config-path <path>] [--silent] [--quiet] [--dry-run] [--yes] [--correlation-id <guid>] [--log-dir <path>] [--ndjson] [--scope <user|machine>]");
         writer.WriteLine("    Marketplace IDs: ExportMarketplaceState, RestoreMarketplaceState");
         writer.WriteLine("  LibreSpot.Cli watcher install [--silent] [--quiet] [--yes] [--correlation-id <guid>] [--log-dir <path>] [--scope <user|machine>]");
