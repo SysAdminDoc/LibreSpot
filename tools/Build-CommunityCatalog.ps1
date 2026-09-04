@@ -3,7 +3,7 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$OutputDirectory,
 
-    [string]$RepoRoot = (Split-Path -Parent $PSScriptRoot),
+    [string]$RepoRoot,
 
     [string]$GeneratedDate = (Get-Date).ToUniversalTime().ToString('yyyy-MM-dd')
 )
@@ -93,6 +93,130 @@ function Write-Utf8File {
 
     $encoding = New-Object -TypeName System.Text.UTF8Encoding -ArgumentList $false
     [System.IO.File]::WriteAllText($Path, $Content, $encoding)
+}
+
+function Add-CanonicalJsonString {
+    param(
+        [Parameter(Mandatory = $true)][System.Text.StringBuilder]$Builder,
+        [AllowEmptyString()][string]$Value
+    )
+
+    [void]$Builder.Append('"')
+    foreach ($character in $Value.ToCharArray()) {
+        switch ($character) {
+            '"' { [void]$Builder.Append('\"'); continue }
+            '\' { [void]$Builder.Append('\\'); continue }
+            "`b" { [void]$Builder.Append('\b'); continue }
+            "`f" { [void]$Builder.Append('\f'); continue }
+            "`n" { [void]$Builder.Append('\n'); continue }
+            "`r" { [void]$Builder.Append('\r'); continue }
+            "`t" { [void]$Builder.Append('\t'); continue }
+        }
+
+        $codePoint = [int][char]$character
+        if ($codePoint -lt 0x20) {
+            [void]$Builder.Append(('\u{0:x4}' -f $codePoint))
+        } else {
+            [void]$Builder.Append($character)
+        }
+    }
+    [void]$Builder.Append('"')
+}
+
+function Add-CanonicalJsonValue {
+    param(
+        [Parameter(Mandatory = $true)][System.Text.StringBuilder]$Builder,
+        [AllowNull()][object]$Value,
+        [int]$Indent = 0
+    )
+
+    if ($null -eq $Value) {
+        [void]$Builder.Append('null')
+        return
+    }
+
+    if ($Value -is [string] -or $Value -is [char]) {
+        Add-CanonicalJsonString -Builder $Builder -Value ([string]$Value)
+        return
+    }
+
+    if ($Value -is [bool]) {
+        [void]$Builder.Append($(if ($Value) { 'true' } else { 'false' }))
+        return
+    }
+
+    if ($Value -is [System.Collections.IDictionary]) {
+        $keys = @($Value.Keys)
+        if ($keys.Count -eq 0) {
+            [void]$Builder.Append('{}')
+            return
+        }
+
+        [void]$Builder.Append("{`r`n")
+        for ($index = 0; $index -lt $keys.Count; $index++) {
+            $key = $keys[$index]
+            [void]$Builder.Append((' ' * (($Indent + 1) * 2)))
+            Add-CanonicalJsonString -Builder $Builder -Value ([string]$key)
+            [void]$Builder.Append(': ')
+            Add-CanonicalJsonValue -Builder $Builder -Value $Value[$key] -Indent ($Indent + 1)
+            if ($index -lt ($keys.Count - 1)) {
+                [void]$Builder.Append(',')
+            }
+            [void]$Builder.Append("`r`n")
+        }
+        [void]$Builder.Append((' ' * ($Indent * 2)))
+        [void]$Builder.Append('}')
+        return
+    }
+
+    if ($Value -is [System.Collections.IEnumerable]) {
+        $values = @($Value)
+        if ($values.Count -eq 0) {
+            [void]$Builder.Append('[]')
+            return
+        }
+
+        [void]$Builder.Append("[`r`n")
+        for ($index = 0; $index -lt $values.Count; $index++) {
+            [void]$Builder.Append((' ' * (($Indent + 1) * 2)))
+            Add-CanonicalJsonValue -Builder $Builder -Value $values[$index] -Indent ($Indent + 1)
+            if ($index -lt ($values.Count - 1)) {
+                [void]$Builder.Append(',')
+            }
+            [void]$Builder.Append("`r`n")
+        }
+        [void]$Builder.Append((' ' * ($Indent * 2)))
+        [void]$Builder.Append(']')
+        return
+    }
+
+    if ($Value -is [System.IFormattable]) {
+        [void]$Builder.Append($Value.ToString($null, [System.Globalization.CultureInfo]::InvariantCulture))
+        return
+    }
+
+    $properties = @($Value.PSObject.Properties | Where-Object MemberType -in @('NoteProperty', 'Property'))
+    if ($properties.Count -gt 0) {
+        $orderedValue = [ordered]@{}
+        foreach ($property in $properties) {
+            $orderedValue[$property.Name] = $property.Value
+        }
+        Add-CanonicalJsonValue -Builder $Builder -Value $orderedValue -Indent $Indent
+        return
+    }
+
+    Add-CanonicalJsonString -Builder $Builder -Value ([string]$Value)
+}
+
+function ConvertTo-CanonicalJson {
+    param([AllowNull()][object]$Value)
+
+    # ConvertTo-Json changed indentation and HTML-sensitive character escaping
+    # between Windows PowerShell and PowerShell 7. A small writer keeps the
+    # published bytes independent of the host that runs the generator.
+    $builder = New-Object System.Text.StringBuilder
+    Add-CanonicalJsonValue -Builder $builder -Value $Value
+    return $builder.ToString()
 }
 
 function ConvertTo-Html {
@@ -442,6 +566,12 @@ applyFilter();
 "@
 }
 
+if ([string]::IsNullOrWhiteSpace($RepoRoot)) {
+    # In Windows PowerShell, PSScriptRoot is not populated while a script's
+    # parameter defaults are evaluated. Resolve it only after binding ends.
+    $RepoRoot = Split-Path -Parent $PSScriptRoot
+}
+
 $repoRootPath = (Resolve-Path -LiteralPath $RepoRoot).Path
 $outputPath = [System.IO.Path]::GetFullPath($OutputDirectory)
 $communityPath = Join-Path $repoRootPath 'schemas\community-assets.json'
@@ -486,7 +616,7 @@ $catalog = [ordered]@{
     items = $items
 }
 
-$catalogJson = $catalog | ConvertTo-Json -Depth 16
+$catalogJson = ConvertTo-CanonicalJson -Value $catalog
 Write-Utf8File -Path (Join-Path $outputPath 'catalog.json') -Content $catalogJson
 Write-Utf8File -Path (Join-Path $outputPath 'index.html') -Content (New-CatalogHtml -Items $items -GeneratedOn $GeneratedDate)
 Write-Utf8File -Path (Join-Path $outputPath '404.html') -Content (New-CatalogHtml -Items $items -GeneratedOn $GeneratedDate)

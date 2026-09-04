@@ -4,6 +4,10 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- Community catalog generation now resolves the repository correctly when launched as a script in Windows PowerShell 5.1. Both supported PowerShell editions use the same JSON formatter, so a given source commit produces the same publishable bytes.
+
 ### Changed
 
 - Community extensions are explicitly opt-in. Beautiful Lyrics remains available in Custom Install, but its small pinned file downloads the code that actually runs from a third-party server, so it can never be part of Recommended Setup. The catalog and CLI defaults now have a test that keeps this decision aligned.

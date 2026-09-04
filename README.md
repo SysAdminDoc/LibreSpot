@@ -705,8 +705,9 @@ git worktree remove ..\LibreSpot-ghpages
 .\Build-Scripts.ps1 -CatalogTruth
 ```
 
-The generator decodes both schemas as UTF-8 explicitly, so Windows PowerShell
-5.1 and PowerShell 7 produce byte-identical output.
+The generator decodes both schemas as UTF-8 and writes JSON through one
+canonical formatter. The documented command therefore produces byte-identical
+output in Windows PowerShell 5.1 and PowerShell 7.
 
 ## Local validation
 
