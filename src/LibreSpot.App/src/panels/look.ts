@@ -1,3 +1,6 @@
+import zapIcon from "lucide-static/icons/zap.svg";
+import accessibilityPreview from "../assets/theme-previews/accessibility.png";
+import prismPreview from "../assets/theme-previews/prism.png";
 import { CUSTOMIZATION_CATALOG, type EngineState } from "../core/index.ts";
 import type { UiNode } from "../spicetify-globals.d.ts";
 import type { PanelProperties } from "../surface/panel-types.ts";
@@ -25,6 +28,41 @@ function update(
 function eventValue(event: unknown): string {
   const target = eventTarget(event);
   return target instanceof HTMLInputElement ? target.value : "";
+}
+
+function lucideIcon(source: string, className: string): UiNode {
+  return h("span", {
+    className,
+    "aria-hidden": "true",
+    dangerouslySetInnerHTML: { __html: source },
+  });
+}
+
+function workbenchSelect(properties: {
+  label: string;
+  value: string;
+  options: readonly { value: string; label: string }[];
+  onChange: (value: string) => void;
+}): UiNode {
+  return h(
+    "label",
+    { className: "librespot-look-workbench__control" },
+    h("span", null, properties.label),
+    h(
+      "select",
+      {
+        className: "librespot-select",
+        value: properties.value,
+        onChange: (event: unknown) => {
+          const target = eventTarget(event);
+          if (target instanceof HTMLSelectElement) properties.onChange(target.value);
+        },
+      },
+      ...properties.options.map((option) =>
+        h("option", { key: option.value, value: option.value }, option.label),
+      ),
+    ),
+  );
 }
 
 function schemeCards(properties: PanelProperties): UiNode {
@@ -66,14 +104,21 @@ function schemeCards(properties: PanelProperties): UiNode {
             );
           },
         },
-        h("span", {
-          className: "librespot-scheme__swatch",
-          style: {
-            "--scheme-main": `#${scheme.main ?? "121212"}`,
-            "--scheme-accent": `#${scheme.accent ?? scheme.button ?? "1ED760"}`,
-            "--scheme-text": `#${scheme.text ?? "FFFFFF"}`,
+        h(
+          "span",
+          {
+            className: `librespot-scheme__swatch is-${name.toLowerCase()}`,
+            style: {
+              "--scheme-main": `#${scheme.main ?? "121212"}`,
+              "--scheme-accent": `#${scheme.accent ?? scheme.button ?? "1ED760"}`,
+            },
           },
-        }),
+          h("img", {
+            src: name === "HighContrast" ? accessibilityPreview : prismPreview,
+            alt: "",
+            loading: "lazy",
+          }),
+        ),
         h("span", { className: "librespot-scheme__name" }, label),
         h(
           "span",
@@ -227,6 +272,81 @@ export function LookPanel(properties: PanelProperties): UiNode {
     { key: "rightSidebar", label: "Right panel scale" },
   ];
 
+  const workbench = h(
+    "section",
+    {
+      className: "librespot-look-workbench",
+      "aria-labelledby": "librespot-live-appearance",
+    },
+    h(
+      "div",
+      { className: "librespot-look-workbench__heading" },
+      h("h2", { id: "librespot-live-appearance" }, "Live appearance"),
+      h("span", null, "Your current visual recipe"),
+    ),
+    h(
+      "div",
+      { className: "librespot-look-workbench__grid" },
+      h(
+        "figure",
+        { className: "librespot-look-workbench__preview" },
+        h("img", {
+          src: prismPreview,
+          alt: `${state.theme} in ${displaySchemeName(properties.snapshot.activeScheme)}`,
+          loading: "eager",
+        }),
+        h("figcaption", null, "Live preview"),
+      ),
+      h(
+        "div",
+        { className: "librespot-look-workbench__controls" },
+        workbenchSelect({
+          label: "Theme",
+          value: state.theme,
+          options: themes.map((theme) => ({ value: theme, label: theme })),
+          onChange: (value) => {
+            update(properties, (draft) => {
+              draft.theme = value;
+            }, `${value} theme applied`);
+          },
+        }),
+        workbenchSelect({
+          label: "Scheme",
+          value: state.scheme,
+          options: Object.keys(state.schemes).map((name) => ({
+            value: name,
+            label: displaySchemeName(name),
+          })),
+          onChange: (value) => {
+            update(properties, (draft) => {
+              draft.scheme = value;
+            }, `${displaySchemeName(value)} scheme applied`);
+          },
+        }),
+        workbenchSelect({
+          label: "Effects",
+          value: state.effectsTier,
+          options: [
+            { value: "glass", label: "Glass" },
+            { value: "eco", label: "Eco" },
+            { value: "flat", label: "Flat" },
+          ],
+          onChange: (value) => {
+            update(properties, (draft) => {
+              draft.effectsTier = value as EngineState["effectsTier"];
+            }, `${value} effects applied`);
+          },
+        }),
+        h(
+          "div",
+          { className: "librespot-look-workbench__live" },
+          lucideIcon(zapIcon, "librespot-look-workbench__live-icon"),
+          h("span", null, "Changes apply instantly"),
+        ),
+      ),
+    ),
+  );
+
   return h(
     "div",
     { className: "librespot-panel", "data-librespot-panel": "look" },
@@ -241,29 +361,12 @@ export function LookPanel(properties: PanelProperties): UiNode {
         h("strong", null, state.effectsTier),
       ),
     }),
+    workbench,
     Section({
-      title: "Theme and scheme",
-      description: "Prism is the built-in engine theme. Installed themes join this list when the desktop catalog is present.",
-      children: h(
-        Spicetify.React.Fragment,
-        null,
-        SelectRow({
-          label: "Theme",
-          description: "Built-in layer source plus the Spicetify theme active on this client.",
-          value: state.theme,
-          options: themes.map((theme) => ({ value: theme, label: theme })),
-          onChange: (value) => {
-            update(
-              properties,
-              (draft) => {
-                draft.theme = value;
-              },
-              `${value} theme applied`,
-            );
-          },
-        }),
-        schemeCards(properties),
-      ),
+      title: "Scheme",
+      description: "Preview on hover or focus. Select a scheme to keep it.",
+      className: "librespot-section--scheme",
+      children: schemeCards(properties),
     }),
     Section({
       title: "Layers",

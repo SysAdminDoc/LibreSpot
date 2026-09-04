@@ -23,31 +23,31 @@ export const PANEL_DEFINITIONS: readonly PanelDefinition[] = [
   {
     id: "look",
     label: "Look",
-    description: "Palette, layers, effects, scale, and schedule",
+    description: "Palette, layers, and effects",
     icon: "look",
   },
   {
     id: "tweaks",
     label: "Tweaks",
-    description: "Reviewed CSS and page arrangement",
+    description: "CSS and layout",
     icon: "tweaks",
   },
   {
     id: "features",
     label: "Features",
-    description: "Spotify flags and SpotX switches",
+    description: "Flags and switches",
     icon: "features",
   },
   {
     id: "presets",
     label: "Presets",
-    description: "Built-in and saved profiles",
+    description: "Built-in and saved",
     icon: "presets",
   },
   {
     id: "health",
     label: "Health",
-    description: "Anchors, routes, versions, and diagnostics",
+    description: "Diagnostics",
     icon: "health",
   },
 ] as const;

@@ -174,7 +174,7 @@ describe("LibreSpot surface contract", () => {
     expect(source.match(/\.\.\.\(action \? \{ action \} : \{\}\)/g)?.length).toBe(4);
   });
 
-  it("keeps the large feature catalog searchable and grouped", () => {
+  it("keeps the large feature catalog searchable and browsable by group", () => {
     const source = readFileSync(
       resolve(import.meta.dirname, "../src/panels/features.ts"),
       "utf8",
@@ -183,9 +183,12 @@ describe("LibreSpot surface contract", () => {
     expect(source).toContain('className: "librespot-feature-group"');
     expect(source).toContain('"aria-live": "polite"');
     expect(source).toContain('label: "Clear search"');
-    expect(source).toContain("HTMLDetailsElement");
+    expect(source).toContain('className: "librespot-feature-workspace"');
+    expect(source).toContain('"aria-label": "Feature groups"');
+    expect(source).toContain('"aria-label": "Feature source"');
     expect(css).toContain(".librespot-feature-toolbar");
-    expect(css).toContain(".librespot-feature-group[open]");
+    expect(css).toContain(".librespot-feature-workspace");
+    expect(css).toContain(".librespot-feature-groups button.is-active");
   });
 
   it("keeps the long Spicetify configuration catalog disclosed on demand", () => {
@@ -242,6 +245,15 @@ describe("LibreSpot surface contract", () => {
     expect(app).not.toContain('h("i")');
   });
 
+  it("uses stable keys for live arrangement rows", () => {
+    const tweaks = readFileSync(
+      resolve(import.meta.dirname, "../src/panels/tweaks.ts"),
+      "utf8",
+    );
+    expect(tweaks).toContain("{ key: item.id }");
+    expect(tweaks).not.toContain("{ key: item },");
+  });
+
   it("keeps Store in the profile menu and opens Look from the main settings button", () => {
     const extension = readFileSync(
       resolve(import.meta.dirname, "../src/extensions/librespot-engine.ts"),
@@ -251,5 +263,18 @@ describe("LibreSpot surface contract", () => {
     expect(extension).toContain('new TopbarButton("LibreSpot Settings"');
     expect(extension).toContain('Spicetify.Platform.History.push(panelPath("look"))');
     expect(extension).toContain('lucide-static/icons/settings.svg');
+  });
+
+  it("lets duplicate companion loads converge on one ready runtime", () => {
+    const extension = readFileSync(
+      resolve(import.meta.dirname, "../src/extensions/librespot-engine.ts"),
+      "utf8",
+    );
+    expect(extension).not.toContain("if (window.__libreSpotEngineLoaded)");
+    expect(extension.match(/if \(runtimeIsReady\(\)\)/g)).toHaveLength(2);
+    expect(extension.indexOf("await waitForApi()"))
+      .toBeLessThan(extension.lastIndexOf("if (runtimeIsReady())"));
+    expect(extension.indexOf("await engine.start"))
+      .toBeLessThan(extension.indexOf("window.__libreSpotEngineLoaded = true"));
   });
 });

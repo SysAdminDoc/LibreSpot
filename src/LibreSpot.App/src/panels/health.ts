@@ -1,3 +1,6 @@
+import circleAlertIcon from "lucide-static/icons/circle-alert.svg";
+import circleCheckIcon from "lucide-static/icons/circle-check.svg";
+import shieldCheckIcon from "lucide-static/icons/shield-check.svg";
 import type { HealthCheck } from "../core/index.ts";
 import type { UiNode } from "../spicetify-globals.d.ts";
 import type { PanelProperties } from "../surface/panel-types.ts";
@@ -5,28 +8,75 @@ import {
   ActionButton,
   PanelIntro,
   Section,
-  SpotifyIcon,
   h,
 } from "../surface/ui.ts";
 
+function statusIcon(status: HealthCheck["status"], className: string): UiNode {
+  return h("span", {
+    className,
+    "aria-hidden": "true",
+    dangerouslySetInnerHTML: {
+      __html: status === "healthy" ? circleCheckIcon : circleAlertIcon,
+    },
+  });
+}
+
 function checkCard(check: HealthCheck): UiNode {
   return h(
-    "article",
+    "div",
     {
       className: `librespot-health-check is-${check.status}`,
       key: check.id,
     },
+    statusIcon(check.status, "librespot-health-check__icon"),
+    h(
+      "span",
+      { className: "librespot-health-check__copy" },
+      h("strong", null, check.label),
+      h("span", null, check.detail),
+    ),
+    h(
+      "span",
+      { className: "librespot-health-check__state" },
+      check.status === "healthy"
+        ? "Active"
+        : check.status === "inactive"
+          ? "Optional"
+          : check.status === "warning"
+            ? "Review"
+            : "Repair",
+    ),
+  );
+}
+
+function shieldIcon(): UiNode {
+  return h("span", {
+    className: "librespot-health-privacy__icon",
+    "aria-hidden": "true",
+    dangerouslySetInnerHTML: { __html: shieldCheckIcon },
+  });
+}
+
+function checkGroup(properties: {
+  title: string;
+  description: string;
+  checks: readonly HealthCheck[];
+}): UiNode {
+  return h(
+    "section",
+    { className: "librespot-health-group", key: properties.title },
     h(
       "div",
-      { className: "librespot-health-check__title" },
-      h("span", {
-        className: `librespot-health-dot is-${check.status}`,
-        "aria-hidden": "true",
-      }),
-      h("strong", null, check.label),
-      h("span", { className: "librespot-badge" }, check.status),
+      { className: "librespot-health-group__heading" },
+      h(
+        "span",
+        null,
+        h("strong", null, properties.title),
+        h("span", null, properties.description),
+      ),
+      h("span", null, `${properties.checks.length} ${properties.checks.length === 1 ? "check" : "checks"}`),
     ),
-    h("p", null, check.detail),
+    h("div", { className: "librespot-health-list" }, ...properties.checks.map(checkCard)),
   );
 }
 
@@ -59,14 +109,26 @@ async function readClipboardBackup(): Promise<string> {
 
 export function HealthPanel(properties: PanelProperties): UiNode {
   const report = properties.snapshot.health;
-  const visibleChecks = report.healthy
-    ? report.checks.filter((check) => check.status !== "healthy")
-    : report.checks.filter(
-        (check) => check.status === "broken" || check.status === "warning",
-      );
   const routeRepairNeeded = report.checks.some(
     (check) => check.repairAction === "repair-custom-app-routes",
   );
+  const groups = [
+    {
+      title: "Live engine",
+      description: "Core page anchors are present and responding.",
+      checks: report.checks.filter((check) => check.id.startsWith("anchor:")),
+    },
+    {
+      title: "Route wiring",
+      description: "LibreSpot and optional app routes are connected.",
+      checks: report.checks.filter((check) => check.id.startsWith("route:")),
+    },
+    {
+      title: "Compatibility",
+      description: "The current Spotify build is checked against the tested pin.",
+      checks: report.checks.filter((check) => check.id.startsWith("version:")),
+    },
+  ].filter((group) => group.checks.length > 0);
 
   return h(
     "div",
@@ -75,7 +137,7 @@ export function HealthPanel(properties: PanelProperties): UiNode {
       eyebrow: "Named checks",
       title: "Health",
       body: report.healthy
-        ? "The engine's required anchors, routes, and Spotify pin are healthy. Closed optional regions stay quiet."
+        ? `We ran ${report.checks.length} checks across LibreSpot and Spotify. Everything looks good.`
         : "A required anchor, route, or version check needs attention. Each warning names the dependency that changed.",
       action: h(
         "div",
@@ -102,22 +164,27 @@ export function HealthPanel(properties: PanelProperties): UiNode {
           ? "librespot-health-hero is-healthy"
           : "librespot-health-hero is-warning",
       },
-      h(
-        "span",
-        { className: "librespot-health-hero__icon", "aria-hidden": "true" },
-        SpotifyIcon({
-          name: report.healthy ? "check" : "exclamation-circle",
-        }),
-      ),
+      statusIcon(report.healthy ? "healthy" : "warning", "librespot-health-hero__icon"),
       h(
         "div",
         null,
-        h("strong", null, report.healthy ? "Engine ready" : "Attention needed"),
+        h("strong", null, report.healthy ? "Everything is working" : "Attention needed"),
         h(
           "span",
           null,
           `Checked ${new Date(report.checkedAt).toLocaleTimeString()} against Spotify ${report.pinnedSpotifyVersion}`,
         ),
+      ),
+    ),
+    h(
+      "section",
+      { className: "librespot-health-overview", "aria-label": "Health checks" },
+      ...groups.map(checkGroup),
+      h(
+        "footer",
+        { className: "librespot-health-privacy" },
+        shieldIcon(),
+        h("span", null, "Diagnostics contain no account or listening data."),
       ),
     ),
     routeRepairNeeded
@@ -180,25 +247,5 @@ export function HealthPanel(properties: PanelProperties): UiNode {
         ),
       ),
     }),
-    visibleChecks.length > 0
-      ? Section({
-          title: "Needs attention",
-          children: h(
-            "div",
-            { className: "librespot-health-list" },
-            ...visibleChecks.map(checkCard),
-          ),
-        })
-      : null,
-    h(
-      "details",
-      { className: "librespot-health-details" },
-      h("summary", null, `All ${report.checks.length} checks`),
-      h(
-        "div",
-        { className: "librespot-health-list" },
-        ...report.checks.map(checkCard),
-      ),
-    ),
   );
 }

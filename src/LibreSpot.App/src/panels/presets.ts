@@ -1,3 +1,7 @@
+import bookmarkIcon from "lucide-static/icons/bookmark.svg";
+import accessibilityPreview from "../assets/theme-previews/accessibility.png";
+import compactPreview from "../assets/theme-previews/compact.png";
+import prismPreview from "../assets/theme-previews/prism.png";
 import type { UiNode } from "../spicetify-globals.d.ts";
 import { applyUserPreset, captureUserPreset } from "../core/index.ts";
 import { SURFACE_PRESETS } from "../surface/builtins.ts";
@@ -7,29 +11,62 @@ import {
   ActionButton,
   PanelIntro,
   Section,
-  SpotifyIcon,
   eventTarget,
   h,
 } from "../surface/ui.ts";
 
+const PRESET_FACTS: Readonly<Record<string, readonly [string, string][]>> = {
+  oled: [
+    ["Scheme", "OLED"],
+    ["Effects", "Glass, subtle"],
+    ["Layers", "Minimal chrome"],
+  ],
+  accessibility: [
+    ["Scheme", "High contrast"],
+    ["Layout", "Larger scale"],
+    ["Focus", "More visible"],
+  ],
+  compact: [
+    ["Layout", "Compact"],
+    ["Scale", "Smaller"],
+    ["Navigation", "Thinner rail"],
+  ],
+  performance: [
+    ["Effects", "Minimal"],
+    ["Motion", "Reduced"],
+    ["Rendering", "Optimized"],
+  ],
+};
+
 function presetPreview(id: string): UiNode {
-  const image = document.querySelector<HTMLImageElement>(
-    '.Root__now-playing-bar img[src^="https://"], .Root__nav-bar img[src^="https://"]',
-  );
+  const previews: Readonly<Record<string, string>> = {
+    accessibility: accessibilityPreview,
+    compact: compactPreview,
+    oled: prismPreview,
+    performance: prismPreview,
+  };
   return h(
     "div",
     {
       className: `librespot-preset-card__preview is-${id}`,
       "aria-hidden": "true",
     },
-    image
-      ? h("img", {
-          src: image.currentSrc || image.src,
-          alt: "",
-          loading: "lazy",
-        })
-      : SpotifyIcon({ name: "album" }),
+    h("img", {
+      src: previews[id] ?? prismPreview,
+      alt: "",
+      loading: "lazy",
+      decoding: "async",
+      draggable: false,
+    }),
   );
+}
+
+function bookmarkGlyph(): UiNode {
+  return h("span", {
+    className: "librespot-preset-empty__icon",
+    "aria-hidden": "true",
+    dangerouslySetInnerHTML: { __html: bookmarkIcon },
+  });
 }
 
 export function PresetsPanel(properties: PanelProperties): UiNode {
@@ -63,7 +100,8 @@ export function PresetsPanel(properties: PanelProperties): UiNode {
     }),
     Section({
       title: "Built-in presets",
-      description: "These four starting points use the same state model as hand-tuned profiles.",
+      description: "Choose a starting point, review the outcome, then fine-tune anything.",
+      className: "librespot-section--presets",
       children: h(
         "div",
         { className: "librespot-preset-grid" },
@@ -80,11 +118,22 @@ export function PresetsPanel(properties: PanelProperties): UiNode {
             presetPreview(preset.id),
             h("h3", null, preset.title),
             h("p", null, preset.description),
+            h("span", { className: "librespot-preset-card__changes-label" }, "Changes"),
+            h(
+              "dl",
+              { className: "librespot-preset-card__facts" },
+              ...(PRESET_FACTS[preset.id] ?? []).map(([label, value]) => h(
+                "div",
+                { key: label },
+                h("dt", null, label),
+                h("dd", null, value),
+              )),
+            ),
             ActionButton({
               label:
                 properties.snapshot.state.name === preset.title
                   ? "Applied"
-                  : "Apply preset",
+                  : "Apply",
               accessibleLabel:
                 properties.snapshot.state.name === preset.title
                   ? `${preset.title} preset applied`
@@ -107,6 +156,7 @@ export function PresetsPanel(properties: PanelProperties): UiNode {
     Section({
       title: "Saved presets",
       description: "Save the current controls into this .librespot profile, then apply or remove the preset here.",
+      className: "librespot-section--saved-presets",
       children: h(
         Spicetify.React.Fragment,
         null,
@@ -134,7 +184,13 @@ export function PresetsPanel(properties: PanelProperties): UiNode {
           ActionButton({ label: "Save current", onClick: savePreset }),
         ),
         properties.snapshot.state.userPresets.length === 0
-          ? h("p", { className: "librespot-empty" }, "No saved presets yet.")
+          ? h(
+              "div",
+              { className: "librespot-preset-empty", role: "status" },
+              bookmarkGlyph(),
+              h("strong", null, "No saved presets yet"),
+              h("span", null, "Save the current profile to create your first one."),
+            )
           : h(
               "div",
               { className: "librespot-extension-grid" },

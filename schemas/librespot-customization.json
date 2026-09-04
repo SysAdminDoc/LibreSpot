@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$comment": "Shared catalog for LibreSpot Desktop and the in-Spotify live engine.",
   "schemaVersion": 1,
-  "catalogVersion": "4.3.0",
+  "catalogVersion": "4.4.0",
   "pins": {
     "spotifyVersion": "1.2.93",
     "xpuiSha256": "696a3405a78a7ea0c06de42ae3c50349bfe51ce17013d85f582b646ba48ff054",
@@ -6488,7 +6488,7 @@
       "id": "librespot",
       "title": "LibreSpot",
       "source": "SysAdminDoc/LibreSpot",
-      "version": "4.3.0",
+      "version": "4.4.0",
       "lastVerifiedSpotify": "1.2.93"
     },
     {

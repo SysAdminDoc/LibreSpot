@@ -486,15 +486,7 @@ export function StorePanel(properties: PanelProperties): UiNode {
         { className: "librespot-inline-actions" },
         selectedTheme.builtIn
           ? ActionButton({
-              label: previewingLive ? "End live preview" : "Preview live",
-              accessibleLabel: `${previewingLive ? "End" : "Start"} ${titleForTheme(selectedTheme)} live preview`,
-              secondary: true,
-              onClick: toggleLivePreview,
-            })
-          : null,
-        selectedTheme.builtIn
-          ? ActionButton({
-              label: properties.snapshot.state.theme === selectedTheme.id && properties.snapshot.state.scheme === selectedScheme ? "In use" : "Use now",
+              label: properties.snapshot.state.theme === selectedTheme.id && properties.snapshot.state.scheme === selectedScheme ? "In use" : "Apply theme",
               disabled: properties.snapshot.state.theme === selectedTheme.id && properties.snapshot.state.scheme === selectedScheme,
               onClick: useBuiltInTheme,
             })
@@ -502,6 +494,14 @@ export function StorePanel(properties: PanelProperties): UiNode {
               label: selectedTheme.id === installedTheme && selectedScheme === Spicetify.Config?.color_scheme ? "Review setup" : "Set up in Desktop",
               onClick: () => properties.runtime.openDesktopStore("theme", selectedTheme.id, selectedScheme),
             }),
+        selectedTheme.builtIn
+          ? ActionButton({
+              label: previewingLive ? "End preview" : "Preview live",
+              accessibleLabel: `${previewingLive ? "End" : "Start"} ${titleForTheme(selectedTheme)} live preview`,
+              secondary: true,
+              onClick: toggleLivePreview,
+            })
+          : null,
       ),
     ),
   ) : null;
@@ -519,8 +519,11 @@ export function StorePanel(properties: PanelProperties): UiNode {
         h("strong", null, String(STORE_THEMES.length)),
         h("span", null, "themes"),
         h("span", { className: "librespot-store-summary__divider", "aria-hidden": "true" }),
-        h("strong", null, String(CUSTOMIZATION_CATALOG.extensions.length + CUSTOMIZATION_CATALOG.customApps.length)),
-        h("span", null, "add-ons"),
+        h("strong", null, String(CUSTOMIZATION_CATALOG.extensions.length)),
+        h("span", null, "extensions"),
+        h("span", { className: "librespot-store-summary__divider", "aria-hidden": "true" }),
+        h("strong", null, String(CUSTOMIZATION_CATALOG.customApps.length)),
+        h("span", null, "apps"),
       ),
     }),
     h(
@@ -530,8 +533,8 @@ export function StorePanel(properties: PanelProperties): UiNode {
       h(
         "div",
         null,
-        h("strong", null, "One reviewed catalog"),
-        h("span", null, "LibreSpot pins the source for every downloadable item and verifies it before Desktop installs it."),
+        h("strong", null, "Reviewed and pinned"),
+        h("span", null, "Every downloadable item is checked before LibreSpot Desktop installs it."),
       ),
     ),
     h(
@@ -601,7 +604,7 @@ export function StorePanel(properties: PanelProperties): UiNode {
           h(
             "div",
             { className: "librespot-store-results__heading" },
-            h("h2", null, "All themes"),
+            h("h2", null, search ? "Matching themes" : "Featured themes"),
             h("span", null, `${visibleCount} shown`),
           ),
           h(

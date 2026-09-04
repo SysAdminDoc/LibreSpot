@@ -372,13 +372,24 @@ async function waitForApi(): Promise<void> {
   throw new Error("Spotify APIs did not become ready.");
 }
 
+function runtimeIsReady(): boolean {
+  return window.LibreSpot !== undefined;
+}
+
 async function bootstrap(): Promise<void> {
-  if (window.__libreSpotEngineLoaded) {
+  if (runtimeIsReady()) {
     return;
   }
-  window.__libreSpotEngineLoaded = true;
+  window.__libreSpotEngineLoaded = false;
+  let claimedRuntime: LibreSpotRuntimeApi | undefined;
   try {
     await waitForApi();
+    // Spicetify loads this file once as the always-on companion and can load it
+    // again as a custom-app subfile. Let both attempts reach API readiness, then
+    // allow the first complete runtime to own the page.
+    if (runtimeIsReady()) {
+      return;
+    }
     registerAccessEntries();
     const store = new EngineStore(storageAdapter());
     const stored = store.load();
@@ -668,11 +679,13 @@ async function bootstrap(): Promise<void> {
       },
     };
 
+    claimedRuntime = runtime;
     window.LibreSpot = runtime;
     engine.addEventListener("applied", emit);
     await engine.start({
       previousFeatureOverrides: stored.featureOverrides,
     });
+    window.__libreSpotEngineLoaded = true;
     refreshArrangements();
     health = runHealth();
     emit();
@@ -710,6 +723,9 @@ async function bootstrap(): Promise<void> {
     await refreshRoutes();
     console.info("[LibreSpot] live engine ready");
   } catch (error) {
+    if (claimedRuntime && window.LibreSpot === claimedRuntime) {
+      delete window.LibreSpot;
+    }
     window.__libreSpotEngineLoaded = false;
     const message =
       error instanceof Error ? error.message : "Live engine failed to start.";

@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>LibreSpot offscreen preview</title>
-    <link rel="stylesheet" href="../dist/style.css">
+    <link rel="stylesheet" href="../dist/style.css?preview=4.4">
     <style>
       html, body, #root { min-height: 100%; }
       body { margin: 0; background: var(--spice-main); font-family: Arial, sans-serif; }
@@ -98,14 +98,14 @@
 
       const healthChecks = warningHealth
         ? [
-            { id: "engine-style", label: "Managed style anchor", status: "healthy", detail: "The engine style node is present." },
-            { id: "custom-app-route", label: "Custom app route", status: "broken", detail: "The librespot route is absent from the current xpui bundle.", repairAction: "repair-custom-app-routes" },
-            { id: "spotify-version", label: "Spotify version pin", status: "warning", detail: "This client is newer than the verified pin." }
+            { id: "anchor:engine-style", label: "Managed style anchor", status: "healthy", detail: "The engine style node is present." },
+            { id: "route:librespot", label: "LibreSpot route", status: "broken", detail: "The librespot route is absent from the current xpui bundle.", repairAction: "repair-custom-app-routes" },
+            { id: "version:spotify", label: "Spotify version pin", status: "warning", detail: "This client is newer than the verified pin." }
           ]
         : [
-            { id: "engine-style", label: "Managed style anchor", status: "healthy", detail: "The engine style node is present." },
-            { id: "custom-app-route", label: "Custom app route", status: "healthy", detail: "The librespot route is wired." },
-            { id: "spotify-version", label: "Spotify version pin", status: "healthy", detail: "Spotify matches the verified pin." }
+            { id: "anchor:engine-style", label: "Managed style anchor", status: "healthy", detail: "The engine style node is present." },
+            { id: "route:librespot", label: "LibreSpot route", status: "healthy", detail: "The librespot route is wired." },
+            { id: "version:spotify", label: "Spotify version pin", status: "healthy", detail: "Spotify matches the verified pin." }
           ];
 
       const snapshot = {
@@ -200,7 +200,7 @@
         openDesktopStore(kind, id, scheme) { window.__libreSpotDesktopStoreRequest = { kind, id, scheme }; }
       };
     </script>
-    <script src="../dist/index.js"></script>
+    <script src="../dist/index.js?preview=4.4"></script>
     <script>
       ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(librespot.default));
       requestAnimationFrame(() => {

@@ -4,6 +4,29 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [Unreleased]
 
+## [v4.4.0] (2026-09-04)
+
+### Added
+
+- Six page-specific visual references now define the in-Spotify settings experience. Store, Look, Tweaks, Features, Presets, and Health each have a matching production capture from the installed Spotify client.
+- Look has a live appearance workbench with a large Spotify preview and direct theme, scheme, and effects controls. Its scheme strip uses real previews for every built-in palette.
+- Tweaks has search, category filters, a before-and-after spotlight, and preview art for every reviewed rule. Presets use real outcome previews and list the changes each profile makes before it is applied.
+- Health groups its eight checks into the live engine, route wiring, and compatibility. Each row names the part that was tested and its current result.
+
+### Changed
+
+- Store is the default catalog for themes, extensions, and custom apps. Theme cards expose all 24 preview images and their schemes. Extension and app cards explain their behavior, installed state, source, review status, and setup path.
+- The LibreSpot rail is shorter and easier to scan. Its six entries use one icon family and concise descriptions, while the settings cog in Spotify's top bar opens Look directly.
+- Features uses source filters and a persistent group index for all 348 Spotify flags and 31 SpotX controls. Search, live-only, desktop-reapply, and customized views update the counts and visible groups together.
+- The settings layout responds to the width Spotify leaves between its Library and Now Playing panels. At narrow desktop widths, dense sections reflow without hiding search, preview, or health controls.
+
+### Fixed
+
+- Cold Spotify reloads now let both companion script copies converge on one ready runtime, so Settings won't remain stuck on its loading screen.
+- Tweak cards no longer squeeze their title between the category label and switch. Categories now sit with the version and source metadata, matching the visual hierarchy used by the reference design.
+- Stable keys are used for arrangement rows, removing the duplicate-key warning that appeared when Spotify rendered two items with the same label.
+- Store tabs, theme preview and restore, live appearance controls, tweak switches, feature overrides, preset save and apply, Health refresh, and the top-bar settings route were exercised in Spotify 1.2.93.667 with Spicetify 2.44.0. All 24 theme images loaded, and the live route reported healthy.
+
 ## [v4.3.0] (2026-09-03)
 
 ### Added
