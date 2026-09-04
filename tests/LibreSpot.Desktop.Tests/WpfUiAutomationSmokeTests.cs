@@ -669,11 +669,31 @@ public sealed class WpfUiAutomationSmokeTests
     {
         nodes.Add(UiaNode.From(element));
 
-        var child = walker.GetFirstChild(element);
+        // The settle loop walks the window on every scan, so a shell that dies
+        // mid-pass throws from here. Returning what was charted lets the
+        // caller's "scanned no windows, so this proved nothing" assertion be
+        // the reported failure, which says what happened; the exception did not.
+        AutomationElement? child;
+        try
+        {
+            child = walker.GetFirstChild(element);
+        }
+        catch (ElementNotAvailableException)
+        {
+            return;
+        }
+
         while (child is not null)
         {
             Walk(child, nodes, walker);
-            child = walker.GetNextSibling(child);
+            try
+            {
+                child = walker.GetNextSibling(child);
+            }
+            catch (ElementNotAvailableException)
+            {
+                return;
+            }
         }
     }
 
