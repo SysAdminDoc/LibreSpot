@@ -185,6 +185,44 @@ public sealed class ReleaseTruthTests
     }
 
     [Fact]
+    public void ReadmeExtensionCountMatchesTheInstallerData()
+    {
+        // README said 16 while the data files carry ten built in and five
+        // community. The number is only useful if it is read off the same
+        // source the installer uses.
+        var script = Read("LibreSpot.ps1");
+        var readme = Read("README.md");
+
+        var builtIn = CountOrderedEntries(script, "BuiltInExtensions");
+        var community = CountOrderedEntries(script, "CommunityExtensions");
+        Assert.True(builtIn > 0 && community > 0, "Could not read either extension block.");
+
+        var total = builtIn + community;
+        Assert.Contains(
+            $"select from {total} extensions, {NumberWord(builtIn)} built in and {NumberWord(community)} community,",
+            readme,
+            StringComparison.Ordinal);
+        Assert.Contains($"### {total} Extensions ({builtIn} Built-in + {community} Community)", readme, StringComparison.Ordinal);
+    }
+
+    private static int CountOrderedEntries(string script, string variableName)
+    {
+        var block = Regex.Match(
+            script,
+            @"(?ms)^\$global:" + Regex.Escape(variableName) + @"\s*=\s*\[ordered\]@\{(?<body>.+?)^\}");
+        return block.Success
+            ? Regex.Matches(block.Groups["body"].Value, @"(?m)^\s{4}""[^""]+""\s*=").Count
+            : 0;
+    }
+
+    private static string NumberWord(int value) => value switch
+    {
+        5 => "five",
+        10 => "ten",
+        _ => value.ToString(System.Globalization.CultureInfo.InvariantCulture),
+    };
+
+    [Fact]
     public void ReadmeLyricsThemeCountMatchesTheCatalog()
     {
         var readme = Read("README.md");

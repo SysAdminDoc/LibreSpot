@@ -144,7 +144,7 @@ Tweaks reads the Home and Your Library items that Spotify is actually showing, s
 
 The extension now uses Spotify artwork and Spotify's icon library for previews and status marks. Light, OLED, dark, and high-contrast palettes keep entity headers, action controls, the playbar, and notifications readable. The fixed-accent mode has a native color picker, all form controls have names, and sliders expose a 32-pixel target.
 
-The Spotify surface suite passes 45 tests. Hidden live-client verification covered all six panels, Marketplace coexistence, settings, a playlist, persistence across a full reload, failure feedback, and 36 scheme, effects, and viewport combinations. The matrix found no clipped controls or horizontal overflow.
+The Spotify surface suite has its own test project; run `pnpm test` in `src/LibreSpot.App` for the current result rather than trusting a number printed here. Hidden live-client verification covered all six panels, Marketplace coexistence, settings, a playlist, persistence across a full reload, failure feedback, and 36 scheme, effects, and viewport combinations. The matrix found no clipped controls or horizontal overflow.
 
 ## What's New in v4.1.0
 
@@ -291,7 +291,7 @@ SpotX has no release tag for the pinned commit; upstream's newest tag is 1.9 (20
 
 **Recommended setup**, one click, sensible defaults. Removes any existing installation, applies SpotX ad-blocking, installs Spicetify CLI with LibreSpot Store and Prism, then enables Full App Display, True Shuffle, and Trash Bin.
 
-**Custom Install**, full control over every option. Configure SpotX patching flags (ad-blocking, podcasts, lyrics, UI experiments, update blocking, cache limits), author reviewed SpotX `patches.json` custom patches with JSON formatting, regex safety checks, dry-run feedback, and HTTPS import, browse 24 supported themes through a searchable gallery with per-theme color schemes, select from 16 extensions plus the verified Stats custom app, save and preview named local profiles, and choose between clean or overlay install.
+**Custom Install**, full control over every option. Configure SpotX patching flags (ad-blocking, podcasts, lyrics, UI experiments, update blocking, cache limits), author reviewed SpotX `patches.json` custom patches with JSON formatting, regex safety checks, dry-run feedback, and HTTPS import, browse 24 supported themes through a searchable gallery with per-theme color schemes, select from 15 extensions, ten built in and five community, plus the verified Stats custom app, save and preview named local profiles, and choose between clean or overlay install.
 
 **Maintenance**, manage an existing installation without reinstalling. Backup and restore Spicetify configs, reapply patches after Spotify updates, inspect and clear verified download-cache health, preview and explicitly undo eligible low-risk PATH changes from the latest operation receipt, export a validated Marketplace state archive for missing-file recovery, export a redacted local support bundle, or arm the next LibreSpot launch for an optional .NET Triage crash dump. You can also remove active Spicetify customizations while keeping SpotX in place, uninstall Spicetify, check for dependency updates, or perform a full system reset. Marketplace 1.0.11 stores saved state in the embedded browser's IndexedDB database. LibreSpot detects that boundary but does not back it up. Use Marketplace's own export/import controls before a repair or reset.
 
@@ -675,8 +675,10 @@ graph. Manifest generation then re-checks that file version against the script, 
 SBOM is CycloneDX 1.7 from that tool with per-component hashes and licenses,
 and measures the desktop executable against the publish footprint budget, so a
 mismatched or oversized artifact fails before the release is uploaded.
-`-GenerateChecksums` hashes the six contract-covered artifacts and writes the
-`checksums.txt` file consumed by manifest generation.
+`-GenerateChecksums` hashes the six artifacts the release contract covers, which
+is every published asset except the SBOM and the release manifest, and writes
+the `checksums.txt` file consumed by manifest generation. Eight files are
+uploaded; six of them carry a checksum line.
 
 Create and push the version tag, create a draft GitHub release, upload every
 file in `publish`, and publish the draft only after the asset list is complete.

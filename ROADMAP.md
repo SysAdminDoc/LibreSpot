@@ -20,13 +20,6 @@ Added 2026-09-04 from RESEARCH.md. IDs continue the RD scheme; RD-180 was the la
   Acceptance: WHEN Settings opens, the theme gallery SHALL render every card without an inner scrollbar and the page SHALL have one scrollbar; an offscreen capture at the 1080x720 minimum window SHALL reach the last card through page scroll alone; the fixed-width `TextBlock`s in live views SHALL either trim with a tooltip or wrap; the README screenshot SHALL be recaptured.
   Complexity: M
 
-- [ ] P3: RD-190: Correct the README numbers that drifted and add them to the lane-truth gate
-  Why: "16 extensions" against ten built-in plus five community, "45 tests" for the Spotify surface against 62, a `gh release verify v4.1.2` example two releases old, "eight assets" beside "six contract-covered artifacts", and What's New sections for v4.1.0 and v4.2.0 that were never tagged.
-  Evidence: `README.md:304`, `:157`, `:616`, `:594`, `:675`, `:107-160`; `LibreSpot.ps1:1435` and `:1452`; `git tag` shows v4.1.2, v4.3.0, v4.4.0 only after v4.0.0; 62 `it(` blocks under `src/LibreSpot.App/tests`.
-  Touches: `README.md`, `tests/LibreSpot.Desktop.Tests/ReleaseTruthTests.cs` (the RD-144 lane-truth gate).
-  Acceptance: each count SHALL match its source; the lane-truth test SHALL read the extension count from the data files and the app test count from `src/LibreSpot.App/tests`; the verify example SHALL use the current tag; untagged What's New sections SHALL say which tagged release carried them.
-  Complexity: S
-
 - [ ] P3: RD-191: Report a failed run-receipt write and a failed config rollback instead of silencing them
   Why: a run that mutated the machine can leave the undo surface empty because the receipt write failure is only WARN-logged; a config rollback that fails moves the rescue file back with `-ErrorAction SilentlyContinue` and throws the original error, leaving a `.rescue` file and no `config.json` with no message naming it; the undo service's own failure-path journal and receipt writes are each wrapped in an empty catch.
   Evidence: `src/powershell/shared/Complete-OperationJournalRun.ps1:63-66`; `src/powershell/shared/Install-LibreSpotStagedConfig.ps1:23`; `src/LibreSpot.Core/OperationJournalUndoService.cs:345-346` and `:454-455`.
