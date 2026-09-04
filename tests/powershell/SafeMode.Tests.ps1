@@ -224,7 +224,7 @@ Describe 'One-session Spotify safe mode' {
         $script:ApplyCount | Should -Be 0
     }
 
-    It 'restores a verified legacy session created before the hashed marker format' {
+    It 'refuses a coordinated marker and manifest downgrade to the unauthenticated legacy schema' {
         $null = Reapply-SavedSpicetifySetup -Config @{} -SafeMode
         $markerPath = Join-Path $global:CONFIG_DIR 'safe-mode-session.json'
         $marker = Read-ProtectedSafeModeMarker -Path $markerPath
@@ -235,11 +235,13 @@ Describe 'One-session Spotify safe mode' {
         $legacyJson = $legacy | ConvertTo-Json -Depth 7
         [System.IO.File]::WriteAllText($manifestPath, $legacyJson)
         [System.IO.File]::WriteAllText($markerPath, $legacyJson)
+        $liveBefore = [Convert]::ToBase64String([System.IO.File]::ReadAllBytes($script:Integration.ConfigPath))
 
-        $restored = Reapply-SavedSpicetifySetup -Config @{} -RestoreSafeMode
+        { Reapply-SavedSpicetifySetup -Config @{} -RestoreSafeMode } | Should -Throw -ExpectedMessage '*Unsupported safe-mode recovery schema version*'
 
-        $restored.Status | Should -Be 'Restored'
-        [Convert]::ToBase64String([System.IO.File]::ReadAllBytes($script:Integration.ConfigPath)) | Should -Be $script:OriginalConfigBase64
-        $script:ApplyCount | Should -Be 1
+        [Convert]::ToBase64String([System.IO.File]::ReadAllBytes($script:Integration.ConfigPath)) | Should -Be $liveBefore
+        (Test-Path -LiteralPath $markerPath -PathType Leaf) | Should -BeTrue
+        $script:ClearCount | Should -Be 0
+        $script:ApplyCount | Should -Be 0
     }
 }

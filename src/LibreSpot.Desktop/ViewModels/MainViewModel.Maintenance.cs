@@ -52,12 +52,6 @@ public sealed partial class MainViewModel
                     return false;
                 }
 
-                if (schemaVersion.GetInt32() == 1)
-                {
-                    var status = root.TryGetProperty("status", out var statusValue) ? statusValue.GetString() : null;
-                    return status is "ReadyToEnter" or "Active";
-                }
-
                 if (schemaVersion.GetInt32() != 3 || root.EnumerateObject().Count() != 2 ||
                     !root.TryGetProperty("protectedState", out var protectedState) ||
                     protectedState.ValueKind != JsonValueKind.String)

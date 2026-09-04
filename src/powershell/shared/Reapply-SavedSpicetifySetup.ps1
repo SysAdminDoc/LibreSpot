@@ -62,42 +62,37 @@ function Reapply-SavedSpicetifySetup {
             throw "The safe-mode recovery marker is unreadable. LibreSpot left it untouched for manual review. $($_.Exception.Message)"
         }
         $markerSchemaVersion = [int]$marker.schemaVersion
-        if ($markerSchemaVersion -notin @(1, 3)) {
+        if ($markerSchemaVersion -ne 3) {
             throw "Unsupported safe-mode recovery schema version '$($marker.schemaVersion)'."
         }
-        if ($markerSchemaVersion -eq 3) {
-            Add-Type -AssemblyName System.Security -ErrorAction Stop
-            $allowedEnvelopeProperties = @('schemaVersion', 'protectedState')
-            $unexpectedEnvelopeProperties = @($marker.PSObject.Properties.Name | Where-Object { $allowedEnvelopeProperties -notcontains $_ })
-            $protectedState = [string]$marker.protectedState
-            if ($unexpectedEnvelopeProperties.Count -ne 0 -or [string]::IsNullOrWhiteSpace($protectedState) -or
-                $protectedState.Length -gt 65536) {
-                throw 'The safe-mode recovery marker has unexpected or invalid fields. Recovery was refused before mutation.'
+        Add-Type -AssemblyName System.Security -ErrorAction Stop
+        $allowedEnvelopeProperties = @('schemaVersion', 'protectedState')
+        $unexpectedEnvelopeProperties = @($marker.PSObject.Properties.Name | Where-Object { $allowedEnvelopeProperties -notcontains $_ })
+        $protectedState = [string]$marker.protectedState
+        if ($unexpectedEnvelopeProperties.Count -ne 0 -or [string]::IsNullOrWhiteSpace($protectedState) -or
+            $protectedState.Length -gt 65536) {
+            throw 'The safe-mode recovery marker has unexpected or invalid fields. Recovery was refused before mutation.'
+        }
+        try {
+            $protectedBytes = [Convert]::FromBase64String($protectedState)
+            $markerBytes = [System.Security.Cryptography.ProtectedData]::Unprotect(
+                $protectedBytes,
+                $safeModeEntropy,
+                [System.Security.Cryptography.DataProtectionScope]::CurrentUser)
+            if ($markerBytes.Length -le 0 -or $markerBytes.Length -gt 65536) {
+                throw 'The protected marker payload has an invalid size.'
             }
-            try {
-                $protectedBytes = [Convert]::FromBase64String($protectedState)
-                $markerBytes = [System.Security.Cryptography.ProtectedData]::Unprotect(
-                    $protectedBytes,
-                    $safeModeEntropy,
-                    [System.Security.Cryptography.DataProtectionScope]::CurrentUser)
-                if ($markerBytes.Length -le 0 -or $markerBytes.Length -gt 65536) {
-                    throw 'The protected marker payload has an invalid size.'
-                }
-                $marker = [System.Text.Encoding]::UTF8.GetString($markerBytes) | ConvertFrom-Json -ErrorAction Stop
-            } catch {
-                throw 'The safe-mode recovery marker could not be authenticated for this Windows account. Recovery was refused before mutation.'
-            }
-            $allowedMarkerProperties = @('schemaVersion', 'status', 'snapshotPath', 'manifestSha256')
-            $unexpectedMarkerProperties = @($marker.PSObject.Properties.Name | Where-Object { $allowedMarkerProperties -notcontains $_ })
-            if ([int]$marker.schemaVersion -ne 3 -or $unexpectedMarkerProperties.Count -ne 0 -or
-                ([string]$marker.status) -notin @('ReadyToEnter', 'Active') -or
-                [string]::IsNullOrWhiteSpace([string]$marker.snapshotPath) -or
-                [string]$marker.manifestSha256 -notmatch '^[0-9a-fA-F]{64}$') {
-                throw 'The protected safe-mode recovery marker has unexpected or invalid fields. Recovery was refused before mutation.'
-            }
-        } elseif (([string]$marker.status) -notin @('ReadyToEnter', 'Active') -or
-            [string]::IsNullOrWhiteSpace([string]$marker.snapshotPath)) {
-            throw 'The legacy safe-mode recovery marker has invalid fields. Recovery was refused before mutation.'
+            $marker = [System.Text.Encoding]::UTF8.GetString($markerBytes) | ConvertFrom-Json -ErrorAction Stop
+        } catch {
+            throw 'The safe-mode recovery marker could not be authenticated for this Windows account. Recovery was refused before mutation.'
+        }
+        $allowedMarkerProperties = @('schemaVersion', 'status', 'snapshotPath', 'manifestSha256')
+        $unexpectedMarkerProperties = @($marker.PSObject.Properties.Name | Where-Object { $allowedMarkerProperties -notcontains $_ })
+        if ([int]$marker.schemaVersion -ne 3 -or $unexpectedMarkerProperties.Count -ne 0 -or
+            ([string]$marker.status) -notin @('ReadyToEnter', 'Active') -or
+            [string]::IsNullOrWhiteSpace([string]$marker.snapshotPath) -or
+            [string]$marker.manifestSha256 -notmatch '^[0-9a-fA-F]{64}$') {
+            throw 'The protected safe-mode recovery marker has unexpected or invalid fields. Recovery was refused before mutation.'
         }
 
         $expectedRoot = [System.IO.Path]::GetFullPath($safeModeRoot).TrimEnd('\') + '\'
@@ -114,11 +109,7 @@ function Reapply-SavedSpicetifySetup {
             throw 'The safe-mode snapshot manifest has an invalid size. Recovery was refused before mutation.'
         }
         $actualManifestSha256 = Get-FileSha256Lower -Path $manifestPath
-        $expectedManifestSha256 = if ($markerSchemaVersion -eq 3) {
-            ([string]$marker.manifestSha256).ToLowerInvariant()
-        } else {
-            Get-FileSha256Lower -Path $statePath
-        }
+        $expectedManifestSha256 = ([string]$marker.manifestSha256).ToLowerInvariant()
         if ($actualManifestSha256 -ne $expectedManifestSha256) {
             throw 'The safe-mode snapshot manifest failed SHA256 verification. Recovery was refused before mutation.'
         }
@@ -131,14 +122,10 @@ function Reapply-SavedSpicetifySetup {
             'schemaVersion', 'operationId', 'createdAtUtc', 'snapshotPath', 'configSha256',
             'customAppsExisted', 'customAppsFileCount', 'customAppsBytes', 'customAppsFiles'
         )
-        if ($markerSchemaVersion -eq 1) {
-            $allowedManifestProperties += @('status', 'activatedAtUtc')
-        }
         $unexpectedManifestProperties = @($state.PSObject.Properties.Name | Where-Object { $allowedManifestProperties -notcontains $_ })
         if ([int]$state.schemaVersion -ne $markerSchemaVersion -or $unexpectedManifestProperties.Count -ne 0 -or
             [System.IO.Path]::GetFullPath([string]$state.snapshotPath).TrimEnd('\') -ne $snapshotPath -or
-            [string]$state.configSha256 -notmatch '^[0-9a-fA-F]{64}$' -or
-            ($markerSchemaVersion -eq 1 -and ([string]$state.status) -ne ([string]$marker.status))) {
+            [string]$state.configSha256 -notmatch '^[0-9a-fA-F]{64}$') {
             throw 'The safe-mode snapshot manifest has unexpected or invalid fields. Recovery was refused before mutation.'
         }
         $configBackupPath = Join-Path $snapshotPath 'config-xpui.ini'

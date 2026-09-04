@@ -262,6 +262,22 @@ public sealed class MainViewModelMaintenanceTests
         });
 
     [Fact]
+    public Task LegacySafeModeMarker_DoesNotOfferAnUnauthenticatedRestoreAction() =>
+        RunStaAsync(async () =>
+        {
+            using var fixture = new SnapshotFixture();
+            fixture.WriteSpotify(withSpotXMarkers: true);
+            fixture.WriteSpicetifyConfig("extensions =\r\ncustom_apps =\r\ncurrent_theme = Catppuccin\r\ninject_css = 1\r\nreplace_colors = 1");
+            fixture.WriteLegacySafeModeMarker();
+
+            using var viewModel = await fixture.CreateInitializedViewModelAsync();
+
+            Assert.False(viewModel.IsSafeModeRestoreAvailable);
+            Assert.True(viewModel.IsSafeModeRestoreUnavailable);
+            Assert.False(viewModel.RestoreSafeModeCommand.CanExecute(null));
+        });
+
+    [Fact]
     public Task SupportBundlePreview_ShowsSelectableDiagnosticCategories() =>
         RunStaAsync(async () =>
         {
@@ -1203,6 +1219,11 @@ public sealed class MainViewModelMaintenanceTests
             WriteFile(
                 Path.Combine(ConfigDirectory, "safe-mode-session.json"),
                 JsonSerializer.Serialize(new { schemaVersion = 3, protectedState = Convert.ToBase64String([1, 2, 3]) }));
+
+        public void WriteLegacySafeModeMarker() =>
+            WriteFile(
+                Path.Combine(ConfigDirectory, "safe-mode-session.json"),
+                JsonSerializer.Serialize(new { schemaVersion = 1, status = "Active", snapshotPath = BackupDirectory }));
 
         public void WriteInstallLog(string content) =>
             WriteFile(Path.Combine(ConfigDirectory, "install.log"), content);
