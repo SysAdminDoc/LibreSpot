@@ -3131,27 +3131,14 @@ Describe 'Worker runspace function closure' {
         # The install and maintenance runspaces are built from this list alone.
         # A function called from an exported one but missing here fails at
         # neither compose, lint, nor any test that dot-sources the shared file:
-        # it fails at runtime with CommandNotFoundException. That is how the
-        # asset-failure summary, sitting in the install block's try, turned
-        # every healthy install into a FATAL run.
+        # it fails at runtime with CommandNotFoundException.
         #
-        # The pairs below already existed when this check was written. They are
-        # recorded rather than passed over so a new one cannot hide among them,
-        # and are tracked as RD-177. Shrink this list, never grow it.
-        $known = @(
-            'Get-MarketplaceHealth -> Test-SpicetifyCustomAppRouteWiring',
-            'Get-SpicetifyDiagnosticSnapshot -> Get-InstalledSpicetifyCliVersion',
-            'Get-SpicetifyDiagnosticSnapshot -> Get-SpicetifyV3SupportContract',
-            'Get-SpicetifyDiagnosticSnapshot -> Test-SpicetifyCliVersionSupported',
-            'Get-SpicetifyV3Conflict -> Get-InstalledSpicetifyCliVersion',
-            'Get-SpicetifyV3Conflict -> Get-SpicetifyCliMajorVersion',
-            'Module-ApplySpicetify -> Repair-LibreSpotManagedCustomAppRoutes',
-            'Module-InstallCustomApps -> New-LibreSpotEngineBootstrap',
-            'Module-InstallMarketplace -> Install-MarketplaceNavFallbackExtension',
-            'Module-InstallMarketplace -> Install-MarketplacePlaceholderTheme',
-            'Reapply-SavedSpicetifySetup -> Invoke-WithSpicetifyStatePreservation',
-            'Repair-Marketplace -> Invoke-WithSpicetifyStatePreservation'
-        )
+        # The worker's function set is closed: everything reachable from an
+        # exported function is exported too. This list is empty and must stay
+        # empty. A pair appearing here is a CommandNotFoundException waiting on
+        # a live install path, which is how the asset-failure summary once
+        # turned every healthy install into a FATAL run.
+        $known = @()
 
         $found = @()
         foreach ($exported in $script:workerFunctionNames) {

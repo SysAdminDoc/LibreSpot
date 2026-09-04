@@ -12167,7 +12167,17 @@ $functionNamesForWorker = @(
     'Module-InstallThemes','Download-CommunityExtensions','Module-InstallExtensions',
     'Module-InstallMarketplace','Module-InstallCustomApps','Open-SpicetifyMarketplace','Repair-Marketplace','Module-ApplySpicetify',
     'Write-MarketplaceVisibilityEvidence','Optimize-OperationJournalRetention',
-    'Build-SpotXParams','Load-LibreSpotConfig'
+    'Build-SpotXParams','Load-LibreSpotConfig',
+    # Reached from the functions above rather than called directly by a lane.
+    # The runspace resolves only what is named here, so a callee left off is a
+    # CommandNotFoundException on a live install path, not a compile error.
+    'Export-MarketplaceState','Get-InstalledSpicetifyCliVersion','Get-SpicetifyCliMajorVersion',
+    'Get-SpicetifyV3SupportContract','Install-MarketplaceNavFallbackExtension',
+    'Install-MarketplacePlaceholderTheme','Invoke-WithSpicetifyStatePreservation',
+    'Merge-DirectorySnapshotMissingFiles','New-LibreSpotEngineBootstrap',
+    'New-SpicetifyStatePreservationSnapshot','Repair-LibreSpotManagedCustomAppRoutes',
+    'Repair-SpicetifyCustomAppWiring','Restore-SpicetifyStatePreservationSnapshot',
+    'Test-SpicetifyCliVersionSupported','Test-SpicetifyCustomAppRouteWiring'
 )
 
 $issMain = [System.Management.Automation.Runspaces.InitialSessionState]::CreateDefault()
