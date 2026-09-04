@@ -1,6 +1,6 @@
 {
   "catalogVersion": 1,
-  "generatedDate": "2026-09-03",
+  "generatedDate": "2026-09-04",
   "generator": "tools/Build-CommunityCatalog.ps1",
   "sourceSchemas": [
     "schemas/community-assets.json",
@@ -8,7 +8,7 @@
   ],
   "sourceDigests": {
     "schemas/community-assets.json": "63de2cac70435020eaf40c8f7dc0fc967cbb420b2dcd9aaba81c2e98a1620a34",
-    "schemas/theme-preview-manifest.json": "09bfe81493b060c2ff03a50546c3df0e67d35ca9b47fdef4c7284ad69dd40831"
+    "schemas/theme-preview-manifest.json": "46899c244c0d4877e6bc1473a8885320722e613236b051e47b91b733f2d84497"
   },
   "counts": {
     "extensions": 5,
@@ -332,8 +332,8 @@
       "fallbackBehavior": "skip-with-warning",
       "notes": "Commit-pinned and archive hash-verified",
       "preview": {
-        "url": "https://raw.githubusercontent.com/catppuccin/spicetify/1ec645c4cf7f42f9792b9eeb1bb7930f94593277/assets/mocha.webp",
-        "status": "unavailable",
+        "url": "https://raw.githubusercontent.com/catppuccin/spicetify/1ec645c4cf7f42f9792b9eeb1bb7930f94593277/assets/preview.webp",
+        "status": "available",
         "contentType": "image/webp",
         "fallbackLabel": "Catppuccin theme preview"
       }
@@ -393,8 +393,8 @@
       "fallbackBehavior": "skip-with-warning",
       "notes": "Commit-pinned and archive hash-verified; WTFPL license — review-required per license policy",
       "preview": {
-        "url": "https://raw.githubusercontent.com/Comfy-Themes/Spicetify/32ff101e27cfd33d85b7cc587f7f95db6b2df8b0/screenshots/Comfy.png",
-        "status": "unavailable",
+        "url": "https://raw.githubusercontent.com/Comfy-Themes/Spicetify/32ff101e27cfd33d85b7cc587f7f95db6b2df8b0/images/pages/home.png",
+        "status": "available",
         "contentType": "image/png",
         "fallbackLabel": "Comfy theme preview"
       }
@@ -458,8 +458,8 @@
       "fallbackBehavior": "skip-with-warning",
       "notes": "Commit-pinned and archive hash-verified",
       "preview": {
-        "url": "https://raw.githubusercontent.com/nimsandu/spicetify-bloom/654cfed682b94613b0029997ffafc1eadccc5bef/screenshots/dark.png",
-        "status": "unavailable",
+        "url": "https://raw.githubusercontent.com/nimsandu/spicetify-bloom/654cfed682b94613b0029997ffafc1eadccc5bef/images/main-cover.png",
+        "status": "available",
         "contentType": "image/png",
         "fallbackLabel": "Bloom theme preview"
       }
@@ -528,8 +528,8 @@
       "fallbackBehavior": "skip-with-warning",
       "notes": "Commit-pinned and archive hash-verified; AGPL-3.0 — review-required per license policy; fetched from upstream, never bundled",
       "preview": {
-        "url": "https://raw.githubusercontent.com/sanoojes/Spicetify-Lucid/5c28e9f955d5ca84a82d06084cc6652e5655ea2d/screenshots/dark.webp",
-        "status": "unavailable",
+        "url": "https://raw.githubusercontent.com/sanoojes/Spicetify-Lucid/5c28e9f955d5ca84a82d06084cc6652e5655ea2d/docs/public/images/base.png",
+        "status": "available",
         "contentType": "image/webp",
         "fallbackLabel": "Lucid theme preview"
       }
@@ -588,8 +588,8 @@
       "fallbackBehavior": "skip-with-warning",
       "notes": "Commit-pinned and archive hash-verified",
       "preview": {
-        "url": "https://raw.githubusercontent.com/Astromations/Hazy/1926d9db3e0313b68ca6e2193c2b278e733ac3c4/screenshots/dark.png",
-        "status": "unavailable",
+        "url": "https://raw.githubusercontent.com/Astromations/Hazy/1926d9db3e0313b68ca6e2193c2b278e733ac3c4/hazy_home.png",
+        "status": "available",
         "contentType": "image/png",
         "fallbackLabel": "Hazy theme preview"
       }
