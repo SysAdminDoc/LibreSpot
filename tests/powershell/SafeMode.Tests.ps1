@@ -5,6 +5,20 @@ BeforeAll {
     . (Join-Path $script:RepoRoot 'src\powershell\shared\Copy-DirectorySnapshotSafely.ps1')
     . (Join-Path $script:RepoRoot 'src\powershell\shared\Get-FileSha256Lower.ps1')
     . (Join-Path $script:RepoRoot 'src\powershell\shared\Reapply-SavedSpicetifySetup.ps1')
+    Add-Type -AssemblyName System.Security -ErrorAction Stop
+    $script:SafeModeEntropy = [System.Text.Encoding]::UTF8.GetBytes('LibreSpot.SafeModeRecovery.v3')
+
+    function Read-ProtectedSafeModeMarker {
+        param([Parameter(Mandatory = $true)][string]$Path)
+
+        $envelope = Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json
+        $protectedBytes = [Convert]::FromBase64String([string]$envelope.protectedState)
+        $markerBytes = [System.Security.Cryptography.ProtectedData]::Unprotect(
+            $protectedBytes,
+            $script:SafeModeEntropy,
+            [System.Security.Cryptography.DataProtectionScope]::CurrentUser)
+        return [System.Text.Encoding]::UTF8.GetString($markerBytes) | ConvertFrom-Json
+    }
 
     function Get-SpicetifyIntegrationContext { return $script:Integration }
     function Get-SpicetifyV3Conflict { return [pscustomobject]@{ IsConflict = $false; Message = '' } }
@@ -103,9 +117,13 @@ Describe 'One-session Spotify safe mode' {
         @(Get-SpicetifyConfigListValue -Key 'custom_apps').Count | Should -Be 0
         $script:InvokeCount | Should -Be 1
         $markerPath = Join-Path $global:CONFIG_DIR 'safe-mode-session.json'
-        $marker = Get-Content -LiteralPath $markerPath -Raw | ConvertFrom-Json
+        $envelope = Get-Content -LiteralPath $markerPath -Raw | ConvertFrom-Json
+        $marker = Read-ProtectedSafeModeMarker -Path $markerPath
         $manifest = Get-Content -LiteralPath (Join-Path $marker.snapshotPath 'safe-mode-manifest.json') -Raw | ConvertFrom-Json
-        $marker.schemaVersion | Should -Be 2
+        $envelope.schemaVersion | Should -Be 3
+        @($envelope.PSObject.Properties.Name) | Should -Be @('schemaVersion', 'protectedState')
+        $envelope.protectedState | Should -Match '^[A-Za-z0-9+/]+={0,2}$'
+        $marker.schemaVersion | Should -Be 3
         $marker.status | Should -Be 'Active'
         $marker.manifestSha256 | Should -Match '^[0-9a-f]{64}$'
         $manifest.customAppsFileCount | Should -Be 2
@@ -134,7 +152,7 @@ Describe 'One-session Spotify safe mode' {
     It 'refuses a tampered snapshot before clearing or applying the live setup' {
         $null = Reapply-SavedSpicetifySetup -Config @{} -SafeMode
         $markerPath = Join-Path $global:CONFIG_DIR 'safe-mode-session.json'
-        $marker = Get-Content -LiteralPath $markerPath -Raw | ConvertFrom-Json
+        $marker = Read-ProtectedSafeModeMarker -Path $markerPath
         [System.IO.File]::AppendAllText((Join-Path $marker.snapshotPath 'config-xpui.ini'), 'tampered')
         $liveBefore = [Convert]::ToBase64String([System.IO.File]::ReadAllBytes($script:Integration.ConfigPath))
 
@@ -165,7 +183,7 @@ Describe 'One-session Spotify safe mode' {
     It 'refuses a tampered recovery manifest before touching the live setup' {
         $null = Reapply-SavedSpicetifySetup -Config @{} -SafeMode
         $markerPath = Join-Path $global:CONFIG_DIR 'safe-mode-session.json'
-        $marker = Get-Content -LiteralPath $markerPath -Raw | ConvertFrom-Json
+        $marker = Read-ProtectedSafeModeMarker -Path $markerPath
         $manifestPath = Join-Path $marker.snapshotPath 'safe-mode-manifest.json'
         $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
         $manifest.customAppsExisted = $false
@@ -181,10 +199,35 @@ Describe 'One-session Spotify safe mode' {
         $script:ApplyCount | Should -Be 0
     }
 
+    It 'refuses coordinated protected-marker and manifest tampering before touching the live setup' {
+        $null = Reapply-SavedSpicetifySetup -Config @{} -SafeMode
+        $markerPath = Join-Path $global:CONFIG_DIR 'safe-mode-session.json'
+        $marker = Read-ProtectedSafeModeMarker -Path $markerPath
+        $manifestPath = Join-Path $marker.snapshotPath 'safe-mode-manifest.json'
+        $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
+        $manifest.customAppsExisted = $false
+        $manifest.customAppsFileCount = 0
+        $manifest.customAppsFiles = @()
+        [System.IO.File]::WriteAllText($manifestPath, ($manifest | ConvertTo-Json -Depth 7))
+
+        $envelope = Get-Content -LiteralPath $markerPath -Raw | ConvertFrom-Json
+        $protectedBytes = [Convert]::FromBase64String([string]$envelope.protectedState)
+        $protectedBytes[[Math]::Floor($protectedBytes.Length / 2)] = $protectedBytes[[Math]::Floor($protectedBytes.Length / 2)] -bxor 0x01
+        $envelope.protectedState = [Convert]::ToBase64String($protectedBytes)
+        [System.IO.File]::WriteAllText($markerPath, ($envelope | ConvertTo-Json -Depth 3))
+        $liveBefore = [Convert]::ToBase64String([System.IO.File]::ReadAllBytes($script:Integration.ConfigPath))
+
+        { Reapply-SavedSpicetifySetup -Config @{} -RestoreSafeMode } | Should -Throw -ExpectedMessage '*could not be authenticated*'
+
+        [Convert]::ToBase64String([System.IO.File]::ReadAllBytes($script:Integration.ConfigPath)) | Should -Be $liveBefore
+        $script:ClearCount | Should -Be 0
+        $script:ApplyCount | Should -Be 0
+    }
+
     It 'restores a verified legacy session created before the hashed marker format' {
         $null = Reapply-SavedSpicetifySetup -Config @{} -SafeMode
         $markerPath = Join-Path $global:CONFIG_DIR 'safe-mode-session.json'
-        $marker = Get-Content -LiteralPath $markerPath -Raw | ConvertFrom-Json
+        $marker = Read-ProtectedSafeModeMarker -Path $markerPath
         $manifestPath = Join-Path $marker.snapshotPath 'safe-mode-manifest.json'
         $legacy = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
         $legacy.schemaVersion = 1

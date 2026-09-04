@@ -10,6 +10,7 @@ function Reapply-SavedSpicetifySetup {
     $safeModeRoot = Join-Path $global:BACKUP_ROOT 'SafeMode'
     $statePath = Join-Path $global:CONFIG_DIR 'safe-mode-session.json'
     $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    $safeModeEntropy = [System.Text.Encoding]::UTF8.GetBytes('LibreSpot.SafeModeRecovery.v3')
 
     $writeSafeModeMarker = {
         param(
@@ -18,11 +19,25 @@ function Reapply-SavedSpicetifySetup {
             [Parameter(Mandatory = $true)][string]$ManifestSha256
         )
 
-        $marker = [ordered]@{
-            schemaVersion = 2
+        Add-Type -AssemblyName System.Security -ErrorAction Stop
+        $protectedMarker = [ordered]@{
+            schemaVersion = 3
             status = $Status
-            snapshotPath = $SnapshotPath
-            manifestSha256 = $ManifestSha256
+            snapshotPath = [System.IO.Path]::GetFullPath($SnapshotPath).TrimEnd('\')
+            manifestSha256 = $ManifestSha256.ToLowerInvariant()
+        }
+        $protectedMarkerJson = $protectedMarker | ConvertTo-Json -Depth 3 -Compress
+        try {
+            $protectedMarkerBytes = [System.Security.Cryptography.ProtectedData]::Protect(
+                [System.Text.Encoding]::UTF8.GetBytes($protectedMarkerJson),
+                $safeModeEntropy,
+                [System.Security.Cryptography.DataProtectionScope]::CurrentUser)
+        } catch {
+            throw "LibreSpot could not protect the safe-mode recovery marker for this Windows account. $($_.Exception.Message)"
+        }
+        $marker = [ordered]@{
+            schemaVersion = 3
+            protectedState = [Convert]::ToBase64String($protectedMarkerBytes)
         }
         if (-not (Test-Path -LiteralPath $global:CONFIG_DIR -PathType Container)) {
             New-Item -Path $global:CONFIG_DIR -ItemType Directory -Force -ErrorAction Stop | Out-Null
@@ -47,17 +62,38 @@ function Reapply-SavedSpicetifySetup {
             throw "The safe-mode recovery marker is unreadable. LibreSpot left it untouched for manual review. $($_.Exception.Message)"
         }
         $markerSchemaVersion = [int]$marker.schemaVersion
-        if ($markerSchemaVersion -notin @(1, 2)) {
+        if ($markerSchemaVersion -notin @(1, 3)) {
             throw "Unsupported safe-mode recovery schema version '$($marker.schemaVersion)'."
         }
-        if ($markerSchemaVersion -eq 2) {
+        if ($markerSchemaVersion -eq 3) {
+            Add-Type -AssemblyName System.Security -ErrorAction Stop
+            $allowedEnvelopeProperties = @('schemaVersion', 'protectedState')
+            $unexpectedEnvelopeProperties = @($marker.PSObject.Properties.Name | Where-Object { $allowedEnvelopeProperties -notcontains $_ })
+            $protectedState = [string]$marker.protectedState
+            if ($unexpectedEnvelopeProperties.Count -ne 0 -or [string]::IsNullOrWhiteSpace($protectedState) -or
+                $protectedState.Length -gt 65536) {
+                throw 'The safe-mode recovery marker has unexpected or invalid fields. Recovery was refused before mutation.'
+            }
+            try {
+                $protectedBytes = [Convert]::FromBase64String($protectedState)
+                $markerBytes = [System.Security.Cryptography.ProtectedData]::Unprotect(
+                    $protectedBytes,
+                    $safeModeEntropy,
+                    [System.Security.Cryptography.DataProtectionScope]::CurrentUser)
+                if ($markerBytes.Length -le 0 -or $markerBytes.Length -gt 65536) {
+                    throw 'The protected marker payload has an invalid size.'
+                }
+                $marker = [System.Text.Encoding]::UTF8.GetString($markerBytes) | ConvertFrom-Json -ErrorAction Stop
+            } catch {
+                throw 'The safe-mode recovery marker could not be authenticated for this Windows account. Recovery was refused before mutation.'
+            }
             $allowedMarkerProperties = @('schemaVersion', 'status', 'snapshotPath', 'manifestSha256')
             $unexpectedMarkerProperties = @($marker.PSObject.Properties.Name | Where-Object { $allowedMarkerProperties -notcontains $_ })
-            if ($unexpectedMarkerProperties.Count -ne 0 -or
+            if ([int]$marker.schemaVersion -ne 3 -or $unexpectedMarkerProperties.Count -ne 0 -or
                 ([string]$marker.status) -notin @('ReadyToEnter', 'Active') -or
                 [string]::IsNullOrWhiteSpace([string]$marker.snapshotPath) -or
                 [string]$marker.manifestSha256 -notmatch '^[0-9a-fA-F]{64}$') {
-                throw 'The safe-mode recovery marker has unexpected or invalid fields. Recovery was refused before mutation.'
+                throw 'The protected safe-mode recovery marker has unexpected or invalid fields. Recovery was refused before mutation.'
             }
         } elseif (([string]$marker.status) -notin @('ReadyToEnter', 'Active') -or
             [string]::IsNullOrWhiteSpace([string]$marker.snapshotPath)) {
@@ -78,7 +114,7 @@ function Reapply-SavedSpicetifySetup {
             throw 'The safe-mode snapshot manifest has an invalid size. Recovery was refused before mutation.'
         }
         $actualManifestSha256 = Get-FileSha256Lower -Path $manifestPath
-        $expectedManifestSha256 = if ($markerSchemaVersion -eq 2) {
+        $expectedManifestSha256 = if ($markerSchemaVersion -eq 3) {
             ([string]$marker.manifestSha256).ToLowerInvariant()
         } else {
             Get-FileSha256Lower -Path $statePath
@@ -241,7 +277,7 @@ function Reapply-SavedSpicetifySetup {
             }
 
             $state = [ordered]@{
-                schemaVersion = 2
+                schemaVersion = 3
                 operationId = $operationId
                 createdAtUtc = (Get-Date).ToUniversalTime().ToString('o')
                 snapshotPath = $snapshotPath

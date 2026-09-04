@@ -46,10 +46,27 @@ public sealed partial class MainViewModel
                 using var stream = File.Open(SafeModeStatePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
                 using var document = JsonDocument.Parse(stream);
                 var root = document.RootElement;
-                var status = root.TryGetProperty("status", out var statusValue) ? statusValue.GetString() : null;
-                return root.TryGetProperty("schemaVersion", out var schemaVersion) &&
-                    schemaVersion.GetInt32() is 1 or 2 &&
-                    status is "ReadyToEnter" or "Active";
+                if (!root.TryGetProperty("schemaVersion", out var schemaVersion) ||
+                    schemaVersion.ValueKind != JsonValueKind.Number)
+                {
+                    return false;
+                }
+
+                if (schemaVersion.GetInt32() == 1)
+                {
+                    var status = root.TryGetProperty("status", out var statusValue) ? statusValue.GetString() : null;
+                    return status is "ReadyToEnter" or "Active";
+                }
+
+                if (schemaVersion.GetInt32() != 3 || root.EnumerateObject().Count() != 2 ||
+                    !root.TryGetProperty("protectedState", out var protectedState) ||
+                    protectedState.ValueKind != JsonValueKind.String)
+                {
+                    return false;
+                }
+
+                var protectedBytes = Convert.FromBase64String(protectedState.GetString()!);
+                return protectedBytes.Length is > 0 and <= 65536;
             }
             catch
             {

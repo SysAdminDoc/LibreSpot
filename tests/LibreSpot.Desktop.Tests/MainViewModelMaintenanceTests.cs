@@ -250,7 +250,7 @@ public sealed class MainViewModelMaintenanceTests
             using var fixture = new SnapshotFixture();
             fixture.WriteSpotify(withSpotXMarkers: true);
             fixture.WriteSpicetifyConfig("extensions =\r\ncustom_apps =\r\ncurrent_theme = Catppuccin\r\ninject_css = 1\r\nreplace_colors = 1");
-            fixture.WriteSafeModeMarker("Active");
+            fixture.WriteSafeModeMarker();
 
             using var viewModel = await fixture.CreateInitializedViewModelAsync();
 
@@ -1199,10 +1199,10 @@ public sealed class MainViewModelMaintenanceTests
         public void WriteWatcherState(string content) =>
             WriteFile(Path.Combine(ConfigDirectory, "watcher-state.json"), content);
 
-        public void WriteSafeModeMarker(string status) =>
+        public void WriteSafeModeMarker() =>
             WriteFile(
                 Path.Combine(ConfigDirectory, "safe-mode-session.json"),
-                JsonSerializer.Serialize(new { schemaVersion = 2, status }));
+                JsonSerializer.Serialize(new { schemaVersion = 3, protectedState = Convert.ToBase64String([1, 2, 3]) }));
 
         public void WriteInstallLog(string content) =>
             WriteFile(Path.Combine(ConfigDirectory, "install.log"), content);

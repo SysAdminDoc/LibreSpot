@@ -14,7 +14,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Fixed
 
-- Safe-mode recovery now treats its snapshot manifest as the only source of restore data. The small UI marker carries a SHA256 for that manifest, unexpected fields are refused, and every listed CustomApps file is checked before the live setup changes. The fleet CLI now opens Spotify after a successful `repair --safe-mode` run unless `--no-restart` was supplied.
+- Safe-mode recovery now treats its snapshot manifest as the only source of restore data. The small UI marker seals the snapshot path and manifest SHA256 with Windows data protection for the current account, so editing both files cannot forge a recovery state. Unexpected fields are refused, and every listed CustomApps file is checked before the live setup changes. The fleet CLI opens Spotify after a successful `repair --safe-mode` run unless `--no-restart` was supplied.
 - Asset-cache imports now reject entries that weren't marked present and verified at export time. Each import prepares the complete merged cache beside the live directory, then commits it with a rollback-safe directory swap. A failed commit restores every original byte.
 - Support bundles now accept a `.dmp` only when it has a valid Windows minidump header and a bounded stream directory. If the newest candidate is invalid, LibreSpot skips it and includes the next valid dump instead.
 - Home's readiness list now has a translated accessibility name in every shipped interface language. Screen readers can identify the list before announcing its four checks, and the former Axe.Windows exception is gone.
