@@ -1,5 +1,6 @@
 Describe 'Community catalog cross-edition output' {
     BeforeAll {
+        $script:reviewedCatalogSha256 = 'a1ca4c1fcba4c1231bceedffb24ceb207093e8e664d937b5858f096692818162'
         $script:catalogGenerator = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..\..\tools\Build-CommunityCatalog.ps1')).Path
         $script:catalogTestRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("librespot-catalog-editions-{0}" -f ([guid]::NewGuid().ToString('N')))
         $script:windowsPowerShellOutput = Join-Path $script:catalogTestRoot 'windows-powershell'
@@ -40,6 +41,18 @@ Describe 'Community catalog cross-edition output' {
             $powerShellBytes = [System.IO.File]::ReadAllBytes((Join-Path $script:powerShellOutput $fileName))
             [Convert]::ToBase64String($windowsPowerShellBytes) |
                 Should -BeExactly ([Convert]::ToBase64String($powerShellBytes)) -Because "$fileName must be byte-identical"
+
+            if ($fileName -eq 'catalog.json') {
+                foreach ($bytes in @($windowsPowerShellBytes, $powerShellBytes)) {
+                    $sha256 = [System.Security.Cryptography.SHA256]::Create()
+                    try {
+                        $actualSha256 = ([BitConverter]::ToString($sha256.ComputeHash($bytes)) -replace '-', '').ToLowerInvariant()
+                    } finally {
+                        $sha256.Dispose()
+                    }
+                    $actualSha256 | Should -BeExactly $script:reviewedCatalogSha256 -Because 'the canonical formatter must retain the reviewed PowerShell 7 bytes'
+                }
+            }
         }
     }
 }

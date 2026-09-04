@@ -707,7 +707,9 @@ git worktree remove ..\LibreSpot-ghpages
 
 The generator decodes both schemas as UTF-8 and writes JSON through one
 canonical formatter. The documented command therefore produces byte-identical
-output in Windows PowerShell 5.1 and PowerShell 7.
+output in Windows PowerShell 5.1 and PowerShell 7. Its cross-edition Pester
+contract also pins a fixed-date catalog digest. An intentional schema or
+format change needs a reviewed digest update.
 
 ## Local validation
 
