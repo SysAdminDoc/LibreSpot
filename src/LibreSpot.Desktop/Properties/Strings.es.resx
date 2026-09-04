@@ -2678,4 +2678,15 @@
   <data name="HealthEvidenceLibreSpotEngineAnchorsChangedFormat" xml:space="preserve"><value>Al contrato DOM fijado de Spotify le faltan estos grupos de anclajes: {0}. El panel de estado del cliente puede mostrar el resultado en vivo exacto.</value><comment>{0} is a list of missing anchor groups.</comment></data>
   <data name="HealthEvidenceLibreSpotEngineAnchorProbeUnavailable" xml:space="preserve"><value>La aplicación y la extensión complementaria están instaladas, pero no hay un paquete xpui.js extraído para comprobar los anclajes sin conexión.</value><comment>Live engine health evidence.</comment></data>
   <data name="HealthEvidenceLibreSpotEngineReady" xml:space="preserve"><value>La aplicación, la extensión complementaria, la ruta y los anclajes fijados de Spotify están presentes.</value><comment>Live engine health evidence.</comment></data>
+  <data name="MinidumpTitle" xml:space="preserve"><value>Volcado de memoria local</value></data>
+  <data name="MinidumpDescription" xml:space="preserve"><value>Guarda un volcado Triage con filtro de privacidad si LibreSpot falla. El próximo inicio se prepara solo para LibreSpot. Se conservan los dos volcados más recientes y el más nuevo puede añadirse a un paquete de soporte.</value></data>
+  <data name="MinidumpEnabledStatus" xml:space="preserve"><value>Activado para el próximo inicio</value></data>
+  <data name="MinidumpDisabledStatus" xml:space="preserve"><value>Desactivado</value></data>
+  <data name="MinidumpAutomationName" xml:space="preserve"><value>Recopilar un volcado Triage local tras un fallo de LibreSpot</value></data>
+  <data name="MinidumpAutomationHint" xml:space="preserve"><value>Activa o desactiva la recopilación de volcados locales. LibreSpot nunca sube un volcado.</value></data>
+  <data name="MinidumpEnabledLog" xml:space="preserve"><value>La recopilación de volcados Triage locales se activó para el próximo inicio de LibreSpot.</value></data>
+  <data name="MinidumpDisabledLog" xml:space="preserve"><value>La recopilación de volcados Triage locales está desactivada.</value></data>
+  <data name="MinidumpUpdateFailedTitle" xml:space="preserve"><value>No se guardó el ajuste del volcado</value></data>
+  <data name="MinidumpUpdateFailedLogFormat" xml:space="preserve"><value>LibreSpot no pudo actualizar el ajuste del volcado local: {0}</value></data>
+  <data name="MinidumpUpdateFailedDetail" xml:space="preserve"><value>Revisa el registro de actividad y vuelve a probar el interruptor.</value></data>
 </root>

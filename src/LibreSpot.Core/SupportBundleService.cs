@@ -15,7 +15,8 @@ public sealed record SupportBundleOptions(
     bool IncludeOperationJournal = true,
     bool IncludeLogs = true,
     bool IncludeCrashReports = true,
-    SupportBundleRunContext? CurrentRun = null);
+    SupportBundleRunContext? CurrentRun = null,
+    bool IncludeMinidump = false);
 
 public sealed record SupportBundleRunContext(
     string Title,
@@ -57,8 +58,11 @@ public sealed class SupportBundleService
     private const int MaxCrashLines = 900;
     private const int MaxRollingLogFiles = 3;
     private const int MaxCrashFiles = 3;
+    private const int MaxMinidumpFiles = 1;
     private const int MaxDiagnosticWindowBytes = 1024 * 1024;
+    private const long MaxMinidumpBytes = 256L * 1024 * 1024;
     private const long MetadataEstimateBytes = 16 * 1024;
+    private const string MinidumpRedactionRule = "The newest .NET Triage minidump is included without rewriting its binary bytes. The runtime filters personal paths and passwords before writing it.";
     private static readonly Encoding StrictUtf8NoBom = new UTF8Encoding(false, true);
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -134,13 +138,23 @@ public sealed class SupportBundleService
                 CountExisting(CrashFiles()),
                 EstimateFiles(CrashFiles(), MaxCrashLines),
                 false,
-                options.IncludeCrashReports)
+                options.IncludeCrashReports),
+            new SupportBundlePreviewEntry(
+                "minidump",
+                "Local Triage dump",
+                "Newest privacy-filtered .NET Triage dump. Binary dump bytes are never rewritten.",
+                CountBinaryFiles(MinidumpFiles(), MaxMinidumpBytes),
+                EstimateBinaryFiles(MinidumpFiles(), MaxMinidumpBytes),
+                false,
+                options.IncludeMinidump)
         };
 
         return new SupportBundlePreview(
             entries,
             entries.Where(entry => entry.IsSelected).Sum(entry => entry.EstimatedBytes),
-            RedactionRules);
+            options.IncludeMinidump
+                ? RedactionRules.Concat([MinidumpRedactionRule]).ToArray()
+                : RedactionRules);
     }
 
     public async Task<SupportBundleResult> ExportAsync(
@@ -227,6 +241,22 @@ public sealed class SupportBundleService
                     }
                 }
 
+                if (options.IncludeMinidump)
+                {
+                    foreach (var file in MinidumpFiles())
+                    {
+                        if (cancellationToken.IsCancellationRequested)
+                        {
+                            break;
+                        }
+
+                        if (TryAddBinaryFile(archive, "crashes", file, MaxMinidumpBytes))
+                        {
+                            entryCount++;
+                        }
+                    }
+                }
+
                 cancellationToken.ThrowIfCancellationRequested();
             }
 
@@ -270,6 +300,7 @@ public sealed class SupportBundleService
                 options.IncludeOperationJournal,
                 options.IncludeLogs,
                 options.IncludeCrashReports,
+                options.IncludeMinidump,
                 includeCurrentRun = options.CurrentRun is not null
             },
             selectedFileCount = preview.SelectedFileCount,
@@ -728,6 +759,10 @@ public sealed class SupportBundleService
         LatestFiles(_crashDirectory, "crash-*.log", MaxCrashFiles)
             .Select(path => new SupportBundleFile(path, "Crash report"));
 
+    private IEnumerable<SupportBundleFile> MinidumpFiles() =>
+        LatestFiles(_crashDirectory, "*.dmp", MaxMinidumpFiles)
+            .Select(path => new SupportBundleFile(path, "Local Triage minidump"));
+
     private bool TryAddRedactedFileWindow(ZipArchive archive, string folder, SupportBundleFile file, int maxLines)
     {
         if (!File.Exists(file.Path))
@@ -740,6 +775,40 @@ public sealed class SupportBundleService
         var header = $"{file.Label}{Environment.NewLine}Source: {RedactText(file.Path)}{Environment.NewLine}{Environment.NewLine}";
         AddTextEntry(archive, entryName, header + ReadSupportFileWindow(file.Path, maxLines));
         return true;
+    }
+
+    private static bool TryAddBinaryFile(ZipArchive archive, string folder, SupportBundleFile file, long maxBytes)
+    {
+        FileStream input;
+        try
+        {
+            var info = new FileInfo(file.Path);
+            if (!info.Exists || info.Length is <= 0 || info.Length > maxBytes ||
+                (info.Attributes & FileAttributes.ReparsePoint) != 0)
+            {
+                return false;
+            }
+
+            input = new FileStream(info.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
+            if (input.Length is <= 0 || input.Length > maxBytes)
+            {
+                input.Dispose();
+                return false;
+            }
+        }
+        catch
+        {
+            return false;
+        }
+
+        using (input)
+        {
+            var leaf = MakeSafeFileName(Path.GetFileName(file.Path));
+            var entry = archive.CreateEntry($"{folder}/{leaf}", CompressionLevel.Fastest);
+            using var output = entry.Open();
+            input.CopyTo(output);
+            return true;
+        }
     }
 
     private string ReadSupportFileWindow(string path, int maxLines) =>
@@ -930,8 +999,41 @@ public sealed class SupportBundleService
             });
     }
 
+    private static long EstimateBinaryFiles(IEnumerable<SupportBundleFile> files, long maxBytes) =>
+        files
+            .Where(file => File.Exists(file.Path))
+            .Sum(file =>
+            {
+                try
+                {
+                    var info = new FileInfo(file.Path);
+                    return (info.Attributes & FileAttributes.ReparsePoint) == 0
+                        ? Math.Min(info.Length, maxBytes)
+                        : 0;
+                }
+                catch
+                {
+                    return 0;
+                }
+            });
+
     private static int CountExisting(IEnumerable<SupportBundleFile> files) =>
         files.Count(file => File.Exists(file.Path));
+
+    private static int CountBinaryFiles(IEnumerable<SupportBundleFile> files, long maxBytes) =>
+        files.Count(file =>
+        {
+            try
+            {
+                var info = new FileInfo(file.Path);
+                return info.Exists && info.Length is > 0 && info.Length <= maxBytes &&
+                    (info.Attributes & FileAttributes.ReparsePoint) == 0;
+            }
+            catch
+            {
+                return false;
+            }
+        });
 
     private static long EstimateTextBytes(string? value) =>
         string.IsNullOrEmpty(value) ? 0 : Encoding.UTF8.GetByteCount(value);
@@ -947,6 +1049,7 @@ public sealed class SupportBundleService
         {
             return Directory.EnumerateFiles(directory, pattern)
                 .Select(path => new FileInfo(path))
+                .Where(file => (file.Attributes & FileAttributes.ReparsePoint) == 0)
                 .OrderByDescending(file => file.LastWriteTimeUtc)
                 .Take(maxCount)
                 .Select(file => file.FullName)

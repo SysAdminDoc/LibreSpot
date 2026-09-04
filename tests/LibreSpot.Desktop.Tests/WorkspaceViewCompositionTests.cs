@@ -155,6 +155,21 @@ public sealed class WorkspaceViewCompositionTests
         Assert.Contains("{services:Loc SafeModeRestoreDescription}", maintenance);
     }
 
+    [Fact]
+    public void MaintenanceWorkspace_OffersAnAccessibleLocalMinidumpToggle()
+    {
+        var maintenance = ReadView("MaintenanceWorkspaceView.xaml");
+
+        Assert.Contains("Style=\"{StaticResource SettingCheckBoxStyle}\"", maintenance);
+        Assert.Contains("IsChecked=\"{Binding IsMinidumpEnabled, Mode=TwoWay}\"", maintenance);
+        Assert.Contains("AutomationProperties.AutomationId=\"MinidumpToggle\"", maintenance);
+        Assert.Contains("AutomationProperties.Name=\"{services:Loc MinidumpAutomationName}\"", maintenance);
+        Assert.Contains("AutomationProperties.HelpText=\"{services:Loc MinidumpAutomationHint}\"", maintenance);
+        Assert.Contains("{services:Loc MinidumpTitle}", maintenance);
+        Assert.Contains("{services:Loc MinidumpDescription}", maintenance);
+        Assert.Contains("{Binding MinidumpStatusText}", maintenance);
+    }
+
     private static string ReadView(string fileName) =>
         File.ReadAllText(Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Views", fileName));
 

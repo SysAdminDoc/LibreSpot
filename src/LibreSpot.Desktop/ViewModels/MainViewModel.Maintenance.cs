@@ -22,6 +22,7 @@ public sealed partial class MainViewModel
 {
     private IAsyncRelayCommand? _restoreSafeModeCommand;
     private bool _uiAutomationSafeModeRestoreAvailable;
+    private bool _uiAutomationMinidumpEnabled;
 
     private string SafeModeStatePath => Path.Combine(_configurationService.ConfigDirectory, "safe-mode-session.json");
 
@@ -58,6 +59,40 @@ public sealed partial class MainViewModel
     }
 
     public bool IsSafeModeRestoreUnavailable => !IsSafeModeRestoreAvailable;
+
+    public bool IsMinidumpEnabled
+    {
+        get => _uiAutomationMinidumpEnabled || _minidumpSettingsService.IsEnabled;
+        set
+        {
+            if (IsMinidumpEnabled == value && !_uiAutomationMinidumpEnabled)
+            {
+                return;
+            }
+
+            try
+            {
+                _minidumpSettingsService.SetEnabled(value);
+                _uiAutomationMinidumpEnabled = false;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(MinidumpStatusText));
+                AppendLog(L(value ? "MinidumpEnabledLog" : "MinidumpDisabledLog"), "INFO");
+                RefreshSupportBundlePreview();
+            }
+            catch (Exception ex)
+            {
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(MinidumpStatusText));
+                var detail = LF("MinidumpUpdateFailedLogFormat", ex.Message);
+                AppendLog(detail, "ERROR");
+                ShowNotice(L("MinidumpUpdateFailedTitle"), detail, L("MinidumpUpdateFailedDetail"));
+            }
+        }
+    }
+
+    public string MinidumpStatusText => IsMinidumpEnabled
+        ? L("MinidumpEnabledStatus")
+        : L("MinidumpDisabledStatus");
 
     public IAsyncRelayCommand RestoreSafeModeCommand =>
         _restoreSafeModeCommand ??= CreateAsyncCommand(
@@ -610,7 +645,8 @@ public sealed partial class MainViewModel
             IncludeOperationJournal: SupportBundleItems.FirstOrDefault(item => item.Id == "operation")?.IsSelected ?? true,
             IncludeLogs: SupportBundleItems.FirstOrDefault(item => item.Id == "logs")?.IsSelected ?? true,
             IncludeCrashReports: SupportBundleItems.FirstOrDefault(item => item.Id == "crashes")?.IsSelected ?? true,
-            CurrentRun: currentRun);
+            CurrentRun: currentRun,
+            IncludeMinidump: IsMinidumpEnabled);
 
     private void RefreshSupportBundlePreview()
     {

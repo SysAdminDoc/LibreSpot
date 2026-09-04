@@ -41,6 +41,7 @@ public sealed class WpfQaMatrixTests
             ("custom-live", "LiveCustomizationDescription", "LiveCustomizationFeatureSearch"),
             ("maintenance", "Maintenance_RepairMarketplace_ButtonText", "MaintenancePrimaryActionButton"),
             ("maintenance-safe-mode", "SafeModeRestoreTitle", "RestoreSafeModeButton"),
+            ("maintenance-minidump", "MinidumpTitle", "MinidumpToggle"),
             ("maintenance-compatibility", "CompatibilityVerdictTitle", "WorkspaceNavMaintenance"),
             ("maintenance-healthy", "Vm_MaintenanceNoActionTitle", "MaintenanceDiagnosticsToggle"),
             ("maintenance-error", "Vm_ShellRetryShort", "MaintenancePrimaryActionButton"),

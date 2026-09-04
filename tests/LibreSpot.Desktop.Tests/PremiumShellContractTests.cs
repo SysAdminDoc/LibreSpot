@@ -286,6 +286,22 @@ public sealed class PremiumShellContractTests
         Assert.Contains("useHighContrast ? HighContrastPaletteSource : PaletteSource", themeManager);
     }
 
+    [Fact]
+    public void LocalMinidumpBootstrapArmsOnlyTheRelaunchedLibreSpotProcess()
+    {
+        var app = ReadFile("src", "LibreSpot.Desktop", "App.xaml.cs");
+        var service = ReadFile("src", "LibreSpot.Core", "MinidumpSettingsService.cs");
+
+        Assert.True(app.IndexOf("PrepareLaunch(e.Args)", StringComparison.Ordinal) <
+                    app.IndexOf("CrashReporter.Initialize()", StringComparison.Ordinal));
+        Assert.Contains("UseShellExecute = false", service);
+        Assert.Contains("startInfo.Environment[pair.Key] = pair.Value", service);
+        Assert.Contains("DOTNET_DbgEnableMiniDump", service);
+        Assert.Contains("DOTNET_DbgMiniDumpType", service);
+        Assert.Contains("DOTNET_DbgMiniDumpName", service);
+        Assert.Contains("%e-%p-%t.dmp", service);
+    }
+
     private static string ReadFile(params string[] parts) =>
         File.ReadAllText(Path.Combine(new[] { RepoRoot }.Concat(parts).ToArray()));
 

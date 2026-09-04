@@ -10,6 +10,7 @@ All notable changes to LibreSpot will be documented in this file.
 - Fleet diagnosis can request the same reversible launch with `LibreSpot.Cli.exe repair --safe-mode`. Dry runs report the resolved SafeMode action as NDJSON.
 - Fleet admins can export a complete, reverified asset cache to a portable ZIP and import it on an offline endpoint. The bundle keeps source and verification metadata, rejects undeclared or tampered ZIP content before mutation, and identifies Spotify's vendor installer as the remaining external dependency.
 - The standalone and desktop PowerShell hosts carry the same asset-cache export and import functions. An offline regression now installs every LibreSpot-fetched fixture from an imported bundle without making a network request.
+- Maintenance has an opt-in local crash dump switch. LibreSpot arms only its next process for a privacy-filtered .NET Triage dump, keeps the two newest files, and adds only the newest dump to a support bundle while the switch remains on.
 
 ### Fixed
 

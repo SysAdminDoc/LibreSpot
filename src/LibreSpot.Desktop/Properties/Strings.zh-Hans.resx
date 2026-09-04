@@ -2678,4 +2678,15 @@
   <data name="HealthEvidenceLibreSpotEngineAnchorsChangedFormat" xml:space="preserve"><value>固定的 Spotify DOM 约定缺少这些锚点组：{0}。客户端内的健康面板可显示准确的实时结果。</value><comment>{0} is a list of missing anchor groups.</comment></data>
   <data name="HealthEvidenceLibreSpotEngineAnchorProbeUnavailable" xml:space="preserve"><value>自定义应用和配套扩展已安装，但没有可供离线锚点检查的已提取 xpui.js 包。</value><comment>Live engine health evidence.</comment></data>
   <data name="HealthEvidenceLibreSpotEngineReady" xml:space="preserve"><value>自定义应用、配套扩展、路由和固定的 Spotify 锚点均已存在。</value><comment>Live engine health evidence.</comment></data>
+  <data name="MinidumpTitle" xml:space="preserve"><value>本地崩溃转储</value></data>
+  <data name="MinidumpDescription" xml:space="preserve"><value>如果 LibreSpot 崩溃，则保存经过隐私筛选的 Triage 转储。下次启动仅为 LibreSpot 启用此功能。保留最新的两个转储，并可将最新转储加入支持包。</value></data>
+  <data name="MinidumpEnabledStatus" xml:space="preserve"><value>下次启动时开启</value></data>
+  <data name="MinidumpDisabledStatus" xml:space="preserve"><value>已关闭</value></data>
+  <data name="MinidumpAutomationName" xml:space="preserve"><value>LibreSpot 崩溃后收集本地 Triage 转储</value></data>
+  <data name="MinidumpAutomationHint" xml:space="preserve"><value>打开或关闭本地崩溃转储收集。LibreSpot 绝不会上传转储。</value></data>
+  <data name="MinidumpEnabledLog" xml:space="preserve"><value>已为 LibreSpot 下次启动开启本地 Triage 转储收集。</value></data>
+  <data name="MinidumpDisabledLog" xml:space="preserve"><value>本地 Triage 转储收集已关闭。</value></data>
+  <data name="MinidumpUpdateFailedTitle" xml:space="preserve"><value>未保存崩溃转储设置</value></data>
+  <data name="MinidumpUpdateFailedLogFormat" xml:space="preserve"><value>LibreSpot 无法更新本地崩溃转储设置：{0}</value></data>
+  <data name="MinidumpUpdateFailedDetail" xml:space="preserve"><value>请检查活动日志，然后再次使用此开关。</value></data>
 </root>

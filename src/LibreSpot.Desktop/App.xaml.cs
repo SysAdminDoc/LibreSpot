@@ -12,6 +12,18 @@ public partial class App : Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
+        var minidumpLaunch = new MinidumpSettingsService().PrepareLaunch(e.Args);
+        if (minidumpLaunch.Relaunched)
+        {
+            Shutdown(0);
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(minidumpLaunch.ErrorMessage))
+        {
+            Console.Error.WriteLine($"LibreSpot minidump bootstrap: {minidumpLaunch.ErrorMessage}");
+        }
+
         CrashReporter.Initialize();
         BackendScriptService.CleanStaleExecutionCopies();
         LocalizationService.Current.ApplyCulture(GetStartupCulture(e.Args));

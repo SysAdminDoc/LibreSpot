@@ -566,6 +566,57 @@
             </Grid>
           </Border>
 
+          <CheckBox x:Name="MinidumpToggle"
+                    Style="{StaticResource SettingCheckBoxStyle}"
+                    Margin="0,0,0,14"
+                    IsChecked="{Binding IsMinidumpEnabled, Mode=TwoWay}"
+                    AutomationProperties.AutomationId="MinidumpToggle"
+                    AutomationProperties.Name="{services:Loc MinidumpAutomationName}"
+                    AutomationProperties.HelpText="{services:Loc MinidumpAutomationHint}"
+                    ToolTip="{services:Loc MinidumpAutomationHint}">
+            <Grid MinHeight="52">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <Border Width="44"
+                      Height="44"
+                      CornerRadius="{StaticResource RadiusSm}"
+                      Background="{DynamicResource AccentMistBrush}"
+                      BorderBrush="{DynamicResource AccentRingBrush}"
+                      BorderThickness="1"
+                      VerticalAlignment="Top">
+                <controls:DecorativeSymbolIcon Symbol="ShieldCheckmark24"
+                                                FontSize="20"
+                                                Foreground="{DynamicResource AccentBrush}"
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Center" />
+              </Border>
+              <StackPanel Grid.Column="1"
+                          Margin="14,0,18,0"
+                          VerticalAlignment="Center">
+                <TextBlock Text="{services:Loc MinidumpTitle}"
+                           Style="{StaticResource SectionTitleTextStyle}"
+                           FontSize="18"
+                           TextWrapping="Wrap" />
+                <TextBlock Text="{services:Loc MinidumpDescription}"
+                           Style="{StaticResource CaptionTextStyle}"
+                           Foreground="{DynamicResource TextBrush}"
+                           Margin="0,6,0,0"
+                           MaxWidth="650"
+                           HorizontalAlignment="Left"
+                           TextWrapping="Wrap" />
+              </StackPanel>
+              <Border Grid.Column="2"
+                      Style="{StaticResource MicroBadgeStyle}"
+                      VerticalAlignment="Center">
+                <TextBlock Text="{Binding MinidumpStatusText}"
+                           Style="{StaticResource MicroBadgeTextStyle}" />
+              </Border>
+            </Grid>
+          </CheckBox>
+
           <Border x:Name="SupportBundleQaSurface"
                   Style="{StaticResource SubtleCardStyle}"
                   AutomationProperties.AutomationId="SupportBundleQaSurface"

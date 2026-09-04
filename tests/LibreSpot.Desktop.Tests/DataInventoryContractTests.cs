@@ -39,7 +39,9 @@ public sealed class DataInventoryContractTests
         "watcher-state",
         "wpf-crashes",
         "wpf-logs",
+        "wpf-minidump-settings",
         "wpf-runtime",
+        "wpf-triage-dumps",
         "wpf-upstream-drift-cache"
     ];
 
@@ -74,7 +76,9 @@ public sealed class DataInventoryContractTests
         "watcher-state",
         "wpf-crashes",
         "wpf-logs",
+        "wpf-minidump-settings",
         "wpf-runtime",
+        "wpf-triage-dumps",
         "wpf-upstream-drift-cache"
     ];
 
@@ -204,7 +208,8 @@ public sealed class DataInventoryContractTests
                      ("watcher-state", "watcher-state.json"),
                      ("spicetify-preservation-evidence", "spicetify-preservation-latest.json"),
                      ("marketplace-state-export-evidence", "marketplace-state-export-latest.json"),
-                     ("marketplace-state-recovery-evidence", "marketplace-state-recovery-latest.json")
+                     ("marketplace-state-recovery-evidence", "marketplace-state-recovery-latest.json"),
+                     ("wpf-triage-dumps", "*.dmp")
                  })
         {
             Assert.True(locations[pair.Item1].GetProperty("includedInSupportBundle").GetBoolean());
@@ -219,6 +224,7 @@ public sealed class DataInventoryContractTests
                      "profile-activation-transaction",
                      "run-receipt",
                      "undo-state-snapshots",
+                     "wpf-minidump-settings",
                      "spicetify-backups",
                      "temporary-workspaces"
                  })

@@ -2678,4 +2678,15 @@
   <data name="HealthEvidenceLibreSpotEngineAnchorsChangedFormat" xml:space="preserve"><value>O contrato DOM fixado do Spotify não contém estes grupos de âncoras: {0}. O painel de integridade no cliente mostra o resultado ao vivo exato.</value><comment>{0} is a list of missing anchor groups.</comment></data>
   <data name="HealthEvidenceLibreSpotEngineAnchorProbeUnavailable" xml:space="preserve"><value>O aplicativo e a extensão complementar estão instalados, mas não há um pacote xpui.js extraído para a verificação offline de âncoras.</value><comment>Live engine health evidence.</comment></data>
   <data name="HealthEvidenceLibreSpotEngineReady" xml:space="preserve"><value>O aplicativo, a extensão complementar, a rota e as âncoras fixadas do Spotify estão presentes.</value><comment>Live engine health evidence.</comment></data>
+  <data name="MinidumpTitle" xml:space="preserve"><value>Despejo de memória local</value></data>
+  <data name="MinidumpDescription" xml:space="preserve"><value>Salva um despejo Triage com filtro de privacidade se o LibreSpot falhar. A próxima inicialização é preparada apenas para o LibreSpot. Os dois despejos mais recentes são mantidos e o mais novo pode ser adicionado a um pacote de suporte.</value></data>
+  <data name="MinidumpEnabledStatus" xml:space="preserve"><value>Ativado na próxima inicialização</value></data>
+  <data name="MinidumpDisabledStatus" xml:space="preserve"><value>Desativado</value></data>
+  <data name="MinidumpAutomationName" xml:space="preserve"><value>Coletar um despejo Triage local após uma falha do LibreSpot</value></data>
+  <data name="MinidumpAutomationHint" xml:space="preserve"><value>Ativa ou desativa a coleta de despejos locais. O LibreSpot nunca envia um despejo.</value></data>
+  <data name="MinidumpEnabledLog" xml:space="preserve"><value>A coleta de despejos Triage locais foi ativada para a próxima inicialização do LibreSpot.</value></data>
+  <data name="MinidumpDisabledLog" xml:space="preserve"><value>A coleta de despejos Triage locais está desativada.</value></data>
+  <data name="MinidumpUpdateFailedTitle" xml:space="preserve"><value>A configuração de despejo não foi salva</value></data>
+  <data name="MinidumpUpdateFailedLogFormat" xml:space="preserve"><value>O LibreSpot não conseguiu atualizar a configuração de despejo local: {0}</value></data>
+  <data name="MinidumpUpdateFailedDetail" xml:space="preserve"><value>Confira o log de atividades e tente usar o controle novamente.</value></data>
 </root>

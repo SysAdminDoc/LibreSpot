@@ -451,6 +451,55 @@ public sealed class SupportBundleServiceTests
         Assert.Contains(preview.RedactionRules, rule => rule.Contains("tokens", StringComparison.OrdinalIgnoreCase));
     }
 
+    [Fact]
+    public async Task ExportAsync_ExcludesMinidumpsWithoutExplicitOptIn()
+    {
+        using var fixture = new SupportBundleFixture();
+        Directory.CreateDirectory(fixture.CrashDirectory);
+        File.WriteAllBytes(Path.Combine(fixture.CrashDirectory, "LibreSpot-100-1.dmp"), "private dump"u8.ToArray());
+
+        var result = await fixture.ExportAsync(new SupportBundleOptions());
+
+        using var archive = ZipFile.OpenRead(result.Path);
+        Assert.DoesNotContain(archive.Entries, entry => entry.FullName.EndsWith(".dmp", StringComparison.OrdinalIgnoreCase));
+        using var manifest = JsonDocument.Parse(ReadEntry(archive.GetEntry("manifest.json")!));
+        Assert.False(manifest.RootElement.GetProperty("options").GetProperty("includeMinidump").GetBoolean());
+    }
+
+    [Fact]
+    public async Task ExportAsync_IncludesOnlyNewestMinidumpAndDescribesBinaryPrivacyHandling()
+    {
+        using var fixture = new SupportBundleFixture();
+        Directory.CreateDirectory(fixture.CrashDirectory);
+        var older = Path.Combine(fixture.CrashDirectory, "LibreSpot-100-1.dmp");
+        var newest = Path.Combine(fixture.CrashDirectory, "LibreSpot-200-2.dmp");
+        File.WriteAllBytes(older, "older dump"u8.ToArray());
+        File.WriteAllBytes(newest, "newest dump"u8.ToArray());
+        File.SetLastWriteTimeUtc(older, new DateTime(2026, 7, 1, 12, 0, 0, DateTimeKind.Utc));
+        File.SetLastWriteTimeUtc(newest, new DateTime(2026, 7, 1, 12, 1, 0, DateTimeKind.Utc));
+
+        var options = new SupportBundleOptions(IncludeMinidump: true);
+        var preview = fixture.Service.CreatePreview(fixture.GetSnapshot(), options);
+        var result = await fixture.ExportAsync(options);
+
+        var dumpPreview = Assert.Single(preview.Entries, entry => entry.Id == "minidump");
+        Assert.True(dumpPreview.IsSelected);
+        Assert.Equal(1, dumpPreview.FileCount);
+        Assert.Contains(preview.RedactionRules, rule =>
+            rule.Contains("Triage", StringComparison.Ordinal) &&
+            rule.Contains("binary bytes", StringComparison.OrdinalIgnoreCase));
+
+        using var archive = ZipFile.OpenRead(result.Path);
+        var dump = Assert.Single(archive.Entries, entry => entry.FullName.EndsWith(".dmp", StringComparison.OrdinalIgnoreCase));
+        Assert.Equal("crashes/LibreSpot-200-2.dmp", dump.FullName);
+        Assert.Equal("newest dump", ReadEntry(dump));
+        using var manifest = JsonDocument.Parse(ReadEntry(archive.GetEntry("manifest.json")!));
+        Assert.True(manifest.RootElement.GetProperty("options").GetProperty("includeMinidump").GetBoolean());
+        Assert.Contains(
+            manifest.RootElement.GetProperty("redactionRules").EnumerateArray(),
+            rule => rule.GetString()?.Contains("runtime filters personal paths and passwords", StringComparison.OrdinalIgnoreCase) == true);
+    }
+
     private static IReadOnlyDictionary<string, string> ReadZipText(string path)
     {
         using var archive = ZipFile.OpenRead(path);
@@ -462,6 +511,12 @@ public sealed class SupportBundleServiceTests
                 return reader.ReadToEnd();
             },
             StringComparer.Ordinal);
+    }
+
+    private static string ReadEntry(ZipArchiveEntry entry)
+    {
+        using var reader = new StreamReader(entry.Open());
+        return reader.ReadToEnd();
     }
 
     private sealed class SupportBundleFixture : IDisposable

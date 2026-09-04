@@ -48,6 +48,29 @@ public sealed class MainViewModelMaintenanceTests
     }
 
     [Fact]
+    public Task MinidumpToggle_PersistsOptInAndUpdatesSupportBundlePrivacyReport() =>
+        RunStaAsync(async () =>
+        {
+            using var fixture = new SnapshotFixture();
+            using var viewModel = await fixture.CreateInitializedViewModelAsync();
+
+            Assert.False(viewModel.IsMinidumpEnabled);
+            Assert.Equal("Off", viewModel.MinidumpStatusText);
+
+            viewModel.IsMinidumpEnabled = true;
+
+            Assert.True(viewModel.IsMinidumpEnabled);
+            Assert.Equal("On for next launch", viewModel.MinidumpStatusText);
+            Assert.True(File.Exists(Path.Combine(fixture.ConfigDirectory, "minidump-settings.json")));
+            Assert.Contains(viewModel.SupportBundleRedactionRules, rule => rule.Contains("Triage", StringComparison.Ordinal));
+
+            viewModel.IsMinidumpEnabled = false;
+
+            Assert.False(viewModel.IsMinidumpEnabled);
+            Assert.DoesNotContain(viewModel.SupportBundleRedactionRules, rule => rule.Contains("binary bytes", StringComparison.OrdinalIgnoreCase));
+        });
+
+    [Fact]
     public Task MaintenanceActions_ShowOpenMarketplaceWhenMarketplaceFilesAreInstalled() =>
         RunStaAsync(async () =>
         {
@@ -1111,7 +1134,8 @@ public sealed class MainViewModelMaintenanceTests
                     communityAssetDriftProbe: () => CommunityAssetDriftReport.Empty),
                 new SupportBundleService(ConfigDirectory, RollingLogDirectory, CrashDirectory),
                 spotifyProcessService: spotifyProcessService,
-                snapshotLoader: snapshotLoader);
+                snapshotLoader: snapshotLoader,
+                minidumpSettingsService: new MinidumpSettingsService(ConfigDirectory, CrashDirectory));
 
             await viewModel.InitializeAsync();
             return viewModel;

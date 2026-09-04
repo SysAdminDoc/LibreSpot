@@ -24,6 +24,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private readonly BackendScriptService _backendScriptService;
     private readonly Func<string, Task<EnvironmentSnapshot>> _snapshotLoader;
     private readonly SupportBundleService _supportBundleService;
+    private readonly MinidumpSettingsService _minidumpSettingsService;
     private readonly OperationJournalUndoService _operationJournalUndoService;
     private readonly LocalProfileService _profileService;
     private readonly CustomPatchService _customPatchService;
@@ -101,12 +102,14 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         LocalizationService? localizationService = null,
         ISpotifyProcessService? spotifyProcessService = null,
         Func<string, Task<EnvironmentSnapshot>>? snapshotLoader = null,
-        Func<string, CancellationToken, Task<ReleaseNotice>>? releaseNoticeProbe = null)
+        Func<string, CancellationToken, Task<ReleaseNotice>>? releaseNoticeProbe = null,
+        MinidumpSettingsService? minidumpSettingsService = null)
     {
         _configurationService = configurationService;
         _backendScriptService = backendScriptService;
         _snapshotLoader = snapshotLoader ?? snapshotService.GetSnapshotAsync;
         _supportBundleService = supportBundleService ?? new SupportBundleService(configurationService.ConfigDirectory);
+        _minidumpSettingsService = minidumpSettingsService ?? new MinidumpSettingsService(configurationService.ConfigDirectory);
         _operationJournalUndoService = operationJournalUndoService ?? new OperationJournalUndoService();
         _profileService = profileService ?? new LocalProfileService(configurationService);
         _customPatchService = customPatchService ?? new CustomPatchService();
@@ -2643,8 +2646,12 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     {
         var normalizedState = state.Trim().ToLowerInvariant();
         _uiAutomationSafeModeRestoreAvailable = normalizedState == "maintenance-safe-mode";
+        _uiAutomationMinidumpEnabled = normalizedState == "maintenance-minidump";
         OnPropertyChanged(nameof(IsSafeModeRestoreAvailable));
         OnPropertyChanged(nameof(IsSafeModeRestoreUnavailable));
+        OnPropertyChanged(nameof(IsMinidumpEnabled));
+        OnPropertyChanged(nameof(MinidumpStatusText));
+        RefreshSupportBundlePreview();
         IsMaintenanceDiagnosticsExpanded = false;
         IsMaintenanceDangerExpanded = false;
         if (normalizedState is "recommended" or "home-navigation" or "home-details" or "home-readiness" or "reduced-motion" or "axe-positive-control")
@@ -2655,7 +2662,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         {
             ApplyUiAutomationHomeSnapshot(normalizedState);
         }
-        else if (normalizedState is "maintenance" or "maintenance-safe-mode" or "maintenance-compatibility" or "support-bundle")
+        else if (normalizedState is "maintenance" or "maintenance-safe-mode" or "maintenance-minidump" or "maintenance-compatibility" or "support-bundle")
         {
             ApplyUiAutomationHomeSnapshot("home-repair");
         }
@@ -2674,7 +2681,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             RaiseLibreSpotUpdateNoticeChanged();
         }
 
-        if (normalizedState is "recommended" or "custom" or "custom-live" or "maintenance" or "maintenance-safe-mode" or "maintenance-compatibility" or "provenance" or "profile" or "support-bundle" or "activity-collapsed")
+        if (normalizedState is "recommended" or "custom" or "custom-live" or "maintenance" or "maintenance-safe-mode" or "maintenance-minidump" or "maintenance-compatibility" or "provenance" or "profile" or "support-bundle" or "activity-collapsed")
         {
             SeedUiAutomationActivityLog();
         }
@@ -2695,7 +2702,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 break;
             case "maintenance":
             case "maintenance-safe-mode":
+            case "maintenance-minidump":
                 SelectedWorkspaceIndex = 2;
+                IsMaintenanceDiagnosticsExpanded = normalizedState == "maintenance-minidump";
                 break;
             case "maintenance-compatibility":
             case "support-bundle":

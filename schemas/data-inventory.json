@@ -608,6 +608,52 @@
       ]
     },
     {
+      "id": "wpf-minidump-settings",
+      "path": "%APPDATA%\\LibreSpot\\minidump-settings.json",
+      "owner": "current-user",
+      "codeOwner": "MinidumpSettingsService",
+      "schemaVersion": 1,
+      "description": "Opt-in state for LibreSpot-only .NET Triage crash dumps.",
+      "sensitivity": "low",
+      "sensitivityNote": "Contains only the enabled state, dump type, retention count, and update time.",
+      "retention": "indefinite",
+      "retentionNote": "The disabled state remains until Remove LibreSpot Data or manual deletion.",
+      "retentionEnforcement": "user-deletion",
+      "userDeletePath": "Maintenance > Remove LibreSpot Data, or delete %APPDATA%\\LibreSpot\\minidump-settings.json",
+      "deleteBehavior": "remove-self-data",
+      "includedInSupportBundle": false,
+      "supportExportBehavior": "excluded",
+      "redactionRules": ["Never export the local opt-in settings document"],
+      "aclExpectation": "current-user inherited ACL from %APPDATA%",
+      "writeSites": [
+        { "source": "src/LibreSpot.Core/MinidumpSettingsService.cs", "marker": "minidump-settings.json" }
+      ]
+    },
+    {
+      "id": "wpf-triage-dumps",
+      "path": "%LOCALAPPDATA%\\LibreSpot\\crashes\\%e-%p-%t.dmp",
+      "owner": "current-user",
+      "codeOwner": ".NET runtime; MinidumpSettingsService; CrashReporter",
+      "schemaVersion": null,
+      "description": "Opt-in .NET Triage crash dumps for LibreSpot desktop failures.",
+      "sensitivity": "high",
+      "sensitivityNote": "The Triage dump type filters personal paths and passwords, but the binary still contains diagnostic process state.",
+      "retention": "2 newest files",
+      "retentionNote": "LibreSpot removes older dump files during startup and when the setting changes.",
+      "retentionEnforcement": "startup-count-cleanup",
+      "userDeletePath": "Maintenance > Remove LibreSpot Data, or delete *.dmp under %LOCALAPPDATA%\\LibreSpot\\crashes",
+      "deleteBehavior": "remove-self-data",
+      "includedInSupportBundle": true,
+      "supportExportBehavior": "newest-only-when-opted-in",
+      "redactionRules": ["Include only when local crash dumps are enabled", "Include only the newest dump", "Do not rewrite binary bytes", "Rely on the .NET Triage writer to filter personal paths and passwords"],
+      "aclExpectation": "current-user inherited ACL from %LOCALAPPDATA%",
+      "writeSites": [
+        { "source": "src/LibreSpot.Core/MinidumpSettingsService.cs", "marker": "%e-%p-%t.dmp" },
+        { "source": "src/LibreSpot.Desktop/App.xaml.cs", "marker": "PrepareLaunch(e.Args)" },
+        { "source": "src/LibreSpot.Desktop/Services/CrashReporter.cs", "marker": "PruneCrashDumps" }
+      ]
+    },
+    {
       "id": "wpf-runtime",
       "path": "%LOCALAPPDATA%\\LibreSpot\\runtime\\",
       "owner": "current-user",
@@ -772,6 +818,7 @@
     "Raw local profiles, profile activation stages, undo-state snapshots, run receipts, backup contents, and temporary workspaces are never included in support bundles",
     "Operation-journal previous-state fields are omitted before support export even when their values do not match another redaction rule",
     "Support bundle export requires user intent, writes locally, and never uploads automatically",
+    "Local Triage dumps are disabled by default, armed only for the LibreSpot process, retained to two files, and exported only while the opt-in setting is enabled",
     "User-selected profile exports, imported answer files, and CLI support-bundle destinations outside LibreSpot roots remain user-owned files and are outside RemoveSelfData scope",
     "RemoveSelfData removes user, local, machine, and backup roots but deliberately writes a path-free temporary receipt after deletion"
   ]

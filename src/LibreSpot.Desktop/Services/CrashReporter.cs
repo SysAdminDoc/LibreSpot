@@ -68,6 +68,8 @@ public static class CrashReporter
         }
         catch { /* non-critical */ }
 
+        MinidumpSettingsService.PruneCrashDumps(CrashRoot, MinidumpSettingsService.RetainedDumpCount);
+
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Is(LogEventLevel.Information)
             .Enrich.WithProperty("ProcessId", Environment.ProcessId)

@@ -2678,4 +2678,15 @@
   <data name="HealthEvidenceLibreSpotEngineAnchorsChangedFormat" xml:space="preserve"><value>The pinned Spotify DOM contract is missing these anchor groups: {0}. The in-client Health panel can show the exact live result.</value><comment>{0} is a list of missing anchor groups.</comment></data>
   <data name="HealthEvidenceLibreSpotEngineAnchorProbeUnavailable" xml:space="preserve"><value>The custom app and companion are installed, but no extracted xpui.js bundle is available for an offline anchor check.</value><comment>Live engine health evidence.</comment></data>
   <data name="HealthEvidenceLibreSpotEngineReady" xml:space="preserve"><value>The custom app, companion extension, route, and pinned Spotify anchors are present.</value><comment>Live engine health evidence.</comment></data>
+  <data name="MinidumpTitle" xml:space="preserve"><value>Local crash dump</value><comment>Maintenance diagnostics toggle title.</comment></data>
+  <data name="MinidumpDescription" xml:space="preserve"><value>Save a privacy-filtered Triage dump if LibreSpot crashes. The next launch is armed only for LibreSpot. The two newest dumps are kept, and the newest can be added to a support bundle.</value><comment>Maintenance diagnostics toggle description.</comment></data>
+  <data name="MinidumpEnabledStatus" xml:space="preserve"><value>On for next launch</value><comment>Enabled state badge for local crash dumps.</comment></data>
+  <data name="MinidumpDisabledStatus" xml:space="preserve"><value>Off</value><comment>Disabled state badge for local crash dumps.</comment></data>
+  <data name="MinidumpAutomationName" xml:space="preserve"><value>Collect a local Triage dump after a LibreSpot crash</value><comment>Accessible name for the local crash dump switch.</comment></data>
+  <data name="MinidumpAutomationHint" xml:space="preserve"><value>Turns local crash dump collection on or off. LibreSpot never uploads a dump.</value><comment>Accessible help for the local crash dump switch.</comment></data>
+  <data name="MinidumpEnabledLog" xml:space="preserve"><value>Local Triage dump collection is armed for the next LibreSpot launch.</value><comment>Activity log line after enabling local crash dumps.</comment></data>
+  <data name="MinidumpDisabledLog" xml:space="preserve"><value>Local Triage dump collection is off.</value><comment>Activity log line after disabling local crash dumps.</comment></data>
+  <data name="MinidumpUpdateFailedTitle" xml:space="preserve"><value>Crash dump setting wasn't saved</value><comment>Error notice title when the local crash dump setting cannot be saved.</comment></data>
+  <data name="MinidumpUpdateFailedLogFormat" xml:space="preserve"><value>LibreSpot couldn't update the local crash dump setting: {0}</value><comment>Format parameter: {0} is the settings write error.</comment></data>
+  <data name="MinidumpUpdateFailedDetail" xml:space="preserve"><value>Check the activity log, then try the switch again.</value><comment>Error notice next step when the local crash dump setting cannot be saved.</comment></data>
 </root>

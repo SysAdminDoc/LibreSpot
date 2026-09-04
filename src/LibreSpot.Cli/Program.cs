@@ -470,7 +470,8 @@ public static class CliApplication
                 new SupportBundleOptions(
                     IncludeOperationJournal: true,
                     IncludeLogs: true,
-                    IncludeCrashReports: true))
+                    IncludeCrashReports: true,
+                    IncludeMinidump: new MinidumpSettingsService(configDirectory).IsEnabled))
             .GetAwaiter()
             .GetResult();
 

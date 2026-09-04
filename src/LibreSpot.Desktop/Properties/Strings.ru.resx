@@ -2678,4 +2678,15 @@
   <data name="HealthEvidenceLibreSpotEngineAnchorsChangedFormat" xml:space="preserve"><value>В закрепленном контракте DOM Spotify отсутствуют группы якорей: {0}. Панель «Состояние» в клиенте покажет точный результат.</value><comment>{0} is a list of missing anchor groups.</comment></data>
   <data name="HealthEvidenceLibreSpotEngineAnchorProbeUnavailable" xml:space="preserve"><value>Приложение и расширение установлены, но извлеченная сборка xpui.js недоступна для автономной проверки якорей.</value><comment>Live engine health evidence.</comment></data>
   <data name="HealthEvidenceLibreSpotEngineReady" xml:space="preserve"><value>Приложение, расширение, маршрут и закрепленные якоря Spotify на месте.</value><comment>Live engine health evidence.</comment></data>
+  <data name="MinidumpTitle" xml:space="preserve"><value>Локальный дамп сбоя</value></data>
+  <data name="MinidumpDescription" xml:space="preserve"><value>Сохраняет отфильтрованный для конфиденциальности дамп Triage при сбое LibreSpot. Следующий запуск подготавливается только для LibreSpot. Сохраняются два последних дампа, а самый новый можно добавить в пакет поддержки.</value></data>
+  <data name="MinidumpEnabledStatus" xml:space="preserve"><value>Включено для следующего запуска</value></data>
+  <data name="MinidumpDisabledStatus" xml:space="preserve"><value>Выключено</value></data>
+  <data name="MinidumpAutomationName" xml:space="preserve"><value>Собирать локальный дамп Triage после сбоя LibreSpot</value></data>
+  <data name="MinidumpAutomationHint" xml:space="preserve"><value>Включает или выключает сбор локальных дампов. LibreSpot никогда не отправляет дампы.</value></data>
+  <data name="MinidumpEnabledLog" xml:space="preserve"><value>Сбор локального дампа Triage включён для следующего запуска LibreSpot.</value></data>
+  <data name="MinidumpDisabledLog" xml:space="preserve"><value>Сбор локального дампа Triage выключен.</value></data>
+  <data name="MinidumpUpdateFailedTitle" xml:space="preserve"><value>Не удалось сохранить настройку дампа</value></data>
+  <data name="MinidumpUpdateFailedLogFormat" xml:space="preserve"><value>LibreSpot не удалось обновить настройку локального дампа: {0}</value></data>
+  <data name="MinidumpUpdateFailedDetail" xml:space="preserve"><value>Проверьте журнал действий и снова переключите этот параметр.</value></data>
 </root>
