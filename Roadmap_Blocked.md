@@ -4,11 +4,64 @@ Items moved here from `ROADMAP.md` because they require operator decisions,
 credentials, or policy calls that an implementer cannot resolve autonomously.
 Return items to `ROADMAP.md` once the blocking decision is made.
 
-Last updated: 2026-09-03.
+Last updated: 2026-09-04.
 
 Entries whose blocker was resolved or whose premise was overtaken by v4.0.0 stable, local-only releases, immutable release assets, the unsigned-by-design decision, or .NET 10 are kept under an `Archived` heading with the resolution, so the decision record survives without steering new work.
 
 ---
+
+## P2 - RD-183: Advance the SpotX pin for the manifest-aware mirror and download fallbacks
+
+| Field | Value |
+|---|---|
+| Source | Research-Driven Additions (2026-09-04) |
+| Blocker | Supply-chain pin decision plus a live re-patch of the operator's Spotify |
+
+Why: users in regions where Cloudflare classifies SpotX's worker, or where
+`raw.githubusercontent.com` is blocked, cannot install at all. The pinned
+`550bc72c` predates the fixes: `-mirror` now also rewrites the LoaderSpot
+manifest URL (SpotX #891), `-download_method curl|webclient` adds a second
+transport with a 429 fallback, and the full-build `-v 1.2.93.667.g7b5cc0ce`
+form skips the manifest fetch entirely. Patch behaviour on Spotify 1.2.93 is
+unchanged: every `patches.json` change since the pin either caps an existing
+entry at 1.2.93/1.2.94 or adds a `fr >= 1.2.94` rule.
+
+Security review, run 2026-09-04 and green:
+
+```
+Build-Scripts.ps1 -SpotXSecurityPolicy `
+  -SpotXScriptPath <downloaded run.ps1> -SpotXCandidateCommit 9d344658 `
+  -SpotXCandidatePostDefenderPolicy -SpotXCandidateDefenderMutations `
+  -SpotXCandidateDefenderOptOut '-defender_exclusions_off' `
+  -SpotXCandidateArguments '-defender_exclusions_off'
+```
+
+reports `"status": "ok"`: the candidate is post-`afb4c3fc`, contains the
+expected Defender mutation indicators (`Add-MpPreference`, `ExclusionPath`,
+`ExclusionProcess`), declares the upstream opt-out, and LibreSpot's invocation
+passes `-defender_exclusions_off`. The candidate `run.ps1` at commit
+`9d344658` is 201,459 bytes with SHA256
+`bc278e73e98e55a62a2b03db037038580b4023f0449a066f0de3c3bae42e8d67`.
+
+What is left, and why it is not an autonomous change: advancing this pin
+changes what every LibreSpot user downloads and executes, which is a
+supply-chain decision for the operator rather than a code fix. Verifying it
+also requires a live install that re-patches the Spotify on this machine with
+a SpotX commit the project has not shipped before. Both are reversible, but
+neither should happen without the operator choosing the commit.
+
+Touches: `src/powershell/data/PinnedReleases.ps1`,
+`src/powershell/shared/Build-SpotXParams.ps1`,
+`src/powershell/shared/Get-SpotXDownloadRetryPlan.ps1`,
+`schemas/compatibility-baseline.json`,
+`docs/how-spotx-and-spicetify-alter-spotify.md`, both composed hosts, and the
+Pester and Desktop pin tests.
+
+Acceptance (once the operator picks the commit): the retry plan uses the
+manifest-aware mirror on the second attempt and the full-build `-v` form when
+the manifest fetch fails; a live install against Spotify 1.2.93.667 completes
+with `Get-SpotXPatchVerification` green; the pinned hash, the baseline and the
+docs move together in one commit.
 
 ## P0 - Decide the fate of the collapsed legacy shell surfaces
 
