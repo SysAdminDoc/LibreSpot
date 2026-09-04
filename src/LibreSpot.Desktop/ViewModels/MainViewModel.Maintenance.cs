@@ -20,6 +20,54 @@ namespace LibreSpot.Desktop.ViewModels;
 
 public sealed partial class MainViewModel
 {
+    private IAsyncRelayCommand? _restoreSafeModeCommand;
+    private bool _uiAutomationSafeModeRestoreAvailable;
+
+    private string SafeModeStatePath => Path.Combine(_configurationService.ConfigDirectory, "safe-mode-session.json");
+
+    public bool IsSafeModeRestoreAvailable
+    {
+        get
+        {
+            if (_uiAutomationSafeModeRestoreAvailable)
+            {
+                return true;
+            }
+
+            try
+            {
+                var marker = new FileInfo(SafeModeStatePath);
+                if (!marker.Exists || marker.Length is <= 0 or > 4 * 1024 * 1024)
+                {
+                    return false;
+                }
+
+                using var stream = File.Open(SafeModeStatePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                using var document = JsonDocument.Parse(stream);
+                var root = document.RootElement;
+                var status = root.TryGetProperty("status", out var statusValue) ? statusValue.GetString() : null;
+                return root.TryGetProperty("schemaVersion", out var schemaVersion) &&
+                    schemaVersion.GetInt32() == 1 &&
+                    status is "ReadyToEnter" or "Active";
+            }
+            catch
+            {
+                return false;
+            }
+        }
+    }
+
+    public bool IsSafeModeRestoreUnavailable => !IsSafeModeRestoreAvailable;
+
+    public IAsyncRelayCommand RestoreSafeModeCommand =>
+        _restoreSafeModeCommand ??= CreateAsyncCommand(
+            () => RunMaintenanceAsync(new MaintenanceActionDefinition(
+                "RestoreSafeMode",
+                L("SafeModeRestoreTitle"),
+                L("SafeModeRestoreDescription"),
+                L("SafeModeRestoreButton"))),
+            () => !IsRunning && IsSafeModeRestoreAvailable);
+
     private StackHealthComponent? HealthComponent(string id) =>
         HealthReport.Components.FirstOrDefault(component => string.Equals(component.Id, id, StringComparison.OrdinalIgnoreCase));
 
@@ -446,6 +494,9 @@ public sealed partial class MainViewModel
     private void RefreshMaintenanceActionRelevance()
     {
         _maintenanceActions.RefreshRelevance(IsMaintenanceActionRelevant);
+        OnPropertyChanged(nameof(IsSafeModeRestoreAvailable));
+        OnPropertyChanged(nameof(IsSafeModeRestoreUnavailable));
+        _restoreSafeModeCommand?.NotifyCanExecuteChanged();
     }
 
     private void RaiseMaintenanceActionCanExecuteChanged() => _maintenanceActions.RaiseCanExecuteChanged();
@@ -489,6 +540,11 @@ public sealed partial class MainViewModel
 
     private bool IsMaintenanceActionRelevant(string action)
     {
+        if (IsSafeModeRestoreAvailable)
+        {
+            return false;
+        }
+
         var marketplace = HealthComponent("marketplace");
         var backups = HealthComponent("backups");
         var spicetifyConfig = HealthComponent("spicetify-config");
@@ -501,7 +557,9 @@ public sealed partial class MainViewModel
             "Reapply" => Snapshot.SpotifyInstalled && (Snapshot.SpicetifyInstalled || HealthReport.HasCriticalIssues || HealthReport.HasWarningIssues),
             "RepairMarketplace" => Snapshot.SpicetifyInstalled && marketplace?.Severity is HealthSeverity.Warning or HealthSeverity.Critical,
             "OpenMarketplace" => Snapshot.MarketplaceFilesPresent && Snapshot.MarketplaceRegistered,
-            "SafeMode" => Snapshot.SpicetifyInstalled && HealthComponent("active-theme")?.Status != L("HealthStatusMarketplaceOrStock"),
+            "SafeMode" => Snapshot.SpicetifyInstalled &&
+                !IsSafeModeRestoreAvailable &&
+                HealthComponent("active-theme")?.Status != L("HealthStatusMarketplaceOrStock"),
             "CreateBackup" => Snapshot.SpicetifyInstalled && spicetifyConfig?.Severity == HealthSeverity.Ready,
             "RestoreBackup" => Snapshot.SpicetifyInstalled && backups?.Severity == HealthSeverity.Ready,
             "RestoreVanilla" => Snapshot.SpicetifyInstalled,
@@ -706,6 +764,12 @@ public sealed partial class MainViewModel
             {
                 return;
             }
+        }
+
+        if (definition.Action is "SafeMode" or "RestoreSafeMode")
+        {
+            await StartBackendRunAsync(definition.Action, null, definition.Title, definition.Description, 2);
+            return;
         }
 
         var body = definition.Action == "RemoveSelfData"

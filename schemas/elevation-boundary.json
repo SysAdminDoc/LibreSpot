@@ -77,7 +77,16 @@
       "mutating": true,
       "destructive": false,
       "toastCompatible": false,
-      "description": "Runs spicetify restore to disable customizations — reversible via Reapply",
+      "description": "Snapshots config-xpui.ini and CustomApps, then disables extensions and custom apps for one diagnostic Spotify launch",
+      "notes": "The verified snapshot is retained until RestoreSafeMode restores and reapplies it"
+    },
+    {
+      "action": "RestoreSafeMode",
+      "elevation": "no-admin",
+      "mutating": true,
+      "destructive": false,
+      "toastCompatible": false,
+      "description": "Restores and reapplies the verified config-xpui.ini and CustomApps safe-mode snapshot",
       "notes": null
     },
     {

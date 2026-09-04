@@ -1235,11 +1235,11 @@
     <comment>Maintenance action title for SafeMode</comment>
   </data>
   <data name="Maintenance_SafeMode_Description" xml:space="preserve">
-    <value>禁用所有主题和扩展，但不卸载。Spotify 将以原始外观加载——使用“重新应用”恢复您的设置。</value>
+    <value>保存准确的 Spicetify 配置和自定义应用，在一次 Spotify 启动中禁用所有扩展和自定义应用，然后一键恢复。</value>
     <comment>Maintenance action description for SafeMode</comment>
   </data>
   <data name="Maintenance_SafeMode_ButtonText" xml:space="preserve">
-    <value>进入安全模式</value>
+    <value>以安全模式启动 Spotify</value>
     <comment>Maintenance action button text for SafeMode</comment>
   </data>
   <data name="Maintenance_CreateBackup_Title" xml:space="preserve">
@@ -1886,6 +1886,11 @@
   <data name="Vm_LyricsThemeUnavailableHint" xml:space="preserve"><value>打开歌词补丁以使此选择变得重要。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="MaintenanceDiagnosticsTitle" xml:space="preserve"><value>诊断和修复</value><comment>维护页面中用于技术详情和次要安全工具的折叠标题。</comment></data>
   <data name="MaintenanceDiagnosticsDescription" xml:space="preserve"><value>打开此部分可查看环境详情、兼容性、修复工具、监视器和支持包。</value><comment>维护诊断区域的无障碍说明和可见说明。</comment></data>
+  <data name="SafeModeRestoreTitle" xml:space="preserve"><value>安全模式已启用</value><comment>安全模式恢复提示的标题。</comment></data>
+  <data name="SafeModeRestoreDescription" xml:space="preserve"><value>Spotify 正在不加载 Spicetify 扩展和自定义应用的情况下运行。已验证的快照可以恢复。</value><comment>安全模式恢复提示的说明。</comment></data>
+  <data name="SafeModeRestoreButton" xml:space="preserve"><value>恢复我的设置</value><comment>恢复安全模式前设置的按钮文本。</comment></data>
+  <data name="SafeModeRestoreButtonName" xml:space="preserve"><value>恢复进入安全模式前保存的设置</value><comment>安全模式恢复操作的无障碍名称。</comment></data>
+  <data name="SafeModeRestoreButtonHint" xml:space="preserve"><value>恢复已验证的配置和 CustomApps 快照，重新应用 Spicetify，然后重启 Spotify。</value><comment>安全模式恢复操作的无障碍帮助文本。</comment></data>
   <data name="Vm_MaintenanceNoActionTitle" xml:space="preserve"><value>无需操作</value><comment>托管组件运行正常时的维护建议标题。</comment></data>
   <data name="Vm_MaintenanceReviewBodyFormat" xml:space="preserve"><value>{0} 此问题仅适用重置类恢复选项。LibreSpot 不会自动删除任何内容。</value><comment>没有适用的安全自动修复时的维护建议详情。{0} 是运行状况证据。</comment></data>
   <data name="Vm_MaintenanceBackupLatestFormat" xml:space="preserve"><value>{0} 最新：{1}。</value><comment>MainViewModel localized runtime text.</comment></data>

@@ -40,6 +40,7 @@ public sealed class WpfQaMatrixTests
             // witness that the live customization surface is on screen.
             ("custom-live", "LiveCustomizationDescription", "LiveCustomizationFeatureSearch"),
             ("maintenance", "Maintenance_RepairMarketplace_ButtonText", "MaintenancePrimaryActionButton"),
+            ("maintenance-safe-mode", "SafeModeRestoreTitle", "RestoreSafeModeButton"),
             ("maintenance-compatibility", "CompatibilityVerdictTitle", "WorkspaceNavMaintenance"),
             ("maintenance-healthy", "Vm_MaintenanceNoActionTitle", "MaintenanceDiagnosticsToggle"),
             ("maintenance-error", "Vm_ShellRetryShort", "MaintenancePrimaryActionButton"),

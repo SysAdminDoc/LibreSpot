@@ -4,6 +4,11 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Maintenance can start Spotify once without Spicetify extensions or custom apps. LibreSpot verifies an exact `config-xpui.ini` and `CustomApps` snapshot before changing anything, keeps the window open while safe mode is active, and offers one Restore my setup action that verifies, restores, and reapplies the saved files.
+- Fleet diagnosis can request the same reversible launch with `LibreSpot.Cli.exe repair --safe-mode`. Dry runs report the resolved SafeMode action as NDJSON.
+
 ### Fixed
 
 - Home's readiness list now has a translated accessibility name in every shipped interface language. Screen readers can identify the list before announcing its four checks, and the former Axe.Windows exception is gone.

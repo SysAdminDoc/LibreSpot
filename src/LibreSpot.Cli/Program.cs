@@ -539,6 +539,7 @@ public static class CliApplication
         if (!options.OnlyContains(
                 "--answer-file",
                 "--repair-id",
+                "--safe-mode",
                 "--profile",
                 "--config-path",
                 "--silent",
@@ -579,8 +580,23 @@ public static class CliApplication
             return ValidationError;
         }
 
+        var safeModeRequested = options.HasFlag("--safe-mode");
+        if (safeModeRequested && operation != "repair")
+        {
+            stderr.WriteLine("--safe-mode is only valid with the repair verb.");
+            return ValidationError;
+        }
+
+        if (safeModeRequested && !string.IsNullOrWhiteSpace(options.GetValue("--repair-id")))
+        {
+            stderr.WriteLine("repair accepts either --safe-mode or --repair-id <id>, not both.");
+            return ValidationError;
+        }
+
         var repairAction = operation == "repair"
-            ? ResolveRepairAction(options.GetValue("--repair-id"), out repairError)
+            ? safeModeRequested
+                ? "SafeMode"
+                : ResolveRepairAction(options.GetValue("--repair-id"), out repairError)
             : null;
         if (repairError is not null)
         {
@@ -1495,7 +1511,7 @@ public static class CliApplication
     }
 
     private static bool RepairRequiresAdmin(string? repairAction) =>
-        repairAction is "Install" or "Reapply" or "RepairMarketplace" or "RestoreMarketplaceState" or "SafeMode" or "RestoreBackup" or "RestoreVanilla" or "UninstallSpicetify" or "FullReset";
+        repairAction is "Install" or "Reapply" or "RepairMarketplace" or "RestoreMarketplaceState" or "RestoreBackup" or "RestoreVanilla" or "UninstallSpicetify" or "FullReset";
 
     private static void RequireSchemaVersion(JsonElement root, ICollection<ValidationErrorDocument> errors)
     {
@@ -2032,7 +2048,7 @@ public static class CliApplication
         writer.WriteLine("  LibreSpot.Cli undo --operation-id <id> --token-kind <kind> [--config-path <path>] [--dry-run] [--yes] [--json] [--correlation-id <guid>] [--log-dir <path>] [--scope <user|machine>]");
         writer.WriteLine("  LibreSpot.Cli validate [--json] --answer-file <path> [--config-path <path>] [--correlation-id <guid>] [--log-dir <path>]");
         writer.WriteLine("  LibreSpot.Cli plan [--json] --answer-file <path> [--profile <name>] [--config-path <path>] [--correlation-id <guid>] [--log-dir <path>] [--scope <user|machine>]");
-        writer.WriteLine("  LibreSpot.Cli repair --repair-id <id> [--answer-file <path>] [--profile <name>] [--config-path <path>] [--silent] [--quiet] [--dry-run] [--yes] [--correlation-id <guid>] [--log-dir <path>] [--ndjson] [--scope <user|machine>]");
+        writer.WriteLine("  LibreSpot.Cli repair (--repair-id <id> | --safe-mode) [--answer-file <path>] [--profile <name>] [--config-path <path>] [--silent] [--quiet] [--dry-run] [--yes] [--correlation-id <guid>] [--log-dir <path>] [--ndjson] [--scope <user|machine>]");
         writer.WriteLine("    Marketplace IDs: ExportMarketplaceState, RestoreMarketplaceState");
         writer.WriteLine("  LibreSpot.Cli watcher install [--silent] [--quiet] [--yes] [--correlation-id <guid>] [--log-dir <path>] [--scope <user|machine>]");
         writer.WriteLine("  LibreSpot.Cli watcher remove [--silent] [--quiet] [--yes] [--correlation-id <guid>] [--log-dir <path>] [--scope <user|machine>]");

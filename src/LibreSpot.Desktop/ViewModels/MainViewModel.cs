@@ -2105,7 +2105,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     // or continue-working actions (Check Updates, backups, watcher toggles) keep
     // the window open.
     private static bool ShouldExitAfterSuccessfulRun(string action, InstallConfiguration? configuration) =>
-        ShouldRestartSpotifyAfterSuccessfulRun(action, configuration);
+        action != "SafeMode" && ShouldRestartSpotifyAfterSuccessfulRun(action, configuration);
 
     private void ScheduleApplicationExit()
     {
@@ -2179,7 +2179,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         action switch
         {
             "Install" => configuration?.LaunchAfter ?? true,
-            "Reapply" or "RepairMarketplace" or "SafeMode" or "RestoreBackup" or "RestoreVanilla" => true,
+            "Reapply" or "RepairMarketplace" or "SafeMode" or "RestoreSafeMode" or "RestoreBackup" or "RestoreVanilla" => true,
             _ => false
         };
 
@@ -2642,6 +2642,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public void ApplyUiAutomationSmokeState(string state)
     {
         var normalizedState = state.Trim().ToLowerInvariant();
+        _uiAutomationSafeModeRestoreAvailable = normalizedState == "maintenance-safe-mode";
+        OnPropertyChanged(nameof(IsSafeModeRestoreAvailable));
+        OnPropertyChanged(nameof(IsSafeModeRestoreUnavailable));
         IsMaintenanceDiagnosticsExpanded = false;
         IsMaintenanceDangerExpanded = false;
         if (normalizedState is "recommended" or "home-navigation" or "home-details" or "home-readiness" or "reduced-motion" or "axe-positive-control")
@@ -2652,7 +2655,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         {
             ApplyUiAutomationHomeSnapshot(normalizedState);
         }
-        else if (normalizedState is "maintenance" or "maintenance-compatibility" or "support-bundle")
+        else if (normalizedState is "maintenance" or "maintenance-safe-mode" or "maintenance-compatibility" or "support-bundle")
         {
             ApplyUiAutomationHomeSnapshot("home-repair");
         }
@@ -2671,7 +2674,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             RaiseLibreSpotUpdateNoticeChanged();
         }
 
-        if (normalizedState is "recommended" or "custom" or "custom-live" or "maintenance" or "maintenance-compatibility" or "provenance" or "profile" or "support-bundle" or "activity-collapsed")
+        if (normalizedState is "recommended" or "custom" or "custom-live" or "maintenance" or "maintenance-safe-mode" or "maintenance-compatibility" or "provenance" or "profile" or "support-bundle" or "activity-collapsed")
         {
             SeedUiAutomationActivityLog();
         }
@@ -2691,6 +2694,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 FeatureSearchText = string.Empty;
                 break;
             case "maintenance":
+            case "maintenance-safe-mode":
                 SelectedWorkspaceIndex = 2;
                 break;
             case "maintenance-compatibility":

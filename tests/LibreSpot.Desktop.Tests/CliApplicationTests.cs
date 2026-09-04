@@ -1304,6 +1304,66 @@ public sealed class CliApplicationTests
         Assert.Equal(new[] { "EnableAutoReapply" }, actions);
     }
 
+    [Fact]
+    public void RepairSafeMode_DryRunReportsSafeModeAsNdjson()
+    {
+        var result = Run(
+            new[] { "repair", "--safe-mode", "--dry-run", "--ndjson" },
+            _ => Snapshot(spotifyInstalled: true, spicetifyInstalled: true));
+
+        Assert.Equal(0, result.ExitCode);
+        var lines = result.Stdout.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
+        Assert.NotEmpty(lines);
+        foreach (var line in lines)
+        {
+            using var document = JsonDocument.Parse(line);
+            Assert.Equal(1, document.RootElement.GetProperty("schemaVersion").GetInt32());
+        }
+        Assert.Contains(lines, line =>
+        {
+            using var document = JsonDocument.Parse(line);
+            var root = document.RootElement;
+            return root.GetProperty("eventId").GetString() == "LS8001" &&
+                   root.GetProperty("payload").GetProperty("target").GetString() == "SafeMode";
+        });
+        Assert.Equal(string.Empty, result.Stderr);
+    }
+
+    [Fact]
+    public void RepairSafeMode_MapsToSafeModeBackendAction()
+    {
+        var actions = new List<string>();
+        var result = Run(
+            new[] { "repair", "--safe-mode", "--silent", "--yes" },
+            _ => Snapshot(spotifyInstalled: true, spicetifyInstalled: true),
+            (action, _, _, _) =>
+            {
+                actions.Add(action);
+                return Task.FromResult(new CliBackendRunResult(true));
+            });
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal(new[] { "SafeMode" }, actions);
+    }
+
+    [Fact]
+    public void RepairSafeMode_RejectsRepairIdBeforeBackendRuns()
+    {
+        var backendRan = false;
+        var result = Run(
+            new[] { "repair", "--safe-mode", "--repair-id", "SafeMode", "--silent", "--yes" },
+            _ => Snapshot(spotifyInstalled: true, spicetifyInstalled: true),
+            (_, _, _, _) =>
+            {
+                backendRan = true;
+                return Task.FromResult(new CliBackendRunResult(true));
+            });
+
+        Assert.Equal(2, result.ExitCode);
+        Assert.False(backendRan);
+        Assert.Contains("either --safe-mode or --repair-id", result.Stderr);
+    }
+
     [Theory]
     [InlineData("ExportMarketplaceState")]
     [InlineData("RestoreMarketplaceState")]

@@ -95,6 +95,18 @@
       "expiresAfterHours": null
     },
     {
+      "kind": "safeModeSession",
+      "description": "Verified config-xpui.ini and CustomApps snapshot for one diagnostic Spotify launch.",
+      "reversible": true,
+      "capturePreviousState": true,
+      "undoAction": "Restore the verified snapshot with the dedicated RestoreSafeMode action.",
+      "requiresAdmin": false,
+      "risk": "low",
+      "executableUndo": false,
+      "validationPolicy": "dedicated-safe-mode-restore",
+      "expiresAfterHours": null
+    },
+    {
       "kind": "spotxPatch",
       "description": "SpotX ad-blocking patch applied to Spotify.",
       "reversible": true,

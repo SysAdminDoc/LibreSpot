@@ -1235,11 +1235,11 @@
     <comment>Maintenance action title for SafeMode</comment>
   </data>
   <data name="Maintenance_SafeMode_Description" xml:space="preserve">
-    <value>Desactiva todos los temas y extensiones sin desinstalarlos. Spotify se cargará con su aspecto original; usa «Aplicar de nuevo» para restaurar tu configuración.</value>
+    <value>Guarda la configuración exacta de Spicetify y las aplicaciones personalizadas, desactiva todas las extensiones y aplicaciones durante un inicio de Spotify y permite restaurarlas con un clic.</value>
     <comment>Maintenance action description for SafeMode</comment>
   </data>
   <data name="Maintenance_SafeMode_ButtonText" xml:space="preserve">
-    <value>Ingrese al modo seguro</value>
+    <value>Iniciar Spotify en modo seguro</value>
     <comment>Maintenance action button text for SafeMode</comment>
   </data>
   <data name="Maintenance_CreateBackup_Title" xml:space="preserve">
@@ -1886,6 +1886,11 @@
   <data name="Vm_LyricsThemeUnavailableHint" xml:space="preserve"><value>Active el parche de letras para que esta selección importe.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="MaintenanceDiagnosticsTitle" xml:space="preserve"><value>Diagnóstico y reparación</value><comment>Encabezado contraído de Mantenimiento para detalles técnicos y herramientas seguras secundarias.</comment></data>
   <data name="MaintenanceDiagnosticsDescription" xml:space="preserve"><value>Abra esta sección para ver el entorno, la compatibilidad, las herramientas de reparación, el supervisor y los paquetes de soporte.</value><comment>Descripción accesible y visible del área de diagnóstico de Mantenimiento.</comment></data>
+  <data name="SafeModeRestoreTitle" xml:space="preserve"><value>El modo seguro está activo</value><comment>Título del aviso para restaurar el modo seguro activo.</comment></data>
+  <data name="SafeModeRestoreDescription" xml:space="preserve"><value>Spotify se ejecuta sin extensiones ni aplicaciones de Spicetify. La copia verificada está lista para restaurarse.</value><comment>Descripción del aviso para restaurar el modo seguro activo.</comment></data>
+  <data name="SafeModeRestoreButton" xml:space="preserve"><value>Restaurar mi configuración</value><comment>Texto del botón para restaurar la configuración anterior.</comment></data>
+  <data name="SafeModeRestoreButtonName" xml:space="preserve"><value>Restaurar la configuración guardada antes del modo seguro</value><comment>Nombre accesible de la acción de restauración.</comment></data>
+  <data name="SafeModeRestoreButtonHint" xml:space="preserve"><value>Restaura la configuración verificada y la copia de CustomApps, vuelve a aplicar Spicetify y reinicia Spotify.</value><comment>Ayuda accesible de la acción de restauración.</comment></data>
   <data name="Vm_MaintenanceNoActionTitle" xml:space="preserve"><value>No se necesita ninguna acción</value><comment>Título de recomendación cuando los componentes administrados están en buen estado.</comment></data>
   <data name="Vm_MaintenanceReviewBodyFormat" xml:space="preserve"><value>{0} Solo las opciones de recuperación mediante restablecimiento coinciden con este problema. Nada se eliminará automáticamente.</value><comment>Detalle de recomendación cuando no corresponde ninguna reparación automática segura. {0} es la evidencia de estado.</comment></data>
   <data name="Vm_MaintenanceBackupLatestFormat" xml:space="preserve"><value>{0} Último: {1}.</value><comment>MainViewModel localized runtime text.</comment></data>

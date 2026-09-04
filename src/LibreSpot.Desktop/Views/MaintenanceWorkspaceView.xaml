@@ -169,6 +169,7 @@
               Background="{DynamicResource Surface1Brush}"
               Margin="0,18,0,0"
               Padding="26"
+              Visibility="{Binding IsSafeModeRestoreUnavailable, Converter={StaticResource BoolToVisibilityConverter}}"
               AutomationProperties.AutomationId="MaintenancePrimarySurface"
               AutomationProperties.Name="{Binding MaintenanceRecommendation.Title}"
               AutomationProperties.HelpText="{Binding MaintenanceRecommendation.Body}">
@@ -300,9 +301,63 @@
         </Grid>
       </Border>
 
+      <Border Margin="0,20,0,0"
+              Padding="18"
+              CornerRadius="{StaticResource RadiusSm}"
+              Background="{DynamicResource AccentMistBrush}"
+              BorderBrush="{DynamicResource AccentRingBrush}"
+              BorderThickness="1"
+              Visibility="{Binding IsSafeModeRestoreAvailable, Converter={StaticResource BoolToVisibilityConverter}}"
+              AutomationProperties.AutomationId="SafeModeRestoreSurface"
+              AutomationProperties.Name="{services:Loc SafeModeRestoreTitle}"
+              AutomationProperties.HelpText="{services:Loc SafeModeRestoreDescription}">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <Border Width="44"
+                  Height="44"
+                  CornerRadius="{StaticResource RadiusSm}"
+                  Background="{DynamicResource AccentSoftBrush}"
+                  BorderBrush="{DynamicResource AccentRingBrush}"
+                  BorderThickness="1"
+                  VerticalAlignment="Center">
+            <controls:DecorativeSymbolIcon Symbol="ShieldCheckmark24"
+                                           FontSize="24"
+                                           Foreground="{DynamicResource AccentBrush}"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center" />
+          </Border>
+          <StackPanel Grid.Column="1" Margin="14,0,20,0" VerticalAlignment="Center">
+            <TextBlock Text="{services:Loc SafeModeRestoreTitle}"
+                       Foreground="{DynamicResource TextBrush}"
+                       FontSize="16"
+                       FontWeight="SemiBold" />
+            <TextBlock Text="{services:Loc SafeModeRestoreDescription}"
+                       Style="{StaticResource CaptionTextStyle}"
+                       Foreground="{DynamicResource MutedTextBrush}"
+                       Margin="0,5,0,0"
+                       TextWrapping="Wrap" />
+          </StackPanel>
+          <Button Grid.Column="2"
+                  MinWidth="164"
+                  Height="42"
+                  Padding="16,0"
+                  VerticalAlignment="Center"
+                  Content="{services:Loc SafeModeRestoreButton}"
+                  Style="{StaticResource PrimaryButtonStyle}"
+                  Command="{Binding RestoreSafeModeCommand}"
+                  AutomationProperties.AutomationId="RestoreSafeModeButton"
+                  AutomationProperties.Name="{services:Loc SafeModeRestoreButtonName}"
+                  AutomationProperties.HelpText="{services:Loc SafeModeRestoreButtonHint}" />
+        </Grid>
+      </Border>
+
       <Expander Header="{services:Loc MaintenanceDiagnosticsTitle}"
                 Tag="MaintenanceDiagnosticsToggle"
-                Margin="0,20,0,0"
+                Margin="0,14,0,0"
                 Style="{StaticResource MaintenanceDisclosureExpanderStyle}"
                 IsExpanded="{Binding IsMaintenanceDiagnosticsExpanded, Mode=TwoWay}"
                 AutomationProperties.AutomationId="MaintenanceDiagnosticsExpander"

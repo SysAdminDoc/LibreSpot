@@ -230,6 +230,28 @@
       ]
     },
     {
+      "id": "safe-mode-session",
+      "path": "%APPDATA%\\LibreSpot\\safe-mode-session.json",
+      "owner": "current-user",
+      "codeOwner": "Reapply-SavedSpicetifySetup",
+      "schemaVersion": 1,
+      "description": "Active safe-mode recovery marker pointing to a verified config-xpui.ini and CustomApps snapshot.",
+      "sensitivity": "high",
+      "sensitivityNote": "Contains a local backup path, file names, byte counts, and SHA-256 hashes for user-authored custom apps.",
+      "retention": "active safe-mode session",
+      "retentionNote": "Created before safe-mode mutation and removed only after the verified snapshot has been restored and reapplied.",
+      "retentionEnforcement": "restore-completion-and-user-deletion",
+      "userDeletePath": "Use Restore my setup in Maintenance. Remove LibreSpot Data also removes the marker.",
+      "deleteBehavior": "remove-self-data",
+      "includedInSupportBundle": false,
+      "supportExportBehavior": "excluded",
+      "redactionRules": ["Never export snapshot paths, custom app file names, or hashes"],
+      "aclExpectation": "current-user inherited ACL from %APPDATA%",
+      "writeSites": [
+        { "source": "src/powershell/shared/Reapply-SavedSpicetifySetup.ps1", "marker": "safe-mode-session.json" }
+      ]
+    },
+    {
       "id": "watcher-state",
       "path": "%APPDATA%\\LibreSpot\\watcher-state.json",
       "owner": "current-user",
@@ -633,12 +655,12 @@
       "id": "spicetify-backups",
       "path": "%USERPROFILE%\\LibreSpot_Backups\\",
       "owner": "current-user",
-      "codeOwner": "CreateBackup; New-SpicetifyStatePreservationSnapshot",
+      "codeOwner": "CreateBackup; New-SpicetifyStatePreservationSnapshot; Reapply-SavedSpicetifySetup",
       "schemaVersion": 1,
-      "description": "User-created Spicetify backups and crash-safety preservation snapshots, each capped at five copies per set.",
+      "description": "User-created Spicetify backups, crash-safety preservation snapshots, and exact safe-mode recovery snapshots. Each set is capped at five copies.",
       "sensitivity": "high",
       "sensitivityNote": "May contain user-authored Spicetify configuration, themes, extensions, and custom app files.",
-      "retention": "five rotating backups and five rotating preservation snapshots",
+      "retention": "five rotating backups per producer and snapshot set",
       "retentionNote": "Each producer removes older directories after a successful new snapshot.",
       "retentionEnforcement": "rolling-directory-count",
       "userDeletePath": "Maintenance > Remove LibreSpot Data, or delete %USERPROFILE%\\LibreSpot_Backups",
@@ -649,6 +671,7 @@
       "aclExpectation": "current-user inherited ACL from %USERPROFILE%",
       "writeSites": [
         { "source": "src/powershell/shared/New-SpicetifyStatePreservationSnapshot.ps1", "marker": "Select-Object -Skip 5" },
+        { "source": "src/powershell/shared/Reapply-SavedSpicetifySetup.ps1", "marker": "expired safe-mode snapshot" },
         { "source": "LibreSpot.ps1", "marker": "$global:BACKUP_ROOT" }
       ]
     },

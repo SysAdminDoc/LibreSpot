@@ -140,6 +140,21 @@ public sealed class WorkspaceViewCompositionTests
         Assert.Contains("SimpleShellVersionLabel", simpleShell);
     }
 
+    [Fact]
+    public void MaintenanceWorkspace_OffersAVisibleAccessibleSafeModeRestoreAction()
+    {
+        var maintenance = ReadView("MaintenanceWorkspaceView.xaml");
+
+        Assert.Contains("{Binding IsSafeModeRestoreAvailable, Converter={StaticResource BoolToVisibilityConverter}}", maintenance);
+        Assert.Contains("{Binding IsSafeModeRestoreUnavailable, Converter={StaticResource BoolToVisibilityConverter}}", maintenance);
+        Assert.Contains("{Binding RestoreSafeModeCommand}", maintenance);
+        Assert.Contains("AutomationProperties.AutomationId=\"RestoreSafeModeButton\"", maintenance);
+        Assert.Contains("AutomationProperties.Name=\"{services:Loc SafeModeRestoreButtonName}\"", maintenance);
+        Assert.Contains("AutomationProperties.HelpText=\"{services:Loc SafeModeRestoreButtonHint}\"", maintenance);
+        Assert.Contains("{services:Loc SafeModeRestoreTitle}", maintenance);
+        Assert.Contains("{services:Loc SafeModeRestoreDescription}", maintenance);
+    }
+
     private static string ReadView(string fileName) =>
         File.ReadAllText(Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Views", fileName));
 

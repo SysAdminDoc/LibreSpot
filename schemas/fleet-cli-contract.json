@@ -170,6 +170,7 @@
       "defaultExitCodes": [0, 1, 2, 10, 12, 20, 50, 60],
       "flags": [
         "--repair-id",
+        "--safe-mode",
         "--answer-file",
         "--profile",
         "--config-path",
@@ -182,7 +183,7 @@
         "--ndjson",
         "--scope"
       ],
-      "notes": "Repair IDs come from the 'status' health report. Each repair action targets a single issue (e.g., stale watcher, missing Marketplace, version mismatch)."
+      "notes": "Repair IDs come from the 'status' health report. Each repair action targets a single issue. --safe-mode is the direct alias for a reversible one-session SafeMode repair and cannot be combined with --repair-id."
     },
     {
       "verb": "watcher install",
@@ -407,9 +408,18 @@
       "aliases": [],
       "description": "Identifier of the specific repair action to execute.",
       "type": "string",
-      "conflictsWith": [],
+      "conflictsWith": ["--safe-mode"],
       "applicableVerbs": ["repair"],
       "notes": "Repair IDs are surfaced by the 'status' verb in the health report's repairActions array."
+    },
+    {
+      "flag": "--safe-mode",
+      "aliases": [],
+      "description": "Start a reversible one-session Spotify launch without Spicetify extensions or custom apps.",
+      "type": "switch",
+      "conflictsWith": ["--repair-id"],
+      "applicableVerbs": ["repair"],
+      "notes": "Creates and verifies an exact config-xpui.ini and CustomApps snapshot before mutation. Restore it from LibreSpot Maintenance after diagnosis."
     },
     {
       "flag": "--purge",

@@ -1,5 +1,6 @@
 using System.IO;
 using System.IO.Compression;
+using System.Text.Json;
 using LibreSpot.Desktop.Models;
 using LibreSpot.Desktop.Properties;
 using LibreSpot.Desktop.Services;
@@ -217,6 +218,24 @@ public sealed class MainViewModelMaintenanceTests
             Assert.Equal("Injection disabled", viewModel.MaintenanceThemeValue);
             Assert.True(Card(viewModel, "SafeMode").IsRelevant);
             Assert.True(Card(viewModel, "Reapply").IsRelevant);
+        });
+
+    [Fact]
+    public Task ActiveSafeModeSession_OffersOneActionRestoreAndHidesNewEntryAction() =>
+        RunStaAsync(async () =>
+        {
+            using var fixture = new SnapshotFixture();
+            fixture.WriteSpotify(withSpotXMarkers: true);
+            fixture.WriteSpicetifyConfig("extensions =\r\ncustom_apps =\r\ncurrent_theme = Catppuccin\r\ninject_css = 1\r\nreplace_colors = 1");
+            fixture.WriteSafeModeMarker("Active");
+
+            using var viewModel = await fixture.CreateInitializedViewModelAsync();
+
+            Assert.True(viewModel.IsSafeModeRestoreAvailable);
+            Assert.False(viewModel.IsSafeModeRestoreUnavailable);
+            Assert.True(viewModel.RestoreSafeModeCommand.CanExecute(null));
+            Assert.False(Card(viewModel, "SafeMode").IsRelevant);
+            Assert.False(Card(viewModel, "RepairMarketplace").IsRelevant);
         });
 
     [Fact]
@@ -1155,6 +1174,11 @@ public sealed class MainViewModelMaintenanceTests
 
         public void WriteWatcherState(string content) =>
             WriteFile(Path.Combine(ConfigDirectory, "watcher-state.json"), content);
+
+        public void WriteSafeModeMarker(string status) =>
+            WriteFile(
+                Path.Combine(ConfigDirectory, "safe-mode-session.json"),
+                JsonSerializer.Serialize(new { schemaVersion = 1, status }));
 
         public void WriteInstallLog(string content) =>
             WriteFile(Path.Combine(ConfigDirectory, "install.log"), content);

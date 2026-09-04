@@ -1235,11 +1235,11 @@
     <comment>Maintenance action title for SafeMode</comment>
   </data>
   <data name="Maintenance_SafeMode_Description" xml:space="preserve">
-    <value>Отключает все темы и расширения, не удаляя их. Spotify загрузится в стандартном виде — чтобы восстановить настройки, используйте действие «Повторно примените настройки».</value>
+    <value>Сохраняет точную конфигурацию Spicetify и приложения, отключает все расширения и приложения на один запуск Spotify, а затем позволяет восстановить их одним нажатием.</value>
     <comment>Maintenance action description for SafeMode</comment>
   </data>
   <data name="Maintenance_SafeMode_ButtonText" xml:space="preserve">
-    <value>Войти в безопасный режим</value>
+    <value>Запустить Spotify в безопасном режиме</value>
     <comment>Maintenance action button text for SafeMode</comment>
   </data>
   <data name="Maintenance_CreateBackup_Title" xml:space="preserve">
@@ -1886,6 +1886,11 @@
   <data name="Vm_LyricsThemeUnavailableHint" xml:space="preserve"><value>Включите патч с текстом песни, чтобы этот выбор имел значение.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="MaintenanceDiagnosticsTitle" xml:space="preserve"><value>Диагностика и восстановление</value><comment>Заголовок свернутого раздела обслуживания с техническими сведениями и дополнительными безопасными средствами.</comment></data>
   <data name="MaintenanceDiagnosticsDescription" xml:space="preserve"><value>Откройте этот раздел, чтобы просмотреть среду, совместимость, средства восстановления, наблюдатель и пакеты поддержки.</value><comment>Доступное и видимое описание раздела диагностики.</comment></data>
+  <data name="SafeModeRestoreTitle" xml:space="preserve"><value>Безопасный режим активен</value><comment>Заголовок уведомления о восстановлении после безопасного режима.</comment></data>
+  <data name="SafeModeRestoreDescription" xml:space="preserve"><value>Spotify работает без расширений и приложений Spicetify. Проверенная копия готова к восстановлению.</value><comment>Описание уведомления о восстановлении после безопасного режима.</comment></data>
+  <data name="SafeModeRestoreButton" xml:space="preserve"><value>Восстановить настройки</value><comment>Текст кнопки восстановления настроек.</comment></data>
+  <data name="SafeModeRestoreButtonName" xml:space="preserve"><value>Восстановить настройки, сохраненные до безопасного режима</value><comment>Доступное имя действия восстановления.</comment></data>
+  <data name="SafeModeRestoreButtonHint" xml:space="preserve"><value>Восстанавливает проверенную конфигурацию и копию CustomApps, повторно применяет Spicetify и перезапускает Spotify.</value><comment>Доступная подсказка для действия восстановления.</comment></data>
   <data name="Vm_MaintenanceNoActionTitle" xml:space="preserve"><value>Действия не требуются</value><comment>Заголовок рекомендации, когда управляемые компоненты исправны.</comment></data>
   <data name="Vm_MaintenanceReviewBodyFormat" xml:space="preserve"><value>{0} Для этой проблемы подходят только варианты восстановления со сбросом. Ничего не будет удалено автоматически.</value><comment>Текст рекомендации, когда безопасное автоматическое исправление невозможно. {0} содержит сведения о состоянии.</comment></data>
   <data name="Vm_MaintenanceBackupLatestFormat" xml:space="preserve"><value>{0} Последняя версия: {1}.</value><comment>MainViewModel localized runtime text.</comment></data>

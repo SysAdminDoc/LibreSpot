@@ -1235,11 +1235,11 @@
     <comment>Maintenance action title for SafeMode</comment>
   </data>
   <data name="Maintenance_SafeMode_Description" xml:space="preserve">
-    <value>Disable all themes and extensions without uninstalling. Spotify will load in its stock look — use Reapply to restore your setup.</value>
+    <value>Save your exact Spicetify config and custom apps, disable every extension and custom app for one Spotify launch, then restore with one click.</value>
     <comment>Maintenance action description for SafeMode</comment>
   </data>
   <data name="Maintenance_SafeMode_ButtonText" xml:space="preserve">
-    <value>Enter safe mode</value>
+    <value>Start Spotify in safe mode</value>
     <comment>Maintenance action button text for SafeMode</comment>
   </data>
   <data name="Maintenance_CreateBackup_Title" xml:space="preserve">
@@ -1886,6 +1886,11 @@
   <data name="Vm_LyricsThemeUnavailableHint" xml:space="preserve"><value>Turn on the lyrics patch to make this selection matter.</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="MaintenanceDiagnosticsTitle" xml:space="preserve"><value>Diagnostics and repair</value><comment>Collapsed Maintenance disclosure heading for technical details and secondary safe tools.</comment></data>
   <data name="MaintenanceDiagnosticsDescription" xml:space="preserve"><value>Open this section for environment details, compatibility, repair tools, the watcher, and support bundles.</value><comment>Accessibility and inline description for the Maintenance diagnostics disclosure.</comment></data>
+  <data name="SafeModeRestoreTitle" xml:space="preserve"><value>Safe mode is active</value><comment>Title for the active safe mode restore banner.</comment></data>
+  <data name="SafeModeRestoreDescription" xml:space="preserve"><value>Spotify is running without Spicetify extensions or custom apps. Your verified snapshot is ready to restore.</value><comment>Description for the active safe mode restore banner.</comment></data>
+  <data name="SafeModeRestoreButton" xml:space="preserve"><value>Restore my setup</value><comment>Button text for restoring the setup saved before safe mode.</comment></data>
+  <data name="SafeModeRestoreButtonName" xml:space="preserve"><value>Restore the setup saved before safe mode</value><comment>Accessible name for the safe mode restore action.</comment></data>
+  <data name="SafeModeRestoreButtonHint" xml:space="preserve"><value>Restores the verified config and CustomApps snapshot, reapplies Spicetify, and restarts Spotify.</value><comment>Accessible help text for the safe mode restore action.</comment></data>
   <data name="Vm_MaintenanceNoActionTitle" xml:space="preserve"><value>No action needed</value><comment>Maintenance recommendation title when the managed stack is healthy.</comment></data>
   <data name="Vm_MaintenanceReviewBodyFormat" xml:space="preserve"><value>{0} Only reset-style recovery options match this issue. Nothing will be removed automatically.</value><comment>Maintenance recommendation detail when no safe automatic repair applies. {0} is health evidence.</comment></data>
   <data name="Vm_MaintenanceBackupLatestFormat" xml:space="preserve"><value>{0} Latest: {1}.</value><comment>{0} is the backup count sentence; {1} is the timestamp of the most recent backup.</comment></data>
