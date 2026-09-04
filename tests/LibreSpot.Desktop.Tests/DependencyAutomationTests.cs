@@ -197,6 +197,25 @@ public sealed class DependencyAutomationTests
         Assert.Contains("Get-LibreSpotDotnetRuntimeStatus", script);
         Assert.Contains("dotnetRuntime", script);
         Assert.Contains("CVE-patched .NET runtime floor", script);
+        Assert.Contains("--fetch-timeout=30000", script);
+        Assert.Contains("--fetch-retries=1", script);
+    }
+
+    [Fact]
+    public void JavaScriptWorkspace_PinsBulkAuditCapablePnpm()
+    {
+        using var package = JsonDocument.Parse(ReadRepoFile("src", "LibreSpot.App", "package.json"));
+        var packageManager = package.RootElement.GetProperty("packageManager").GetString();
+        var versionText = packageManager?.Split('@').LastOrDefault();
+
+        Assert.True(
+            Version.TryParse(versionText, out var version) && version.Major >= 11,
+            $"The JavaScript audit requires pnpm 11 or later; packageManager was '{packageManager}'.");
+
+        var workspace = ReadRepoFile("src", "LibreSpot.App", "pnpm-workspace.yaml");
+        Assert.Contains("'@parcel/watcher': true", workspace, StringComparison.Ordinal);
+        Assert.Contains("esbuild: true", workspace, StringComparison.Ordinal);
+        Assert.DoesNotContain("allowBuilds: true", workspace, StringComparison.Ordinal);
     }
 
     [Fact]

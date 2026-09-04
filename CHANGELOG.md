@@ -24,6 +24,14 @@ All notable changes to LibreSpot will be documented in this file.
 
 - The documented local release sequence now generates `checksums.txt` before the release manifest consumes it.
 
+- The live engine workspace now pins pnpm 11.25.0, replacing the retired audit endpoint used by pnpm 10.
+
+- Lucide is pinned to the reviewed 1.39.0 build so clean installs retain pnpm 11's 24-hour package-age protection.
+
+- pnpm's dependency build allowlist now names only esbuild and Parcel's file watcher.
+
+- JavaScript advisory requests now have a bounded 30-second network timeout and one retry, so a registry outage fails the gate instead of hanging it.
+
 - Cold Spotify reloads now let both companion script copies converge on one ready runtime, so Settings won't remain stuck on its loading screen.
 - Tweak cards no longer squeeze their title between the category label and switch. Categories now sit with the version and source metadata, matching the visual hierarchy used by the reference design.
 - Stable keys are used for arrangement rows, removing the duplicate-key warning that appeared when Spotify rendered two items with the same label.

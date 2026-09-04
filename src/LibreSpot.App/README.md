@@ -21,6 +21,8 @@ pnpm install --frozen-lockfile
 pnpm run check
 ```
 
+The workspace pins pnpm 11 so dependency audits use npm's supported bulk advisory endpoint. Its build allowlist is limited to esbuild and Parcel's file watcher.
+
 `pnpm run check` runs ESLint, checks the catalog against the pinned local Spotify bundle and SpotX source, builds the strict TypeScript project, checks the production bundle, and runs the DOM test suite. The bundle command creates `dist/index.js`, `dist/style.css`, `dist/manifest.json`, and `dist/librespot-engine.js` for Spicetify.
 
 Use `pnpm run catalog:refresh` only when advancing the reviewed Spotify or SpotX pins. It reads the local pinned `xpui.js` and SpotX `patches.json`, then rewrites the shared catalog. `pnpm run catalog:truth` is read-only and fails if those sources drift.

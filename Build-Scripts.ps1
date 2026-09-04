@@ -2359,7 +2359,7 @@ function Get-LibreSpotJavaScriptAudit {
     }
 
     foreach ($scope in @('prod', 'all')) {
-        $arguments = @('audit', '--json')
+        $arguments = @('audit', '--json', '--fetch-timeout=30000', '--fetch-retries=1')
         if ($scope -eq 'prod') { $arguments += '--prod' }
 
         # pnpm audits the lockfile of the directory it is invoked in. The gate is
