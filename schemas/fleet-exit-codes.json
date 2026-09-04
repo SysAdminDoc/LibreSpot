@@ -1,5 +1,5 @@
 {
-  "$comment": "Fleet CLI exit code taxonomy — maps LibreSpot domain outcomes onto Intune/SCCM/PDQ/WinRM return-code categories.",
+  "$comment": "Fleet CLI exit code taxonomy for mapping LibreSpot domain outcomes to Intune, SCCM, PDQ, and WinRM return-code categories.",
   "schemaVersion": 1,
   "description": "LibreSpot fleet CLI exit code taxonomy for Intune, SCCM, PDQ, and WinRM admin tools.",
   "exitCodes": [
@@ -54,10 +54,10 @@
     {
       "code": 13,
       "name": "AssetsNotInstalled",
-      "category": "failure",
-      "description": "The run completed but one or more selected themes, extensions, or custom apps were not installed. Everything else was applied; the run output names each asset that is missing.",
+      "category": "success",
+      "description": "The run completed, but one or more selected themes, extensions, or custom apps were not installed. Everything else was applied. The run output names each missing asset.",
       "retryable": false,
-      "intuneBehavior": "failure"
+      "intuneBehavior": "success"
     },
     {
       "code": 20,

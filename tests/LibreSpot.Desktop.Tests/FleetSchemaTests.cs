@@ -99,6 +99,23 @@ public sealed class FleetSchemaTests
     }
 
     [Fact]
+    public void ExitCodes_AssetsNotInstalledIsASuccessfulWarningAndDocumentedForIntune()
+    {
+        using var doc = LoadJson("fleet-exit-codes.json");
+        var entry = doc.RootElement.GetProperty("exitCodes").EnumerateArray()
+            .Single(item => item.GetProperty("code").GetInt32() == 13);
+
+        Assert.Equal("AssetsNotInstalled", entry.GetProperty("name").GetString());
+        Assert.Equal("success", entry.GetProperty("category").GetString());
+        Assert.False(entry.GetProperty("retryable").GetBoolean());
+        Assert.Equal("success", entry.GetProperty("intuneBehavior").GetString());
+
+        var readme = File.ReadAllText(Path.Combine(RepoRoot, "README.md"));
+        Assert.Contains("| `13` | Completed with selected assets missing |", readme);
+        Assert.Contains("Configure exit 13 as success in Intune", readme);
+    }
+
+    [Fact]
     public void AnswerSchema_IsValidJsonSchema()
     {
         using var doc = LoadJson("librespot-answer.schema.json");

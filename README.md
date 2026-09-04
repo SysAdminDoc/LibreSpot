@@ -377,6 +377,7 @@ Endpoint return-code handling:
 | `10` | LibreSpot target state not installed | Intune detection should mark app absent. |
 | `11` | Drift detected | Run the documented repair or reapply command. |
 | `12` | Repair needed | Run a health-report repair ID such as `RepairMarketplace`. |
+| `13` | Completed with selected assets missing | Configure exit 13 as success in Intune, then review stderr or NDJSON for each missing asset. |
 | `20` | Blocked by local state, such as Spotify running | Retry after closing Spotify or during a maintenance window. |
 | `1` | Unexpected backend failure | Collect the NDJSON log and support bundle. |
 
