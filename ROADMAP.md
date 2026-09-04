@@ -41,13 +41,6 @@ Added 2026-09-04 from RESEARCH.md. IDs continue the RD scheme; RD-180 was the la
   Acceptance: the walk SHALL record every element exposing Invoke, Toggle, SelectionItem or ExpandCollapse whose bounding rectangle is under 24 by 24 DIPs and fail with the automation id; a smoke state with a planted 20 by 20 button SHALL fail; the baseline SHALL start empty.
   Complexity: M
 
-- [ ] P3: RD-195: Update the Smart App Control FAQ for the KB5079391 toggle
-  Why: since 2026-03-27 Windows 11 24H2 and 25H2 can turn Smart App Control off without a clean install, which changes the practical answer for a user who wants to run an unsigned executable; the FAQ still describes "a device where Smart App Control is off or still in evaluation mode" as the only path.
-  Evidence: `README.md:553-556`; https://www.bleepingcomputer.com/news/microsoft/windows-11-kb5079391-update-rolls-out-smart-app-control-improvements/; https://support.microsoft.com/en-us/windows/security/threat-malware-protection/smart-app-control-frequently-asked-questions.
-  Touches: `README.md` FAQ, the localized in-app Smart App Control copy if it repeats the sentence.
-  Acceptance: the FAQ SHALL state that Windows 11 24H2 and 25H2 with KB5079391 or later can turn Smart App Control off from Settings without reinstalling, SHALL keep the "LibreSpot does not recommend a bypass" stance, and SHALL still say the file's SHA256 must match `checksums.txt` first.
-  Complexity: S
-
 - [ ] P3: RD-196: Reset Marketplace storage from the engine's Health panel after exporting a Marketplace backup
   Why: Marketplace 1.0.11 migrated keys but stale IndexedDB and localStorage from older installs still restore themes after a full Spicetify reinstall and can block uninstalling a theme; upstream closed the report as not planned. LibreSpot already names the `spicetify-marketplace` database and exports Marketplace's own backup JSON.
   Evidence: https://github.com/spicetify/marketplace/issues/1231 (opened 2026-09-02, closed not planned); https://github.com/spicetify/marketplace/releases/tag/v1.0.11; `src/LibreSpot.App/src/core/backup.ts:11`; `src/LibreSpot.App/src/extensions/librespot-engine.ts:522`; `CLAUDE.md` note on the Marketplace `settings` store's in-line key.
