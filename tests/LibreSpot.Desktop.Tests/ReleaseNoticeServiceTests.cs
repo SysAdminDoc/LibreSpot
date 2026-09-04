@@ -376,6 +376,7 @@ public sealed class ReleaseNoticeServiceTests
         var lookup = await new GitHubReleaseNoticeClient(http).TryGetLatestStableAsync(null, CancellationToken.None);
 
         Assert.Equal(ReleaseNoticeLookupStatus.RateLimited, lookup.Status);
+        Assert.Equal($"HTTP {(int)status} while reading the latest release.", lookup.Message);
     }
 
     [Theory]
@@ -393,7 +394,55 @@ public sealed class ReleaseNoticeServiceTests
         Assert.Equal(ReleaseNoticeLookupStatus.Missing, lookup.Status);
     }
 
-    private static HttpClient StubResponse(HttpStatusCode status) => new(new StubHandler(status));
+    [Fact]
+    public async Task TryGetLatestStableAsync_NotModifiedSendsTheCachedETagAndReadsTheResponseETag()
+    {
+        string? sentETag = null;
+        using var http = StubResponse(
+            HttpStatusCode.NotModified,
+            eTag: "W/\"etag-current\"",
+            inspectRequest: request => sentETag = request.Headers.GetValues("If-None-Match").Single());
+
+        var lookup = await new GitHubReleaseNoticeClient(http)
+            .TryGetLatestStableAsync("W/\"etag-cached\"", CancellationToken.None);
+
+        Assert.Equal(ReleaseNoticeLookupStatus.NotModified, lookup.Status);
+        Assert.Equal("W/\"etag-cached\"", sentETag);
+        Assert.Equal("W/\"etag-current\"", lookup.ETag);
+    }
+
+    [Fact]
+    public async Task TryGetLatestStableAsync_ASuccessfulBodyIsMappedByTheRealClient()
+    {
+        const string body = "{\"tag_name\":\"v4.5.0\",\"html_url\":\"https://github.com/SysAdminDoc/LibreSpot/releases/tag/v4.5.0\",\"prerelease\":false,\"draft\":false}";
+        using var http = StubResponse(HttpStatusCode.OK, body, "\"etag-release\"");
+
+        var lookup = await new GitHubReleaseNoticeClient(http).TryGetLatestStableAsync(null, CancellationToken.None);
+
+        Assert.Equal(ReleaseNoticeLookupStatus.Found, lookup.Status);
+        Assert.Equal("v4.5.0", lookup.TagName);
+        Assert.Equal("https://github.com/SysAdminDoc/LibreSpot/releases/tag/v4.5.0", lookup.HtmlUrl);
+        Assert.False(lookup.IsPrerelease);
+        Assert.Equal("\"etag-release\"", lookup.ETag);
+    }
+
+    [Fact]
+    public async Task TryGetLatestStableAsync_AMalformedBodyIsRejectedByTheRealClient()
+    {
+        using var http = StubResponse(HttpStatusCode.OK, "{not-json");
+
+        var lookup = await new GitHubReleaseNoticeClient(http).TryGetLatestStableAsync(null, CancellationToken.None);
+
+        Assert.Equal(ReleaseNoticeLookupStatus.Malformed, lookup.Status);
+        Assert.StartsWith("Invalid release JSON:", lookup.Message, StringComparison.Ordinal);
+    }
+
+    private static HttpClient StubResponse(
+        HttpStatusCode status,
+        string? body = null,
+        string? eTag = null,
+        Action<HttpRequestMessage>? inspectRequest = null) =>
+        new(new StubHandler(status, body, eTag, inspectRequest));
 
     private static ReleaseNoticeService Create(TempRoot root, FakeClient client) =>
         new(client, root.CachePath, () => Now);
@@ -417,11 +466,37 @@ public sealed class ReleaseNoticeServiceTests
     private sealed class StubHandler : HttpMessageHandler
     {
         private readonly HttpStatusCode _status;
+        private readonly string? _body;
+        private readonly string? _eTag;
+        private readonly Action<HttpRequestMessage>? _inspectRequest;
 
-        public StubHandler(HttpStatusCode status) => _status = status;
+        public StubHandler(
+            HttpStatusCode status,
+            string? body,
+            string? eTag,
+            Action<HttpRequestMessage>? inspectRequest)
+        {
+            _status = status;
+            _body = body;
+            _eTag = eTag;
+            _inspectRequest = inspectRequest;
+        }
 
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
-            Task.FromResult(new HttpResponseMessage(_status) { RequestMessage = request });
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            _inspectRequest?.Invoke(request);
+            var response = new HttpResponseMessage(_status) { RequestMessage = request };
+            if (_body is not null)
+            {
+                response.Content = new StringContent(_body, System.Text.Encoding.UTF8, "application/json");
+            }
+            if (_eTag is not null)
+            {
+                response.Headers.TryAddWithoutValidation("ETag", _eTag);
+            }
+
+            return Task.FromResult(response);
+        }
     }
 
     private sealed class FakeClient : IReleaseNoticeClient

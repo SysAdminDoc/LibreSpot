@@ -38,19 +38,3 @@ Actionable work only. Historical and completed roadmap material is archived in C
   Touches: the Home workspace list in `src/LibreSpot.Desktop/Views/RecommendedWorkspaceView.xaml`, six resx files for the name, `schemas/axe-windows-baseline.json`.
   Acceptance: WHEN the Axe.Windows scan runs on the recommended state, no `NameNotNull` violation SHALL be reported, its baseline entry SHALL be deleted, and the name SHALL come from the localized resources rather than a literal so every shipped culture announces it.
   Complexity: S
-
-- [ ] P3: RD-176: Assert the rate-limit message carries the status code it was given
-  Why: `TryGetLatestStableAsync` puts its message into `ReleaseNotice.Reason`, which reaches the user, but the new
-  mapping tests assert only `Status`. Replacing `RateLimited($"HTTP {(int)response.StatusCode} ...")` with a
-  hardcoded `RateLimited("HTTP 429 ...")` passes every test in the repo while reporting a 403 to the user as a 429.
-  The same seam would also cover 304, 200 and malformed JSON, none of which touch the real client today.
-  Evidence: `src/LibreSpot.Core/ReleaseNoticeService.cs` rate-limit and missing branches;
-  `tests/LibreSpot.Desktop.Tests/ReleaseNoticeServiceTests.cs` `TryGetLatestStableAsync_*` theories, which use
-  `StubResponse` but assert status only; `GetNoticeAsync_AConditionalRequestSendsTheCachedETag` still asserts the
-  header against `FakeClient`, so the real `If-None-Match` write and `ETag` read are untested. Raised by an
-  adversarial review on 2026-09-03.
-  Touches: `tests/LibreSpot.Desktop.Tests/ReleaseNoticeServiceTests.cs`.
-  Acceptance: WHEN the client maps a refused response, a test SHALL assert the returned message names the status
-  code it actually received, failing if the code is hardcoded; the existing stub handler SHALL also cover 304, a
-  successful body and a malformed body through the real client.
-  Complexity: S
