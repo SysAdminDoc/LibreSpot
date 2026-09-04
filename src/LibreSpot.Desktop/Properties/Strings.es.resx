@@ -2422,6 +2422,7 @@
   <data name="HealthStatusDisabled" xml:space="preserve"><value>Deshabilitada</value><comment>Health status.</comment></data>
   <data name="HealthStatusNoRunRecorded" xml:space="preserve"><value>No se registró ninguna ejecución</value><comment>Health status.</comment></data>
   <data name="HealthStatusLastTickFailed" xml:space="preserve"><value>Último tick falló</value><comment>Health status.</comment></data>
+  <data name="HealthStatusWatcherHeld" xml:space="preserve"><value>Reaplicacion en pausa</value><comment>Health status.</comment></data>
   <data name="HealthStatusStale" xml:space="preserve"><value>Obsoleto</value><comment>Health status.</comment></data>
   <data name="HealthStatusWatcherInitialized" xml:space="preserve"><value>Inicializado</value><comment>Localized watcher outcome.</comment></data>
   <data name="HealthStatusWatcherUpToDate" xml:space="preserve"><value>Actualizado</value><comment>Localized watcher outcome.</comment></data>
@@ -2518,6 +2519,7 @@
   <data name="HealthEvidenceWatcherDisabled" xml:space="preserve"><value>La tarea del observador no está registrada; la reaplicación automática es una opción.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceWatcherNoRun" xml:space="preserve"><value>La tarea programada existe, pero watcher-state.json aún no tiene un tick registrado.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceWatcherFailedFormat" xml:space="preserve"><value>El último tick del observador falló: {0}</value><comment>Health evidence with the watcher outcome.</comment></data>
+  <data name="HealthEvidenceWatcherHeldFormat" xml:space="preserve"><value>La reaplicacion fallo {0} veces seguidas en Spotify {1}, asi que LibreSpot dejo de reintentar cada media hora. Motivo: {2}. Ejecuta Reaplicar para volver a intentarlo o espera a la siguiente actualizacion de Spotify.</value><comment>{0} is the consecutive failure count, {1} is the Spotify version, {2} is the failure reason.</comment></data>
   <data name="HealthEvidenceWatcherStale" xml:space="preserve"><value>La tarea programada existe, pero no ha registrado un tick en más de siete días.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceWatcherActive" xml:space="preserve"><value>La tarea programada está registrada y El estado del observador es reciente.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidencePostUpdateNotApplicable" xml:space="preserve"><value>Las comprobaciones de deriva posteriores a la actualización comienzan después de instalar Spotify.</value><comment>Health evidence.</comment></data>

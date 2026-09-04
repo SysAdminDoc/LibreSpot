@@ -2422,6 +2422,7 @@
   <data name="HealthStatusDisabled" xml:space="preserve"><value>Отключено</value><comment>Health status.</comment></data>
   <data name="HealthStatusNoRunRecorded" xml:space="preserve"><value>Нет записей</value><comment>Health status.</comment></data>
   <data name="HealthStatusLastTickFailed" xml:space="preserve"><value>Последний тик не удался</value><comment>Health status.</comment></data>
+  <data name="HealthStatusWatcherHeld" xml:space="preserve"><value>Povtornoe primenenie priostanovleno</value><comment>Health status.</comment></data>
   <data name="HealthStatusStale" xml:space="preserve"><value>Устарело</value><comment>Health status.</comment></data>
   <data name="HealthStatusWatcherInitialized" xml:space="preserve"><value>Инициализирован</value><comment>Localized watcher outcome.</comment></data>
   <data name="HealthStatusWatcherUpToDate" xml:space="preserve"><value>Обновлено</value><comment>Localized watcher outcome.</comment></data>
@@ -2518,6 +2519,7 @@
   <data name="HealthEvidenceWatcherDisabled" xml:space="preserve"><value>Задача наблюдателя не зарегистрирована; автоматическое повторное применение включено.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceWatcherNoRun" xml:space="preserve"><value>Запланированная задача существует, но в файле watcher-state.json еще нет записанного тика.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceWatcherFailedFormat" xml:space="preserve"><value>Последний тик наблюдателя не выполнен: {0}</value><comment>Health evidence with the watcher outcome.</comment></data>
+  <data name="HealthEvidenceWatcherHeldFormat" xml:space="preserve"><value>Povtornoe primenenie ne udalos {0} raz podryad na Spotify {1}, poetomu LibreSpot perestal povtoryat kazhdye polchasa. Prichina: {2}. Zapustite Reapply ili dozhdites sleduyushchego obnovleniya Spotify.</value><comment>{0} is the consecutive failure count, {1} is the Spotify version, {2} is the failure reason.</comment></data>
   <data name="HealthEvidenceWatcherStale" xml:space="preserve"><value>Запланированная задача существует, но в ней не зарегистрировано ни одного тика более семи дней.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceWatcherActive" xml:space="preserve"><value>Запланированная задача зарегистрирована и состояние наблюдателя недавнее.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidencePostUpdateNotApplicable" xml:space="preserve"><value>Проверки отклонений после обновления начинаются после установки Spotify.</value><comment>Health evidence.</comment></data>

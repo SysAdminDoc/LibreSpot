@@ -7,6 +7,7 @@ All notable changes to LibreSpot will be documented in this file.
 ### Fixed
 
 - An in-Spotify profile that cannot be read is now kept instead of deleted. LibreSpot starts from defaults, and Health offers the original back so a truncated write or a future format change no longer takes every saved theme, tweak and preset with it.
+- The auto-reapply watcher now stops after three failed attempts on the same Spotify build instead of retrying every half hour indefinitely. Maintenance names the build, the failure count and the reason, and offers Reapply. A new Spotify version or a successful reapply clears the hold.
 
 ### Added
 

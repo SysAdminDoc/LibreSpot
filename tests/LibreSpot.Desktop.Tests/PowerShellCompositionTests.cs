@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
@@ -22,7 +22,7 @@ public sealed class PowerShellCompositionTests
         var sharedDirectory = Path.Combine(RepoRoot, shared.GetProperty("directory").GetString()!.Replace('/', Path.DirectorySeparatorChar));
         var sharedFiles = Directory.GetFiles(sharedDirectory, shared.GetProperty("pattern").GetString()!);
         Assert.Equal(shared.GetProperty("expectedCount").GetInt32(), sharedFiles.Length);
-        Assert.Equal(129, sharedFiles.Length);
+        Assert.Equal(132, sharedFiles.Length);
 
         var expectedLaneNames = root.GetProperty("laneFunctions")
             .EnumerateArray()

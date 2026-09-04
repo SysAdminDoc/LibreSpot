@@ -6,13 +6,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 Added 2026-09-04 from RESEARCH.md. IDs continue the RD scheme; RD-180 was the last used.
 
-- [ ] P1: RD-182: Hold the auto-reapply watcher after repeated failures on one Spotify build
-  Why: after "Reapply failed" the watcher keeps `LastKnownVersion` so it retries on the next tick, every 30 minutes, forever, with no failure count, no hold state, and nothing in Maintenance naming the build or the step that failed. A Spotify build the tuple does not support turns into an endless stop-and-apply loop plus a growing watcher log.
-  Evidence: `LibreSpot.ps1:1025-1030` ("Keep LastKnownVersion unchanged so we'll retry next tick"); `Get-WatcherState` at `LibreSpot.ps1:538` stores only a `LastOutcome` string; SpiceManager's "compatibility hold mode" (https://github.com/EliasOnsihuay/SpiceManager); Spicetify v3's `update_policy` that remembers a block (https://github.com/spicetify/cli/tree/v3-beta); https://reddit.com/r/spicetify/comments/1vw95y7/.
-  Touches: `Invoke-AutoReapplyWatcher`, `Get-WatcherState`, `Set-WatcherState`, `Update-AutoReapplyStatusLabel` (`LibreSpot.ps1:7254`), the desktop health component that reads watcher state, `src/powershell/shared/Reapply-SavedSpicetifySetup.ps1`, `tests/powershell/LibreSpot.Tests.ps1`.
-  Acceptance: WHEN reapply fails three consecutive times for the same Spotify version, the watcher SHALL record a hold with that version, the failing step and the timestamp and SHALL skip further attempts for that version; Maintenance SHALL show the hold with a manual Reapply action; a new Spotify version or a successful manual reapply SHALL clear it; Pester SHALL cover the count, the hold, the skip and both clears without Task Scheduler.
-  Complexity: M
-
 - [ ] P2: RD-184: Document all fifteen fleet exit codes in the README and gate the table against the schema
   Why: README's endpoint table lists eight codes; `schemas/fleet-exit-codes.json` defines fifteen, and the seven missing ones (30, 40, 50, 60, 1618, 3010, 1641) are exactly the retry and reboot classes an Intune detection or remediation script must treat differently from failure.
   Evidence: `README.md:383-392`; `schemas/fleet-exit-codes.json` codes 0, 1, 2, 10, 11, 12, 13, 20, 30, 40, 50, 60, 1618, 3010, 1641; https://learn.microsoft.com/en-us/intune/intune-service/apps/apps-win32-add.

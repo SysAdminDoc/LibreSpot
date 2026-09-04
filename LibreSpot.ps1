@@ -517,6 +517,110 @@ function Get-SpicetifyV3SupportContract {
     }
 }
 
+function Get-LibreSpotWatcherHoldDecision {
+    <#
+        Decides whether the auto-reapply watcher should attempt another reapply
+        for the Spotify build in front of it.
+
+        Before this existed the watcher kept LastKnownVersion on failure so it
+        would "retry next tick", which meant a build the pinned tuple cannot
+        patch was stopped and re-applied every thirty minutes for as long as the
+        machine stayed on. The user saw a growing watcher log and nothing that
+        named the build or the step that failed.
+
+        Three consecutive failures against the same build put the watcher on
+        hold for that build. A different build, or a successful apply, clears
+        it. The decision is pure so both lanes share one rule and Pester can
+        exercise every branch without Task Scheduler.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)][AllowNull()][hashtable]$State,
+        [Parameter(Mandatory = $true)][AllowEmptyString()][string]$CurrentVersion
+    )
+
+    $threshold = 3
+    $held = $false
+    $failureCount = 0
+    $failureVersion = $null
+
+    if ($null -ne $State) {
+        $failureVersion = [string]$State['ReapplyFailureVersion']
+        # ConvertFrom-Json hands back a number or a string depending on how the
+        # file was written, and an absent key is $null; normalize before math.
+        $rawCount = $State['ReapplyFailureCount']
+        if ($null -ne $rawCount) {
+            $parsed = 0
+            if ([int]::TryParse([string]$rawCount, [ref]$parsed)) { $failureCount = $parsed }
+        }
+        $holdVersion = [string]$State['HoldSpotifyVersion']
+        if ($holdVersion -and $holdVersion -eq $CurrentVersion) { $held = $true }
+    }
+
+    if ($failureVersion -ne $CurrentVersion) {
+        # The counters belong to a build that is no longer installed.
+        $failureCount = 0
+    }
+
+    [pscustomobject]@{
+        ShouldAttempt  = -not $held
+        IsHeld         = $held
+        FailureCount   = $failureCount
+        FailureVersion = $failureVersion
+        Threshold      = $threshold
+    }
+}
+
+function Get-LibreSpotWatcherFailureState {
+    <#
+        The watcher-state fields to write after a failed reapply. The hold
+        fields appear once the same Spotify build has failed the threshold
+        number of times in a row, which is what stops the thirty-minute retry
+        loop against a build the pinned tuple cannot patch.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)][AllowNull()][hashtable]$State,
+        [Parameter(Mandatory = $true)][AllowEmptyString()][string]$CurrentVersion,
+        [Parameter(Mandatory = $true)][AllowEmptyString()][string]$Reason,
+        [Parameter(Mandatory = $true)][AllowEmptyString()][string]$Timestamp
+    )
+
+    $decision = Get-LibreSpotWatcherHoldDecision -State $State -CurrentVersion $CurrentVersion
+    $count = $decision.FailureCount + 1
+
+    $result = @{
+        ReapplyFailureCount   = $count
+        ReapplyFailureVersion = $CurrentVersion
+    }
+
+    if ($count -ge $decision.Threshold) {
+        $result['HoldSpotifyVersion'] = $CurrentVersion
+        $result['HoldSince'] = $Timestamp
+        $result['HoldReason'] = $Reason
+    }
+
+    return $result
+}
+
+function Get-LibreSpotWatcherClearedHoldState {
+    <#
+        The watcher-state fields that retire a hold and the failure count.
+        Written after a successful reapply so the next Spotify update starts
+        from a clean count rather than inheriting the previous build's.
+    #>
+    [CmdletBinding()]
+    param()
+
+    return @{
+        ReapplyFailureCount   = 0
+        ReapplyFailureVersion = $null
+        HoldSpotifyVersion    = $null
+        HoldSince             = $null
+        HoldReason            = $null
+    }
+}
+
 function Write-WatcherLog {
     param([string]$Message, [string]$Level = 'INFO')
     try {
@@ -537,7 +641,16 @@ function Write-WatcherLog {
 
 function Get-WatcherState {
     if (-not (Test-Path -LiteralPath $global:WATCHER_STATE_PATH)) {
-        return @{ LastKnownVersion = $null; LastRunAt = $null; LastOutcome = $null }
+        return @{
+            LastKnownVersion = $null
+            LastRunAt = $null
+            LastOutcome = $null
+            ReapplyFailureCount = $null
+            ReapplyFailureVersion = $null
+            HoldSpotifyVersion = $null
+            HoldSince = $null
+            HoldReason = $null
+        }
     }
     try {
         $raw = Get-Content -LiteralPath $global:WATCHER_STATE_PATH -Raw -ErrorAction Stop | ConvertFrom-Json
@@ -545,9 +658,23 @@ function Get-WatcherState {
             LastKnownVersion = [string]$raw.LastKnownVersion
             LastRunAt        = [string]$raw.LastRunAt
             LastOutcome      = [string]$raw.LastOutcome
+            ReapplyFailureCount = $raw.ReapplyFailureCount
+            ReapplyFailureVersion = [string]$raw.ReapplyFailureVersion
+            HoldSpotifyVersion = [string]$raw.HoldSpotifyVersion
+            HoldSince = [string]$raw.HoldSince
+            HoldReason = [string]$raw.HoldReason
         }
     } catch {
-        return @{ LastKnownVersion = $null; LastRunAt = $null; LastOutcome = $null }
+        return @{
+            LastKnownVersion = $null
+            LastRunAt = $null
+            LastOutcome = $null
+            ReapplyFailureCount = $null
+            ReapplyFailureVersion = $null
+            HoldSpotifyVersion = $null
+            HoldSince = $null
+            HoldReason = $null
+        }
     }
 }
 
@@ -996,6 +1123,16 @@ function Invoke-AutoReapplyWatcher {
 
     Write-WatcherLog "Spotify version bump: $($state.LastKnownVersion) -> $currentVersion" -Level 'STEP'
 
+    # A build the pinned tuple cannot patch used to be stopped and re-applied
+    # every tick forever. After three consecutive failures the watcher holds
+    # that build and waits for a new Spotify version or a manual reapply.
+    $holdDecision = Get-LibreSpotWatcherHoldDecision -State $state -CurrentVersion $currentVersion
+    if ($holdDecision.IsHeld) {
+        Write-WatcherLog "Reapply is on hold for Spotify $currentVersion after $($holdDecision.Threshold) failed attempts. Run a reapply from LibreSpot to clear it." -Level 'WARN'
+        Set-WatcherState -State @{ LastRunAt = (Get-Date -Format 'o'); LastOutcome = 'HeldAfterRepeatedFailures' }
+        return 0
+    }
+
     if (Test-SpotifyRunning) {
         Write-WatcherLog "Spotify is running - deferring reapply to next tick"
         Set-WatcherState -State @{ LastKnownVersion = $state.LastKnownVersion; LastRunAt = (Get-Date -Format 'o'); LastOutcome = 'DeferredSpotifyRunning' }
@@ -1019,12 +1156,20 @@ function Invoke-AutoReapplyWatcher {
 
     try {
         Invoke-HeadlessReapply -Config $saved
-        Set-WatcherState -State @{ LastKnownVersion = $currentVersion; LastRunAt = (Get-Date -Format 'o'); LastOutcome = 'Reapplied' }
+        $applied = @{ LastKnownVersion = $currentVersion; LastRunAt = (Get-Date -Format 'o'); LastOutcome = 'Reapplied' }
+        foreach ($entry in (Get-LibreSpotWatcherClearedHoldState).GetEnumerator()) { $applied[$entry.Key] = $entry.Value }
+        Set-WatcherState -State $applied
         return 0
     } catch {
         Write-WatcherLog "Reapply failed: $($_.Exception.Message)" -Level 'ERROR'
-        # Keep LastKnownVersion unchanged so we'll retry next tick.
-        Set-WatcherState -State @{ LastKnownVersion = $state.LastKnownVersion; LastRunAt = (Get-Date -Format 'o'); LastOutcome = "Error: $($_.Exception.Message)" }
+        $now = Get-Date -Format 'o'
+        $message = [string]$_.Exception.Message
+        # Keep LastKnownVersion unchanged so we'll retry next tick, until
+        # the failure count for this build reaches the hold threshold.
+        $failed = @{ LastKnownVersion = $state.LastKnownVersion; LastRunAt = $now; LastOutcome = "Error: $message" }
+        $counters = Get-LibreSpotWatcherFailureState -State $state -CurrentVersion $currentVersion -Reason $message -Timestamp $now
+        foreach ($entry in $counters.GetEnumerator()) { $failed[$entry.Key] = $entry.Value }
+        Set-WatcherState -State $failed
         return 1
     }
 }

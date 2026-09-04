@@ -77,6 +77,10 @@ BeforeAll {
         'Get-WatcherState'
         'Set-WatcherState'
         'Invoke-AutoReapplyWatcher'
+        # Invoke-AutoReapplyWatcher consults these before every reapply.
+        'Get-LibreSpotWatcherHoldDecision'
+        'Get-LibreSpotWatcherFailureState'
+        'Get-LibreSpotWatcherClearedHoldState'
         'Invoke-HeadlessReapply'
         'Register-AutoReapplyTask'
         'Get-PowerShell7SecurityFloorStatus'
@@ -3401,5 +3405,115 @@ Describe 'Module-InstallThemes bundled theme resolution' {
 
         Test-Path -LiteralPath (Join-Path $installed 'leftover.css') | Should -BeFalse
         Test-Path -LiteralPath (Join-Path $installed 'color.ini') | Should -BeTrue
+    }
+}
+
+Describe 'Auto-reapply watcher hold' {
+    BeforeAll {
+        $sharedDir = (Resolve-Path (Join-Path $PSScriptRoot '..\..\src\powershell\shared')).Path
+        foreach ($name in @(
+                'Get-LibreSpotWatcherHoldDecision',
+                'Get-LibreSpotWatcherFailureState',
+                'Get-LibreSpotWatcherClearedHoldState')) {
+            . (Join-Path $sharedDir "$name.ps1")
+        }
+
+        # One tick's worth of the real loop: take the current state, decide,
+        # and fold the resulting fields back in the way both lanes do.
+        function Invoke-WatcherTick {
+            param([hashtable]$State, [string]$Version, [switch]$Succeeds, [string]$Reason = 'spicetify apply failed')
+            $decision = Get-LibreSpotWatcherHoldDecision -State $State -CurrentVersion $Version
+            if ($decision.IsHeld) { return @{ State = $State; Attempted = $false } }
+            $next = @{}
+            foreach ($key in $State.Keys) { $next[$key] = $State[$key] }
+            $fields = if ($Succeeds) {
+                Get-LibreSpotWatcherClearedHoldState
+            } else {
+                Get-LibreSpotWatcherFailureState -State $State -CurrentVersion $Version -Reason $Reason -Timestamp '2026-09-04T10:00:00.0000000Z'
+            }
+            foreach ($entry in $fields.GetEnumerator()) { $next[$entry.Key] = $entry.Value }
+            return @{ State = $next; Attempted = $true }
+        }
+    }
+
+    It 'attempts a reapply while the failure count is under the threshold' {
+        $state = @{}
+        $first = Invoke-WatcherTick -State $state -Version '1.2.99.317'
+        $first.Attempted | Should -BeTrue
+        $first.State.ReapplyFailureCount | Should -Be 1
+        $first.State.ContainsKey('HoldSpotifyVersion') | Should -BeFalse
+
+        $second = Invoke-WatcherTick -State $first.State -Version '1.2.99.317'
+        $second.Attempted | Should -BeTrue
+        $second.State.ReapplyFailureCount | Should -Be 2
+        $second.State.ContainsKey('HoldSpotifyVersion') | Should -BeFalse
+    }
+
+    It 'holds the build after three consecutive failures and stops attempting' {
+        $state = @{}
+        for ($i = 0; $i -lt 3; $i++) {
+            $tick = Invoke-WatcherTick -State $state -Version '1.2.99.317'
+            $tick.Attempted | Should -BeTrue
+            $state = $tick.State
+        }
+        $state.ReapplyFailureCount | Should -Be 3
+        $state.HoldSpotifyVersion | Should -Be '1.2.99.317'
+        $state.HoldReason | Should -Be 'spicetify apply failed'
+        $state.HoldSince | Should -Be '2026-09-04T10:00:00.0000000Z'
+
+        # The fourth tick is the one the old code would have run forever.
+        $fourth = Invoke-WatcherTick -State $state -Version '1.2.99.317'
+        $fourth.Attempted | Should -BeFalse
+    }
+
+    It 'attempts again when Spotify moves to a different build' {
+        $state = @{}
+        for ($i = 0; $i -lt 3; $i++) { $state = (Invoke-WatcherTick -State $state -Version '1.2.99.317').State }
+        $state.HoldSpotifyVersion | Should -Be '1.2.99.317'
+
+        $next = Invoke-WatcherTick -State $state -Version '1.2.100.100'
+        $next.Attempted | Should -BeTrue
+        # The count restarts rather than inheriting the held build's total.
+        $next.State.ReapplyFailureCount | Should -Be 1
+        $next.State.ReapplyFailureVersion | Should -Be '1.2.100.100'
+    }
+
+    It 'clears the hold and the count after a successful reapply' {
+        $state = @{}
+        for ($i = 0; $i -lt 3; $i++) { $state = (Invoke-WatcherTick -State $state -Version '1.2.99.317').State }
+        $state.HoldSpotifyVersion | Should -Be '1.2.99.317'
+
+        # A manual reapply is the documented escape, and it writes the same
+        # cleared fields the watcher writes on success.
+        $cleared = @{}
+        foreach ($key in $state.Keys) { $cleared[$key] = $state[$key] }
+        foreach ($entry in (Get-LibreSpotWatcherClearedHoldState).GetEnumerator()) { $cleared[$entry.Key] = $entry.Value }
+
+        $cleared.HoldSpotifyVersion | Should -BeNullOrEmpty
+        $cleared.HoldSince | Should -BeNullOrEmpty
+        $cleared.HoldReason | Should -BeNullOrEmpty
+        $cleared.ReapplyFailureCount | Should -Be 0
+        (Get-LibreSpotWatcherHoldDecision -State $cleared -CurrentVersion '1.2.99.317').ShouldAttempt | Should -BeTrue
+    }
+
+    It 'reads a count that came back from JSON as a string' {
+        # ConvertFrom-Json can hand back either, and a string would have made
+        # the addition concatenate instead of increment.
+        $state = @{ ReapplyFailureCount = '2'; ReapplyFailureVersion = '1.2.99.317' }
+        $fields = Get-LibreSpotWatcherFailureState -State $state -CurrentVersion '1.2.99.317' -Reason 'x' -Timestamp 'now'
+        $fields.ReapplyFailureCount | Should -Be 3
+        $fields.HoldSpotifyVersion | Should -Be '1.2.99.317'
+    }
+
+    It 'both lanes gate the reapply on the shared decision' {
+        foreach ($lane in @('gui', 'backend')) {
+            $path = Join-Path $PSScriptRoot "..\..\src\powershell\$lane\lane-functions.ps1"
+            $text = [System.IO.File]::ReadAllText((Resolve-Path $path).Path)
+            $watcher = [regex]::Match($text, '(?ms)^function Invoke-AutoReapplyWatcher\s*\{.+?^\}').Value
+            $watcher | Should -Not -BeNullOrEmpty -Because "$lane must define the watcher"
+            $watcher | Should -Match 'Get-LibreSpotWatcherHoldDecision' -Because "$lane must consult the hold before reapplying"
+            $watcher | Should -Match 'Get-LibreSpotWatcherFailureState' -Because "$lane must count failures"
+            $watcher | Should -Match 'Get-LibreSpotWatcherClearedHoldState' -Because "$lane must clear the hold on success"
+        }
     }
 }

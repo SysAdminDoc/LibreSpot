@@ -2422,6 +2422,7 @@
   <data name="HealthStatusDisabled" xml:space="preserve"><value>Desativado</value><comment>Health status.</comment></data>
   <data name="HealthStatusNoRunRecorded" xml:space="preserve"><value>Nenhuma execução registrada</value><comment>Health status.</comment></data>
   <data name="HealthStatusLastTickFailed" xml:space="preserve"><value>Último tick falhou</value><comment>Health status.</comment></data>
+  <data name="HealthStatusWatcherHeld" xml:space="preserve"><value>Reaplicacao em espera</value><comment>Health status.</comment></data>
   <data name="HealthStatusStale" xml:space="preserve"><value>Desatualizado</value><comment>Health status.</comment></data>
   <data name="HealthStatusWatcherInitialized" xml:space="preserve"><value>Inicializado</value><comment>Localized watcher outcome.</comment></data>
   <data name="HealthStatusWatcherUpToDate" xml:space="preserve"><value>Atualizado</value><comment>Localized watcher outcome.</comment></data>
@@ -2518,6 +2519,7 @@
   <data name="HealthEvidenceWatcherDisabled" xml:space="preserve"><value>A tarefa do observador não está registrada; a reaplicação automática é ativada.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceWatcherNoRun" xml:space="preserve"><value>A tarefa agendada existe, mas watcher-state.json ainda não tem nenhum tick registrado.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceWatcherFailedFormat" xml:space="preserve"><value>O último tick do inspetor falhou: {0}</value><comment>Health evidence with the watcher outcome.</comment></data>
+  <data name="HealthEvidenceWatcherHeldFormat" xml:space="preserve"><value>A reaplicacao falhou {0} vezes seguidas no Spotify {1}, entao o LibreSpot parou de tentar a cada meia hora. Motivo: {2}. Execute Reaplicar para tentar de novo ou aguarde a proxima atualizacao do Spotify.</value><comment>{0} is the consecutive failure count, {1} is the Spotify version, {2} is the failure reason.</comment></data>
   <data name="HealthEvidenceWatcherStale" xml:space="preserve"><value>A tarefa agendada existe, mas não registrou um tick há mais de sete dias.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceWatcherActive" xml:space="preserve"><value>A tarefa agendada está registrada e o estado do inspetor é recente.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidencePostUpdateNotApplicable" xml:space="preserve"><value>As verificações de desvios pós-atualização começam após a instalação do Spotify.</value><comment>Health evidence.</comment></data>

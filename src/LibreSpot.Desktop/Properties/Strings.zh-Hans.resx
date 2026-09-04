@@ -2422,6 +2422,7 @@
   <data name="HealthStatusDisabled" xml:space="preserve"><value>已禁用</value><comment>Health status.</comment></data>
   <data name="HealthStatusNoRunRecorded" xml:space="preserve"><value>没有记录跑步</value><comment>Health status.</comment></data>
   <data name="HealthStatusLastTickFailed" xml:space="preserve"><value>最后一次失败</value><comment>Health status.</comment></data>
+  <data name="HealthStatusWatcherHeld" xml:space="preserve"><value>重新应用已暂停</value><comment>Health status.</comment></data>
   <data name="HealthStatusStale" xml:space="preserve"><value>过时</value><comment>Health status.</comment></data>
   <data name="HealthStatusWatcherInitialized" xml:space="preserve"><value>已初始化</value><comment>Localized watcher outcome.</comment></data>
   <data name="HealthStatusWatcherUpToDate" xml:space="preserve"><value>最新</value><comment>Localized watcher outcome.</comment></data>
@@ -2518,6 +2519,7 @@
   <data name="HealthEvidenceWatcherDisabled" xml:space="preserve"><value>观察器任务未注册； auto-reapply 是选择加入。</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceWatcherNoRun" xml:space="preserve"><value>计划任务存在，但 watcher-state.json 尚未记录蜱。</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceWatcherFailedFormat" xml:space="preserve"><value>上一次监控任务运行失败：{0}</value><comment>Health evidence with the watcher outcome.</comment></data>
+  <data name="HealthEvidenceWatcherHeldFormat" xml:space="preserve"><value>在 Spotify {1} 上连续 {0} 次重新应用失败，LibreSpot 已停止每半小时重试。原因：{2}。请运行“重新应用”重试，或等待 Spotify 下次更新。</value><comment>{0} is the consecutive failure count, {1} is the Spotify version, {2} is the failure reason.</comment></data>
   <data name="HealthEvidenceWatcherStale" xml:space="preserve"><value>计划任务存在，但超过 7 天没有记录蜱。</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceWatcherActive" xml:space="preserve"><value>计划任务已注册，监控任务状态为最新。</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidencePostUpdateNotApplicable" xml:space="preserve"><value>安装 Spotify 后开始更新后偏差检查。</value><comment>Health evidence.</comment></data>

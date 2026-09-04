@@ -2422,6 +2422,7 @@
   <data name="HealthStatusDisabled" xml:space="preserve"><value>Disabled</value><comment>Health status.</comment></data>
   <data name="HealthStatusNoRunRecorded" xml:space="preserve"><value>No run recorded</value><comment>Health status.</comment></data>
   <data name="HealthStatusLastTickFailed" xml:space="preserve"><value>Last tick failed</value><comment>Health status.</comment></data>
+  <data name="HealthStatusWatcherHeld" xml:space="preserve"><value>Reapply on hold</value><comment>Health status.</comment></data>
   <data name="HealthStatusStale" xml:space="preserve"><value>Stale</value><comment>Health status.</comment></data>
   <data name="HealthStatusWatcherInitialized" xml:space="preserve"><value>Initialized</value><comment>Localized watcher outcome.</comment></data>
   <data name="HealthStatusWatcherUpToDate" xml:space="preserve"><value>Up to date</value><comment>Localized watcher outcome.</comment></data>
@@ -2518,6 +2519,7 @@
   <data name="HealthEvidenceWatcherDisabled" xml:space="preserve"><value>The watcher task is not registered; auto-reapply is opt-in.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceWatcherNoRun" xml:space="preserve"><value>The scheduled task exists, but watcher-state.json has no recorded tick yet.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceWatcherFailedFormat" xml:space="preserve"><value>The last watcher tick failed: {0}</value><comment>{0} is the watcher failure outcome.</comment></data>
+  <data name="HealthEvidenceWatcherHeldFormat" xml:space="preserve"><value>Reapply failed {0} times in a row on Spotify {1}, so LibreSpot stopped retrying every half hour. Reason: {2}. Run Reapply to try again, or wait for the next Spotify update.</value><comment>{0} is the consecutive failure count, {1} is the Spotify version, {2} is the failure reason.</comment></data>
   <data name="HealthEvidenceWatcherStale" xml:space="preserve"><value>The scheduled task exists, but it has not recorded a tick in more than seven days.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidenceWatcherActive" xml:space="preserve"><value>The scheduled task is registered and watcher state is recent.</value><comment>Health evidence.</comment></data>
   <data name="HealthEvidencePostUpdateNotApplicable" xml:space="preserve"><value>Post-update drift checks start after Spotify is installed.</value><comment>Health evidence.</comment></data>

@@ -860,6 +860,46 @@ public sealed class EnvironmentSnapshotServiceTests
     }
 
     [Fact]
+    public void GetSnapshot_HealthReport_CoversHeldWatcher()
+    {
+        using var fixture = new SnapshotFixture();
+        fixture.WriteWatcherState(
+            DateTime.Now.AddMinutes(-20),
+            "Error: spicetify apply failed",
+            reapplyFailureCount: 3,
+            holdSpotifyVersion: "1.2.99.317",
+            holdSince: DateTime.Now.AddMinutes(-20),
+            holdReason: "spicetify apply failed");
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: true);
+
+        var watcher = Assert.Single(snapshot.HealthReport.WarningIssues, component => component.Id == "auto-reapply-watcher");
+        Assert.Equal("Reapply on hold", watcher.Status);
+        // The hold has to win over the generic failed-tick branch, which
+        // would otherwise report the same state as one bad tick and say
+        // nothing about the build that is stuck.
+        Assert.Contains("1.2.99.317", watcher.Evidence);
+        Assert.Contains("3 times in a row", watcher.Evidence);
+        Assert.Contains("spicetify apply failed", watcher.Evidence);
+        Assert.Contains("Reapply", watcher.RecommendedActionIds);
+    }
+
+    [Fact]
+    public void GetSnapshot_HealthReport_ReportsOneFailedTickWithoutAHold()
+    {
+        using var fixture = new SnapshotFixture();
+        fixture.WriteWatcherState(
+            DateTime.Now.AddMinutes(-20),
+            "Error: spicetify apply failed",
+            reapplyFailureCount: 1);
+
+        var snapshot = fixture.GetSnapshot(autoReapplyRegistered: true);
+
+        var watcher = Assert.Single(snapshot.HealthReport.WarningIssues, component => component.Id == "auto-reapply-watcher");
+        Assert.Equal("Last tick failed", watcher.Status);
+    }
+
+    [Fact]
     public void GetSnapshot_HealthReport_CoversRecentCrashReports()
     {
         using var fixture = new SnapshotFixture();
@@ -1531,7 +1571,11 @@ public sealed class EnvironmentSnapshotServiceTests
             DateTime? lastSuccessfulApplyAt = null,
             DateTime? lastApplyAt = null,
             string? lastApplyOutcome = null,
-            string? lastApplyError = null) =>
+            string? lastApplyError = null,
+            int? reapplyFailureCount = null,
+            string? holdSpotifyVersion = null,
+            DateTime? holdSince = null,
+            string? holdReason = null) =>
             WriteFile(
                 Path.Combine(ConfigDirectory, "watcher-state.json"),
                 JsonSerializer.Serialize(
@@ -1545,7 +1589,11 @@ public sealed class EnvironmentSnapshotServiceTests
                         LastSuccessfulApplyAt = lastSuccessfulApplyAt,
                         LastApplyAt = lastApplyAt,
                         LastApplyOutcome = lastApplyOutcome,
-                        LastApplyError = lastApplyError
+                        LastApplyError = lastApplyError,
+                        ReapplyFailureCount = reapplyFailureCount,
+                        HoldSpotifyVersion = holdSpotifyVersion,
+                        HoldSince = holdSince,
+                        HoldReason = holdReason
                     }));
 
         public void WriteInstallLog() =>

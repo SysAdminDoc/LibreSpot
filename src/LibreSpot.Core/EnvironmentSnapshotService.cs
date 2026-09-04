@@ -1453,6 +1453,27 @@ public sealed class EnvironmentSnapshotService
                 "WatchAutoReapply");
         }
 
+        if (!string.IsNullOrWhiteSpace(state.HoldSpotifyVersion))
+        {
+            return Component(
+                "auto-reapply-watcher",
+                L("HealthNameWatcher"),
+                L("HealthStatusWatcherHeld"),
+                HealthSeverity.Warning,
+                state.HoldSpotifyVersion,
+                statePath,
+                state.HoldSince ?? state.LastRunAt,
+                F(
+                    "HealthEvidenceWatcherHeldFormat",
+                    state.ReapplyFailureCount?.ToString(CultureInfo.InvariantCulture) ?? "3",
+                    state.HoldSpotifyVersion,
+                    string.IsNullOrWhiteSpace(state.HoldReason)
+                        ? L("HealthValueUnknown")
+                        : state.HoldReason),
+                "WatchAutoReapply",
+                "Reapply");
+        }
+
         if (state.LastOutcome?.StartsWith("Error:", StringComparison.OrdinalIgnoreCase) == true)
         {
             return Component(
@@ -2191,6 +2212,10 @@ public sealed class EnvironmentSnapshotService
             var lastApplyAt = TryGetDateTime(root, "LastApplyAt");
             var lastApplyOutcome = TryGetString(root, "LastApplyOutcome");
             var lastApplyError = TryGetString(root, "LastApplyError");
+            var reapplyFailureCount = TryGetInt32(root, "ReapplyFailureCount");
+            var holdSpotifyVersion = TryGetString(root, "HoldSpotifyVersion");
+            var holdSince = TryGetDateTime(root, "HoldSince");
+            var holdReason = TryGetString(root, "HoldReason");
 
             return new WatcherState(
                 version,
@@ -2201,7 +2226,11 @@ public sealed class EnvironmentSnapshotService
                 lastSuccessfulApplyAt,
                 lastApplyAt,
                 lastApplyOutcome,
-                lastApplyError);
+                lastApplyError,
+                reapplyFailureCount,
+                holdSpotifyVersion,
+                holdSince,
+                holdReason);
         }
         catch
         {
@@ -2561,9 +2590,13 @@ public sealed class EnvironmentSnapshotService
         DateTime? LastSuccessfulApplyAt,
         DateTime? LastApplyAt,
         string? LastApplyOutcome,
-        string? LastApplyError)
+        string? LastApplyError,
+        int? ReapplyFailureCount,
+        string? HoldSpotifyVersion,
+        DateTime? HoldSince,
+        string? HoldReason)
     {
-        public static WatcherState Empty { get; } = new(null, null, null, null, null, null, null, null, null);
+        public static WatcherState Empty { get; } = new(null, null, null, null, null, null, null, null, null, null, null, null, null);
     }
 
     private static bool IsAutoReapplyTaskRegistered()
