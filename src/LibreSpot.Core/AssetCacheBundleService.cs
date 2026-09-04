@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -22,6 +23,17 @@ public sealed class AssetCacheBundleService
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = true
     };
+
+    private readonly Action<AssetCacheBundleTransactionStage>? transactionObserver;
+
+    public AssetCacheBundleService()
+    {
+    }
+
+    internal AssetCacheBundleService(Action<AssetCacheBundleTransactionStage> transactionObserver)
+    {
+        this.transactionObserver = transactionObserver;
+    }
 
     public AssetCacheBundleResult Export(string cacheDirectory, string outputPath, string productVersion)
     {
@@ -116,6 +128,8 @@ public sealed class AssetCacheBundleService
             ?? throw new AssetCacheBundleException("The asset-cache directory has no parent directory.");
         Directory.CreateDirectory(configRoot);
         var stagingRoot = Path.Combine(configRoot, $".asset-cache-import-{Guid.NewGuid():N}");
+        var replacementRoot = Path.Combine(configRoot, $".asset-cache-ready-{Guid.NewGuid():N}");
+        var rollbackRoot = Path.Combine(configRoot, $".asset-cache-rollback-{Guid.NewGuid():N}");
         Directory.CreateDirectory(stagingRoot);
 
         try
@@ -187,24 +201,28 @@ public sealed class AssetCacheBundleService
                     QuarantinedPath = null
                 };
             }
-
-            Directory.CreateDirectory(cacheRoot);
-            foreach (var entry in manifest.Entries)
+            if (existingEntries.Count > MaxEntryCount)
             {
-                var destinationPath = Path.Combine(cacheRoot, entry.Sha256);
-                var temporaryAssetPath = Path.Combine(cacheRoot, $".{entry.Sha256}.{Guid.NewGuid():N}.tmp");
-                try
-                {
-                    File.Copy(Path.Combine(stagingRoot, entry.Sha256), temporaryAssetPath, overwrite: false);
-                    File.Move(temporaryAssetPath, destinationPath, overwrite: true);
-                }
-                finally
-                {
-                    TryDeleteFile(temporaryAssetPath);
-                }
+                throw new AssetCacheBundleException($"The merged asset-cache index would contain more than {MaxEntryCount} entries.");
             }
 
-            WriteIndexAtomically(cacheRoot, existingEntries.Values.OrderBy(entry => entry.Sha256, StringComparer.Ordinal).ToArray(), now);
+            if (File.Exists(cacheRoot))
+            {
+                throw new AssetCacheBundleException("The target asset-cache path is a file, not a directory.");
+            }
+
+            Directory.CreateDirectory(replacementRoot);
+            if (Directory.Exists(cacheRoot))
+            {
+                CopyDirectoryWithoutLinks(cacheRoot, replacementRoot);
+            }
+            foreach (var entry in manifest.Entries)
+            {
+                File.Copy(Path.Combine(stagingRoot, entry.Sha256), Path.Combine(replacementRoot, entry.Sha256), overwrite: true);
+            }
+
+            WriteIndexAtomically(replacementRoot, existingEntries.Values.OrderBy(entry => entry.Sha256, StringComparer.Ordinal).ToArray(), now);
+            CommitPreparedCache(cacheRoot, replacementRoot, rollbackRoot);
             return new AssetCacheBundleResult(
                 fullBundlePath,
                 manifest.EntryCount,
@@ -224,6 +242,7 @@ public sealed class AssetCacheBundleService
         finally
         {
             TryDeleteDirectory(stagingRoot);
+            TryDeleteDirectory(replacementRoot);
         }
     }
 
@@ -335,7 +354,7 @@ public sealed class AssetCacheBundleService
         long totalBytes = 0;
         foreach (var entry in manifest.Entries)
         {
-            ValidateIndexedEntry(entry, requirePresent: false);
+            ValidateIndexedEntry(entry, requirePresent: true);
             if (!hashes.Add(entry.Sha256))
             {
                 throw new AssetCacheBundleException($"The bundle manifest contains duplicate asset {entry.Sha256}.");
@@ -418,7 +437,14 @@ public sealed class AssetCacheBundleService
             throw new AssetCacheBundleException($"Asset {entry.Sha256} has invalid source or size metadata.");
         }
 
-        if (requirePresent && (!string.Equals(entry.Status, "present", StringComparison.Ordinal) || string.IsNullOrWhiteSpace(entry.LastVerifiedAtUtc)))
+        if (requirePresent &&
+            (!string.Equals(entry.Status, "present", StringComparison.Ordinal) ||
+             entry.QuarantinedPath is not null ||
+             !DateTimeOffset.TryParse(
+                 entry.LastVerifiedAtUtc,
+                 CultureInfo.InvariantCulture,
+                 DateTimeStyles.RoundtripKind,
+                 out _)))
         {
             throw new AssetCacheBundleException($"The asset cache is incomplete. {entry.Sha256} ({entry.Label}) is not a verified present entry.");
         }
@@ -498,6 +524,78 @@ public sealed class AssetCacheBundleService
         }
     }
 
+    private static void CopyDirectoryWithoutLinks(string sourceRoot, string destinationRoot)
+    {
+        if ((File.GetAttributes(sourceRoot) & FileAttributes.ReparsePoint) != 0)
+        {
+            throw new AssetCacheBundleException("The target asset-cache directory is a reparse point and cannot be imported safely.");
+        }
+
+        foreach (var sourcePath in Directory.EnumerateFileSystemEntries(sourceRoot))
+        {
+            var attributes = File.GetAttributes(sourcePath);
+            if ((attributes & FileAttributes.ReparsePoint) != 0)
+            {
+                throw new AssetCacheBundleException($"The target asset cache contains a reparse point: {sourcePath}");
+            }
+
+            var destinationPath = Path.Combine(destinationRoot, Path.GetFileName(sourcePath));
+            if ((attributes & FileAttributes.Directory) != 0)
+            {
+                Directory.CreateDirectory(destinationPath);
+                CopyDirectoryWithoutLinks(sourcePath, destinationPath);
+            }
+            else
+            {
+                File.Copy(sourcePath, destinationPath, overwrite: false);
+            }
+        }
+    }
+
+    private void CommitPreparedCache(string cacheRoot, string replacementRoot, string rollbackRoot)
+    {
+        var originalMoved = false;
+        try
+        {
+            if (Directory.Exists(cacheRoot))
+            {
+                Directory.Move(cacheRoot, rollbackRoot);
+                originalMoved = true;
+                transactionObserver?.Invoke(AssetCacheBundleTransactionStage.ExistingCacheMoved);
+            }
+
+            Directory.Move(replacementRoot, cacheRoot);
+        }
+        catch (Exception commitError)
+        {
+            if (originalMoved)
+            {
+                try
+                {
+                    if (Directory.Exists(cacheRoot))
+                    {
+                        throw new IOException("The failed import left the target cache path occupied.");
+                    }
+
+                    Directory.Move(rollbackRoot, cacheRoot);
+                }
+                catch (Exception rollbackError)
+                {
+                    throw new AssetCacheBundleException(
+                        $"Asset-cache commit failed and automatic rollback also failed. The original cache is retained at {rollbackRoot}.",
+                        new AggregateException(commitError, rollbackError));
+                }
+            }
+
+            throw;
+        }
+
+        if (originalMoved)
+        {
+            TryDeleteDirectory(rollbackRoot);
+        }
+    }
+
     private static void TryDeleteFile(string path)
     {
         try
@@ -574,4 +672,9 @@ public sealed class AssetCacheBundleException : Exception
         : base(message, innerException)
     {
     }
+}
+
+internal enum AssetCacheBundleTransactionStage
+{
+    ExistingCacheMoved
 }

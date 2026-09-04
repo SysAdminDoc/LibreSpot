@@ -2,6 +2,7 @@ using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using LibreSpot.Desktop.Services;
 using Xunit;
 
@@ -122,6 +123,81 @@ public sealed class AssetCacheBundleServiceTests
         Assert.False(Directory.Exists(target));
         Assert.False(File.Exists(Path.Combine(fixture.Root, "outside.txt")));
     }
+
+    [Theory]
+    [InlineData("stale", false)]
+    [InlineData("present", true)]
+    public void Import_RejectsNonPresentOrUnverifiedManifestEntriesBeforeChangingTargetCache(
+        string status,
+        bool removeVerificationTimestamp)
+    {
+        using var fixture = new Fixture();
+        var imported = fixture.AddSourceAsset("Alpha", "https://example.invalid/alpha", "alpha bytes");
+        fixture.AddTargetAsset("Existing", "https://example.invalid/existing", "existing bytes");
+        var bundlePath = Path.Combine(fixture.Root, "invalid-state.zip");
+        var service = new AssetCacheBundleService();
+        service.Export(fixture.SourceCache, bundlePath, "4.4.0");
+        RewriteManifest(bundlePath, manifestEntry =>
+        {
+            manifestEntry["status"] = status;
+            if (removeVerificationTimestamp)
+            {
+                manifestEntry["lastVerifiedAtUtc"] = null;
+            }
+        });
+        var original = SnapshotFiles(fixture.TargetCache);
+
+        var error = Assert.Throws<AssetCacheBundleException>(() => service.Import(fixture.TargetCache, bundlePath));
+
+        Assert.Contains("not a verified present entry", error.Message, StringComparison.Ordinal);
+        Assert.Equal(original, SnapshotFiles(fixture.TargetCache));
+        Assert.False(File.Exists(Path.Combine(fixture.TargetCache, imported.Hash)));
+    }
+
+    [Fact]
+    public void Import_WhenCommitFailsAfterMovingExistingCache_RestoresEveryOriginalByte()
+    {
+        using var fixture = new Fixture();
+        var imported = fixture.AddSourceAsset("Alpha", "https://example.invalid/alpha", "alpha bytes");
+        fixture.AddTargetAsset("Existing", "https://example.invalid/existing", "existing bytes");
+        File.WriteAllText(Path.Combine(fixture.TargetCache, "unindexed-note.txt"), "preserve me");
+        var bundlePath = Path.Combine(fixture.Root, "rollback.zip");
+        new AssetCacheBundleService().Export(fixture.SourceCache, bundlePath, "4.4.0");
+        var original = SnapshotFiles(fixture.TargetCache);
+        var service = new AssetCacheBundleService(stage =>
+        {
+            Assert.Equal(AssetCacheBundleTransactionStage.ExistingCacheMoved, stage);
+            throw new IOException("Simulated commit interruption.");
+        });
+
+        var error = Assert.Throws<AssetCacheBundleException>(() => service.Import(fixture.TargetCache, bundlePath));
+
+        Assert.Contains("Simulated commit interruption", error.Message, StringComparison.Ordinal);
+        Assert.Equal(original, SnapshotFiles(fixture.TargetCache));
+        Assert.False(File.Exists(Path.Combine(fixture.TargetCache, imported.Hash)));
+        Assert.Empty(Directory.EnumerateDirectories(Path.GetDirectoryName(fixture.TargetCache)!, ".asset-cache-rollback-*"));
+    }
+
+    private static void RewriteManifest(string bundlePath, Action<JsonObject> mutateEntry)
+    {
+        using var archive = ZipFile.Open(bundlePath, ZipArchiveMode.Update);
+        var manifestArchiveEntry = archive.GetEntry("manifest.json")!;
+        var manifest = JsonNode.Parse(ReadEntry(manifestArchiveEntry))!.AsObject();
+        mutateEntry(manifest["entries"]!.AsArray()[0]!.AsObject());
+        manifestArchiveEntry.Delete();
+        using var writer = new StreamWriter(
+            archive.CreateEntry("manifest.json").Open(),
+            new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        writer.Write(manifest.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
+    }
+
+    private static IReadOnlyDictionary<string, string> SnapshotFiles(string root) =>
+        Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories)
+            .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(
+                path => Path.GetRelativePath(root, path),
+                path => Convert.ToBase64String(File.ReadAllBytes(path)),
+                StringComparer.OrdinalIgnoreCase);
 
     private static string ReadEntry(ZipArchiveEntry entry)
     {

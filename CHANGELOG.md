@@ -9,12 +9,13 @@ All notable changes to LibreSpot will be documented in this file.
 - Maintenance can start Spotify once without Spicetify extensions or custom apps. LibreSpot verifies an exact `config-xpui.ini` and `CustomApps` snapshot before changing anything, keeps the window open while safe mode is active, and offers one Restore my setup action that verifies, restores, and reapplies the saved files.
 - Fleet diagnosis can request the same reversible launch with `LibreSpot.Cli.exe repair --safe-mode`. Dry runs report the resolved SafeMode action as NDJSON.
 - Fleet admins can export a complete, reverified asset cache to a portable ZIP and import it on an offline endpoint. The bundle keeps source and verification metadata, rejects undeclared or tampered ZIP content before mutation, and identifies Spotify's vendor installer as the remaining external dependency.
-- The standalone and desktop PowerShell hosts carry the same asset-cache export and import functions. An offline regression now installs every LibreSpot-fetched fixture from an imported bundle without making a network request.
+- The standalone and desktop PowerShell hosts carry the same asset-cache export and import functions. The offline regression now covers SpotX, Spicetify, an official theme, a community theme, a community extension, Marketplace, and a custom app without making a network request.
 - Maintenance has an opt-in local crash dump switch. LibreSpot arms only its next process for a privacy-filtered .NET Triage dump, keeps the two newest files, and adds only the newest dump to a support bundle while the switch remains on.
 
 ### Fixed
 
 - Safe-mode recovery now treats its snapshot manifest as the only source of restore data. The small UI marker carries a SHA256 for that manifest, unexpected fields are refused, and every listed CustomApps file is checked before the live setup changes. The fleet CLI now opens Spotify after a successful `repair --safe-mode` run unless `--no-restart` was supplied.
+- Asset-cache imports now reject entries that weren't marked present and verified at export time. Each import prepares the complete merged cache beside the live directory, then commits it with a rollback-safe directory swap. A failed commit restores every original byte.
 - Home's readiness list now has a translated accessibility name in every shipped interface language. Screen readers can identify the list before announcing its four checks, and the former Axe.Windows exception is gone.
 - Community catalog generation now resolves the repository correctly when launched as a script in Windows PowerShell 5.1. Both supported PowerShell editions use the same JSON formatter, so a given source commit produces the same publishable bytes.
 

@@ -2576,7 +2576,10 @@ function Import-LibreSpotAssetCacheBundle {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
-        [string]$BundlePath
+        [string]$BundlePath,
+
+        [Parameter(DontShow = $true)]
+        [scriptblock]$AfterBackupMove
     )
 
     $maxManifestBytes = 4MB
@@ -2599,6 +2602,8 @@ function Import-LibreSpotAssetCacheBundle {
         New-Item -Path $global:CONFIG_DIR -ItemType Directory -Force | Out-Null
     }
     $stagingRoot = Join-Path $global:CONFIG_DIR ('.asset-cache-import-' + [guid]::NewGuid().ToString('N'))
+    $replacementRoot = Join-Path $global:CONFIG_DIR ('.asset-cache-ready-' + [guid]::NewGuid().ToString('N'))
+    $rollbackRoot = Join-Path $global:CONFIG_DIR ('.asset-cache-rollback-' + [guid]::NewGuid().ToString('N'))
     New-Item -Path $stagingRoot -ItemType Directory -Force | Out-Null
 
     $archive = $null
@@ -2672,6 +2677,17 @@ function Import-LibreSpotAssetCacheBundle {
             $sourceUrl = if ($null -eq $entry.sourceUrl) { $null } else { [string]$entry.sourceUrl }
             if ([string]::IsNullOrWhiteSpace($label) -or $label.Length -gt 256 -or ($null -ne $sourceUrl -and $sourceUrl.Length -gt 2048)) {
                 throw "Asset $hash has invalid label or source metadata."
+            }
+            [datetimeoffset]$verifiedAt = [datetimeoffset]::MinValue
+            $lastVerifiedAtUtc = if ($null -eq $entry.lastVerifiedAtUtc) { '' } else { [string]$entry.lastVerifiedAtUtc }
+            $hasVerifiedTimestamp = [datetimeoffset]::TryParse(
+                $lastVerifiedAtUtc,
+                [System.Globalization.CultureInfo]::InvariantCulture,
+                [System.Globalization.DateTimeStyles]::RoundtripKind,
+                [ref]$verifiedAt)
+            if ([string]$entry.status -cne 'present' -or -not $hasVerifiedTimestamp -or
+                -not [string]::IsNullOrWhiteSpace([string]$entry.quarantinedPath)) {
+                throw "Asset $hash is not a verified present entry."
             }
             [int64]$byteSize = $entry.byteSize
             if ($byteSize -lt 0 -or $byteSize -gt $maxAssetBytes -or $totalBytes -gt ($maxBundleBytes - $byteSize)) {
@@ -2773,27 +2789,38 @@ function Import-LibreSpotAssetCacheBundle {
             throw 'The merged asset-cache index would contain too many entries.'
         }
 
-        if (-not (Test-Path -LiteralPath $global:CACHE_DIR -PathType Container)) {
-            New-Item -Path $global:CACHE_DIR -ItemType Directory -Force | Out-Null
+        if (Test-Path -LiteralPath $resolvedCache -PathType Leaf) {
+            throw 'The target asset-cache path is a file, not a directory.'
         }
-        foreach ($entry in $normalizedEntries) {
-            $destinationPath = Join-Path $global:CACHE_DIR $entry.sha256
-            $temporaryPath = Join-Path $global:CACHE_DIR ('.' + $entry.sha256 + '.' + [guid]::NewGuid().ToString('N') + '.tmp')
-            $backupPath = "$temporaryPath.bak"
-            try {
-                [System.IO.File]::Copy((Join-Path $stagingRoot $entry.sha256), $temporaryPath, $false)
-                if (Test-Path -LiteralPath $destinationPath -PathType Leaf) {
-                    [System.IO.File]::Replace($temporaryPath, $destinationPath, $backupPath, $true)
-                } else {
-                    [System.IO.File]::Move($temporaryPath, $destinationPath)
-                }
-            } finally {
-                foreach ($path in @($temporaryPath, $backupPath)) {
-                    if (Test-Path -LiteralPath $path -PathType Leaf) {
-                        Remove-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue
+
+        New-Item -Path $replacementRoot -ItemType Directory -Force | Out-Null
+        if (Test-Path -LiteralPath $resolvedCache -PathType Container) {
+            $cacheRootItem = Get-Item -LiteralPath $resolvedCache -Force
+            if (($cacheRootItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+                throw 'The target asset-cache directory is a reparse point and cannot be imported safely.'
+            }
+
+            $pendingDirectories = [System.Collections.Generic.Queue[object]]::new()
+            $pendingDirectories.Enqueue([pscustomobject]@{ Source = $resolvedCache; Destination = $replacementRoot })
+            while ($pendingDirectories.Count -gt 0) {
+                $directoryPair = $pendingDirectories.Dequeue()
+                foreach ($child in @(Get-ChildItem -LiteralPath $directoryPair.Source -Force -ErrorAction Stop)) {
+                    if (($child.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+                        throw "The target asset cache contains a reparse point: $($child.FullName)"
+                    }
+                    $destinationPath = Join-Path $directoryPair.Destination $child.Name
+                    if ($child.PSIsContainer) {
+                        New-Item -Path $destinationPath -ItemType Directory -Force -ErrorAction Stop | Out-Null
+                        $pendingDirectories.Enqueue([pscustomobject]@{ Source = $child.FullName; Destination = $destinationPath })
+                    } else {
+                        [System.IO.File]::Copy($child.FullName, $destinationPath, $false)
                     }
                 }
             }
+        }
+
+        foreach ($entry in $normalizedEntries) {
+            [System.IO.File]::Copy((Join-Path $stagingRoot $entry.sha256), (Join-Path $replacementRoot $entry.sha256), $true)
         }
 
         $indexDocument = [ordered]@{
@@ -2801,21 +2828,41 @@ function Import-LibreSpotAssetCacheBundle {
             generatedAtUtc = $now
             entries        = @($mergedEntries)
         }
-        $temporaryIndex = Join-Path $global:CACHE_DIR ('.asset-cache-index.' + [guid]::NewGuid().ToString('N') + '.tmp')
-        $backupIndex = "$temporaryIndex.bak"
+        $replacementIndex = Join-Path $replacementRoot 'asset-cache-index.json'
+        [System.IO.File]::WriteAllText($replacementIndex, ($indexDocument | ConvertTo-Json -Depth 8), [System.Text.UTF8Encoding]::new($false))
+
+        $archive.Dispose()
+        $archive = $null
+        $file.Dispose()
+        $file = $null
+
+        $originalMoved = $false
         try {
-            [System.IO.File]::WriteAllText($temporaryIndex, ($indexDocument | ConvertTo-Json -Depth 8), [System.Text.UTF8Encoding]::new($false))
-            if (Test-Path -LiteralPath $indexPath -PathType Leaf) {
-                [System.IO.File]::Replace($temporaryIndex, $indexPath, $backupIndex, $true)
-            } else {
-                [System.IO.File]::Move($temporaryIndex, $indexPath)
-            }
-        } finally {
-            foreach ($path in @($temporaryIndex, $backupIndex)) {
-                if (Test-Path -LiteralPath $path -PathType Leaf) {
-                    Remove-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue
+            if (Test-Path -LiteralPath $resolvedCache -PathType Container) {
+                [System.IO.Directory]::Move($resolvedCache, $rollbackRoot)
+                $originalMoved = $true
+                if ($null -ne $AfterBackupMove) {
+                    & $AfterBackupMove
                 }
             }
+            [System.IO.Directory]::Move($replacementRoot, $resolvedCache)
+        } catch {
+            $commitError = $_
+            if ($originalMoved) {
+                try {
+                    if (Test-Path -LiteralPath $resolvedCache) {
+                        throw 'The failed import left the target cache path occupied.'
+                    }
+                    [System.IO.Directory]::Move($rollbackRoot, $resolvedCache)
+                } catch {
+                    throw "Asset-cache commit failed and automatic rollback also failed. The original cache is retained at $rollbackRoot. Commit error: $($commitError.Exception.Message) Rollback error: $($_.Exception.Message)"
+                }
+            }
+            throw $commitError
+        }
+
+        if ($originalMoved -and (Test-Path -LiteralPath $rollbackRoot -PathType Container)) {
+            Remove-Item -LiteralPath $rollbackRoot -Recurse -Force -ErrorAction SilentlyContinue
         }
 
         return [pscustomobject][ordered]@{
@@ -2831,6 +2878,9 @@ function Import-LibreSpotAssetCacheBundle {
         if ($null -ne $file) { $file.Dispose() }
         if (Test-Path -LiteralPath $stagingRoot -PathType Container) {
             Remove-Item -LiteralPath $stagingRoot -Recurse -Force -ErrorAction SilentlyContinue
+        }
+        if (Test-Path -LiteralPath $replacementRoot -PathType Container) {
+            Remove-Item -LiteralPath $replacementRoot -Recurse -Force -ErrorAction SilentlyContinue
         }
     }
 }

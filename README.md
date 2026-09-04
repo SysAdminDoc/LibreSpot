@@ -324,7 +324,7 @@ LibreSpot.Cli.exe cache import .\librespot-asset-cache.zip --json
 LibreSpot.Cli.exe install --answer-file .\librespot-answer.json --profile standard --silent --yes --no-restart --ndjson
 ```
 
-Export refuses a cache if any indexed file is missing, stale, corrupt, oversized, duplicated, or a reparse point. Import validates the manifest, exact ZIP layout, declared sizes, and every SHA256 in a private staging folder before it changes the local cache. It makes no network request. The format is documented in `schemas/asset-cache-bundle.json`. The manifest and command output both call out Spotify itself because SpotX still obtains the Spotify installer through Spotify's vendor download chain.
+Export refuses a cache if any indexed file is missing, stale, corrupt, oversized, duplicated, or a reparse point. Import accepts only entries that were marked present with a valid verification timestamp. It checks the manifest, exact ZIP layout, declared sizes, and every SHA256 in a private staging folder. LibreSpot then prepares the complete merged cache beside the live directory and swaps it into place, restoring the old directory if that commit fails. The import makes no network request. Regression coverage exercises SpotX, Spicetify, an official theme, a community theme, a community extension, Marketplace, and a custom app from the bundle. The format is documented in `schemas/asset-cache-bundle.json`. The manifest and command output both call out Spotify itself because SpotX still obtains the Spotify installer through Spotify's vendor download chain.
 
 Answer-file `spotx.customPatchesEnabled` and `spotx.customPatchesJson` mirror the WPF custom patch editor for reviewed custom SpotX patch sets.
 

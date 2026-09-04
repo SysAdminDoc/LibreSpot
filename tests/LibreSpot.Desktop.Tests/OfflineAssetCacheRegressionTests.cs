@@ -13,21 +13,26 @@ public sealed class OfflineAssetCacheRegressionTests
 
         var fallback = result.RootElement.GetProperty("fallback");
         Assert.True(fallback.GetProperty("succeeded").GetBoolean(), result.RawOutput);
-        Assert.Equal(5, fallback.GetProperty("networkAttemptCount").GetInt32());
-        Assert.Equal(5, fallback.GetProperty("warningFallbackCount").GetInt32());
-        Assert.Equal(5, fallback.GetProperty("verifiedCacheUseCount").GetInt32());
+        Assert.Equal(7, fallback.GetProperty("networkAttemptCount").GetInt32());
+        Assert.Equal(7, fallback.GetProperty("warningFallbackCount").GetInt32());
+        Assert.Equal(7, fallback.GetProperty("verifiedCacheUseCount").GetInt32());
         AssertJsonArrayContains(fallback.GetProperty("networkAttempts"), "https://example.invalid/spotx-run.ps1");
         AssertJsonArrayContains(fallback.GetProperty("networkAttempts"), "https://example.invalid/spicetify-test-x64.zip");
         AssertJsonArrayContains(fallback.GetProperty("networkAttempts"), "https://example.invalid/themes.zip");
         AssertJsonArrayContains(fallback.GetProperty("networkAttempts"), "https://example.invalid/marketplace.zip");
         AssertJsonArrayContains(fallback.GetProperty("networkAttempts"), "https://example.invalid/stats.zip");
+        AssertJsonArrayContains(fallback.GetProperty("networkAttempts"), "https://example.invalid/test-extension.js");
+        AssertJsonArrayContains(fallback.GetProperty("networkAttempts"), "https://github.com/example-owner/example-theme/archive/1111111111111111111111111111111111111111.zip");
         AssertJsonArrayContains(fallback.GetProperty("expandedLabels"), "Spicetify CLI");
         AssertJsonArrayContains(fallback.GetProperty("expandedLabels"), "Themes archive");
+        AssertJsonArrayContains(fallback.GetProperty("expandedLabels"), "Community theme 'Catppuccin'");
         AssertJsonArrayContains(fallback.GetProperty("expandedLabels"), "Marketplace");
         AssertJsonArrayContains(fallback.GetProperty("expandedLabels"), "Custom app stats");
         Assert.True(fallback.GetProperty("spotxInvoked").GetBoolean());
         Assert.True(fallback.GetProperty("spicetifyCliInvoked").GetBoolean());
-        Assert.True(fallback.GetProperty("themeInstalled").GetBoolean());
+        Assert.True(fallback.GetProperty("officialThemeInstalled").GetBoolean());
+        Assert.True(fallback.GetProperty("communityThemeInstalled").GetBoolean());
+        Assert.True(fallback.GetProperty("extensionInstalled").GetBoolean());
         Assert.True(fallback.GetProperty("marketplaceInstalled").GetBoolean());
         Assert.True(fallback.GetProperty("statsInstalled").GetBoolean());
     }
@@ -60,15 +65,17 @@ public sealed class OfflineAssetCacheRegressionTests
 
         var bundle = result.RootElement.GetProperty("bundle");
         Assert.True(bundle.GetProperty("succeeded").GetBoolean(), result.RawOutput);
-        Assert.Equal(5, bundle.GetProperty("exportedEntryCount").GetInt32());
-        Assert.Equal(5, bundle.GetProperty("importedEntryCount").GetInt32());
+        Assert.Equal(7, bundle.GetProperty("exportedEntryCount").GetInt32());
+        Assert.Equal(7, bundle.GetProperty("importedEntryCount").GetInt32());
         Assert.Equal(0, bundle.GetProperty("networkAttemptCount").GetInt32());
-        Assert.Equal(5, bundle.GetProperty("verifiedCacheUseCount").GetInt32());
+        Assert.Equal(7, bundle.GetProperty("verifiedCacheUseCount").GetInt32());
         Assert.Equal("spotify-installer", bundle.GetProperty("externalRequirementId").GetString());
         Assert.Contains("SpotX's Spotify installer chain", bundle.GetProperty("externalRequirement").GetString());
         Assert.True(bundle.GetProperty("spotxInvoked").GetBoolean());
         Assert.True(bundle.GetProperty("spicetifyCliInvoked").GetBoolean());
-        Assert.True(bundle.GetProperty("themeInstalled").GetBoolean());
+        Assert.True(bundle.GetProperty("officialThemeInstalled").GetBoolean());
+        Assert.True(bundle.GetProperty("communityThemeInstalled").GetBoolean());
+        Assert.True(bundle.GetProperty("extensionInstalled").GetBoolean());
         Assert.True(bundle.GetProperty("marketplaceInstalled").GetBoolean());
         Assert.True(bundle.GetProperty("statsInstalled").GetBoolean());
     }
@@ -219,6 +226,8 @@ foreach ($name in @(
     'Module-InstallSpotX',
     'Module-InstallSpicetifyCLI',
     'Module-InstallThemes',
+    'Download-CommunityExtensions',
+    'Module-InstallExtensions',
     'Install-MarketplacePlaceholderTheme',
     'Install-MarketplaceNavFallbackExtension',
     'Test-SpicetifyCustomAppRouteWiring',
@@ -286,6 +295,13 @@ function Expand-ArchiveSafely {
             New-Item -Path $theme -ItemType Directory -Force | Out-Null
             Set-TextFile -Path (Join-Path $theme 'color.ini') -Value '[Base]'
             Set-TextFile -Path (Join-Path $theme 'user.css') -Value 'body {}'
+        }
+        'Community theme*' {
+            $themeRoot = Join-Path $DestinationPath 'example-theme-test'
+            $theme = Join-Path $themeRoot 'Catppuccin'
+            New-Item -Path $theme -ItemType Directory -Force | Out-Null
+            Set-TextFile -Path (Join-Path $theme 'color.ini') -Value '[Mocha]'
+            Set-TextFile -Path (Join-Path $theme 'user.css') -Value 'body { color: white; }'
         }
         'Marketplace*' {
             $marketplace = Join-Path $DestinationPath 'marketplace-dist'
@@ -407,6 +423,8 @@ function New-AssetSet {
         themes = New-AssetSpec -Name 'themes' -Uri 'https://example.invalid/themes.zip'
         marketplace = New-AssetSpec -Name 'marketplace' -Uri 'https://example.invalid/marketplace.zip'
         stats = New-AssetSpec -Name 'stats' -Uri 'https://example.invalid/stats.zip'
+        communityTheme = New-AssetSpec -Name 'community-theme' -Uri 'https://github.com/example-owner/example-theme/archive/1111111111111111111111111111111111111111.zip'
+        communityExtension = New-AssetSpec -Name 'community-extension' -Uri 'https://example.invalid/test-extension.js'
     }
 }
 
@@ -437,8 +455,24 @@ function Configure-Pins {
     $global:URL_SPICETIFY_FMT = 'https://example.invalid/spicetify-{0}-{1}.zip'
     $global:URL_MARKETPLACE = $Assets.marketplace.uri
     $global:URL_THEMES_REPO = $Assets.themes.uri
-    $global:CommunityThemeRepos = @{}
+    $global:CommunityThemeRepos = @{
+        Catppuccin = @{
+            Owner = 'example-owner'
+            Repo = 'example-theme'
+            CommitSha = '1111111111111111111111111111111111111111'
+            ThemeFolder = 'Catppuccin'
+            SHA256 = $Assets.communityTheme.hash
+        }
+    }
     $global:ThemesNeedingJS = @()
+    $global:BuiltInExtensions = @{}
+    $global:CommunityExtensions = [ordered]@{
+        'test-extension.js' = @{
+            Source = 'example/test-extension'
+            Url = $Assets.communityExtension.uri
+            SHA256 = $Assets.communityExtension.hash
+        }
+    }
     $global:CommunityCustomApps = [ordered]@{
         stats = @{
             DisplayName = 'Stats'
@@ -452,9 +486,10 @@ function Configure-Pins {
 
 function New-TestConfig {
     return [pscustomobject]@{
-        Spicetify_Theme = 'Dribbblish'
-        Spicetify_Scheme = 'Base'
+        Spicetify_Theme = 'Catppuccin'
+        Spicetify_Scheme = 'Mocha'
         Spicetify_Marketplace = $true
+        Spicetify_Extensions = @('test-extension.js')
         Spicetify_CustomApps = @('stats')
     }
 }
@@ -463,7 +498,12 @@ function Invoke-InstallSet {
     $config = New-TestConfig
     Module-InstallSpotX -Config $config -SyncHash $null
     Module-InstallSpicetifyCLI
+    $officialThemeConfig = New-TestConfig
+    $officialThemeConfig.Spicetify_Theme = 'Dribbblish'
+    $officialThemeConfig.Spicetify_Scheme = 'Base'
+    Module-InstallThemes -Config $officialThemeConfig
     Module-InstallThemes -Config $config
+    Module-InstallExtensions -Config $config
     Module-InstallMarketplace -Config $config
     Module-InstallCustomApps -Config $config
 }
@@ -487,7 +527,9 @@ function Run-FallbackScenario {
         expandedLabels = @($script:ExpandedLabels)
         spotxInvoked = @($script:ExternalScripts).Count -eq 1
         spicetifyCliInvoked = @($script:SpicetifyCliCalls | Where-Object { $_ -like 'config --bypass-admin*' }).Count -gt 0
-        themeInstalled = Test-Path -LiteralPath (Join-Path $script:Integration.ThemesDirectory 'Dribbblish\color.ini') -PathType Leaf
+        officialThemeInstalled = Test-Path -LiteralPath (Join-Path $script:Integration.ThemesDirectory 'Dribbblish\color.ini') -PathType Leaf
+        communityThemeInstalled = Test-Path -LiteralPath (Join-Path $script:Integration.ThemesDirectory 'Catppuccin\color.ini') -PathType Leaf
+        extensionInstalled = Test-Path -LiteralPath (Join-Path $script:Integration.ExtensionsDirectory 'test-extension.js') -PathType Leaf
         marketplaceInstalled = Test-Path -LiteralPath (Join-Path $script:Integration.CustomAppsDirectory 'marketplace\manifest.json') -PathType Leaf
         statsInstalled = Test-Path -LiteralPath (Join-Path $script:Integration.CustomAppsDirectory 'stats\manifest.json') -PathType Leaf
     }
@@ -563,7 +605,9 @@ function Run-BundleScenario {
         externalRequirement = $import.ExternalRequirement
         spotxInvoked = @($script:ExternalScripts).Count -eq 1
         spicetifyCliInvoked = @($script:SpicetifyCliCalls | Where-Object { $_ -like 'config --bypass-admin*' }).Count -gt 0
-        themeInstalled = Test-Path -LiteralPath (Join-Path $script:Integration.ThemesDirectory 'Dribbblish\color.ini') -PathType Leaf
+        officialThemeInstalled = Test-Path -LiteralPath (Join-Path $script:Integration.ThemesDirectory 'Dribbblish\color.ini') -PathType Leaf
+        communityThemeInstalled = Test-Path -LiteralPath (Join-Path $script:Integration.ThemesDirectory 'Catppuccin\color.ini') -PathType Leaf
+        extensionInstalled = Test-Path -LiteralPath (Join-Path $script:Integration.ExtensionsDirectory 'test-extension.js') -PathType Leaf
         marketplaceInstalled = Test-Path -LiteralPath (Join-Path $script:Integration.CustomAppsDirectory 'marketplace\manifest.json') -PathType Leaf
         statsInstalled = Test-Path -LiteralPath (Join-Path $script:Integration.CustomAppsDirectory 'stats\manifest.json') -PathType Leaf
     }
