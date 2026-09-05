@@ -64,6 +64,52 @@ public sealed class CommunityAssetsManifestTests
     }
 
     [Fact]
+    public void BundledLibreSpotArchive_CarriesTheEngineStateKeysItsSourceDeclares()
+    {
+        // The pin test above only proves the archive matches what the installers
+        // expect to download. It says nothing about whether the archive was built
+        // from the app source sitting beside it, so an app change committed without
+        // running `pnpm run bundle` ships an archive that silently lacks the change.
+        // Reading the constant out of store.ts and looking for it in the bundled
+        // engine catches exactly that drift.
+        var storeSource = ReadFile("src", "LibreSpot.App", "src", "core", "store.ts");
+        var declared = Regex.Matches(
+            storeSource,
+            @"export const (?<name>[A-Z0-9_]+)\s*=\s*""(?<value>librespot:[^""]+)""");
+
+        // Without this the test goes green on an empty match set: Assert.Contains
+        // against a string nobody found would never run.
+        Assert.True(
+            declared.Count > 0,
+            "No exported librespot: storage key was found in src/LibreSpot.App/src/core/store.ts, so this test "
+                + "proved nothing. The declaration shape changed and the pattern above needs updating.");
+
+        var archivePath = Path.Combine(RepoRoot, "resources", "custom-apps", "librespot-engine.zip");
+        using var archive = ZipFile.OpenRead(archivePath);
+        var engineEntry = archive.GetEntry("librespot/librespot-engine.js");
+        Assert.True(engineEntry is not null, "librespot/librespot-engine.js is missing from the bundled archive.");
+
+        string engineBundle;
+        using (var reader = new StreamReader(engineEntry!.Open()))
+        {
+            engineBundle = reader.ReadToEnd();
+        }
+
+        foreach (Match match in declared)
+        {
+            var name = match.Groups["name"].Value;
+            var value = match.Groups["value"].Value;
+            Assert.True(
+                engineBundle.Contains(value, StringComparison.Ordinal),
+                $"store.ts declares {name} as \"{value}\" but the bundled engine in "
+                    + "resources/custom-apps/librespot-engine.zip does not contain it. The archive is older than the "
+                    + "app source: run `pnpm run check` in src/LibreSpot.App, then repin the printed SHA256 in "
+                    + "src/powershell/data/CommunityCustomApps.ps1, LibreSpot.ps1 and "
+                    + "src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1.");
+        }
+    }
+
+    [Fact]
     public void CustomAppDownloads_ComeFromImmutableTaggedAssetsNotBranches()
     {
         // A branch URL serves whatever the branch holds today, so rebuilding an
