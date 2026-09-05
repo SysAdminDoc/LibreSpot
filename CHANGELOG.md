@@ -6,6 +6,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Fixed
 
+- The dependency update check no longer reports everything current when it could not reach GitHub. Offline, behind a filtering proxy, or once the shared unauthenticated rate limit is spent, every check failed and the summary still said all dependencies were up to date. It now names how many checks could not be reached and says plainly that the result proves nothing about whether the pins are current.
 - LibreSpot now tells you the installed Spotify is newer than the build it verified on every surface, not just the Custom install preview. The Recommended screen says so before a one-click run starts, `librespot status` prints it with or without `--json`, and the standalone script logs it. Spotify has been shipping 1.2.98 while the verified ceiling is 1.2.93, so most people were in that band and were never told.
 - An in-Spotify profile that cannot be read is now kept instead of deleted. LibreSpot starts from defaults, and Health offers the original back so a truncated write or a future format change no longer takes every saved theme, tweak and preset with it.
 - The auto-reapply watcher now stops after three failed attempts on the same Spotify build instead of retrying every half hour indefinitely. Maintenance names the build, the failure count and the reason, and offers Reapply. A new Spotify version or a successful reapply clears the hold.

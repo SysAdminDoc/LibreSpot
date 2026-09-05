@@ -3704,3 +3704,96 @@ Describe 'Get-LibreSpotCompatibilityWarnings installed build' {
         @(Get-LibreSpotCompatibilityWarnings -InstalledSpotifyVersion '') | Should -BeNullOrEmpty
     }
 }
+
+# =============================================================================
+# Check-ForUpdates unreachable-network honesty (dot-sourced from shared module)
+# =============================================================================
+Describe 'Check-ForUpdates when GitHub cannot be reached' {
+    BeforeAll {
+        $script:updSharedDir = Join-Path $PSScriptRoot '..\..\src\powershell\shared'
+        $raw = Get-Content -Path (Join-Path $script:updSharedDir 'Check-ForUpdates.ps1') -Raw
+        Invoke-Expression (Extract-FunctionBlock $raw 'Check-ForUpdates')
+
+        $global:VERSION = '0.0.0-test'
+        $global:PinnedReleases = @{
+            SpotX        = @{ Commit = ('a' * 40) }
+            SpicetifyCLI = @{ Version = '2.44.0' }
+            Marketplace  = @{ Version = '1.0.11' }
+            Themes       = @{ Commit = ('b' * 40) }
+        }
+
+        function Write-LibreSpotCompatibilityMatrix { return @() }
+        function Compare-LibreSpotVersions { param([string]$Latest, [string]$Current) return $false }
+    }
+
+    BeforeEach {
+        $script:updLog = [System.Collections.Generic.List[object]]::new()
+        function Write-Log {
+            param([string]$Message, [string]$Level = 'INFO')
+            $script:updLog.Add([pscustomobject]@{ Message = $Message; Level = $Level })
+        }
+    }
+
+    It 'Never reports everything up to date when every check threw' {
+        function Invoke-GitHubApiSafe { throw 'GitHub API rate limit reached (HTTP 403).' }
+
+        Check-ForUpdates
+
+        # The bug this covers: an empty update list was read as "all current".
+        @($script:updLog | Where-Object { $_.Level -eq 'SUCCESS' }) | Should -BeNullOrEmpty
+        ($script:updLog | ForEach-Object { $_.Message }) -join "`n" | Should -Not -Match 'up to date'
+    }
+
+    It 'Names how many checks could not be reached and says the result proves nothing' {
+        function Invoke-GitHubApiSafe { throw 'GitHub API rate limit reached (HTTP 403).' }
+
+        Check-ForUpdates
+
+        $summary = @($script:updLog | Where-Object { $_.Message -match 'Could not check any of' })
+        $summary.Count | Should -Be 1
+        $summary[0].Message | Should -Match 'Could not check any of the 5 pinned dependencies'
+        $summary[0].Message | Should -Match 'says nothing about whether they are current'
+        $summary[0].Level | Should -Be 'WARN'
+    }
+
+    It 'Reports a partial outage without claiming the unchecked pins are current' {
+        # Only the SpotX call succeeds; the other four throw.
+        $script:updCall = 0
+        function Invoke-GitHubApiSafe {
+            param([string]$Uri, [hashtable]$Headers, [int]$TimeoutSec = 15, [string]$Label = 'GitHub API')
+            $script:updCall++
+            if ($script:updCall -eq 1) {
+                return [pscustomobject]@{
+                    sha    = ('a' * 40)
+                    commit = [pscustomobject]@{ message = 'pinned commit' }
+                }
+            }
+            throw 'The remote name could not be resolved.'
+        }
+
+        Check-ForUpdates
+
+        @($script:updLog | Where-Object { $_.Level -eq 'SUCCESS' }) | Should -BeNullOrEmpty
+        $partial = @($script:updLog | Where-Object { $_.Message -match 'could not reach GitHub' })
+        $partial.Count | Should -Be 1
+        $partial[0].Message | Should -Match '4 of 5 dependency checks'
+        $partial[0].Message | Should -Match 'those pins were not verified'
+    }
+
+    It 'Still reports success when every check completed and found nothing' {
+        function Invoke-GitHubApiSafe {
+            param([string]$Uri, [hashtable]$Headers, [int]$TimeoutSec = 15, [string]$Label = 'GitHub API')
+            if ($Uri -match '/commits/') {
+                $sha = if ($Uri -match 'SpotX') { 'a' * 40 } else { 'b' * 40 }
+                return [pscustomobject]@{ sha = $sha; commit = [pscustomobject]@{ message = 'pinned commit' } }
+            }
+            return [pscustomobject]@{ tag_name = 'v0.0.0' }
+        }
+
+        Check-ForUpdates
+
+        $success = @($script:updLog | Where-Object { $_.Level -eq 'SUCCESS' })
+        $success.Count | Should -Be 1
+        $success[0].Message | Should -Match 'All dependencies and compatibility baselines are up to date'
+    }
+}

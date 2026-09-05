@@ -3687,8 +3687,14 @@ function Check-ForUpdates {
     $headers = @{'User-Agent'="LibreSpot/$global:VERSION"}
     $updates = @()
     $compatWarnings = @()
+    # An empty $updates used to mean 'everything is current'. It also means
+    # 'nothing was reachable', and the summary could not tell those apart, so
+    # an offline or rate-limited run reported success. Count the failures.
+    $unreachable = @()
+    $checked = 0
 
     # SpotX (pinned to a specific commit on main, check for newer commits)
+    $checked++
     try {
         $rel = Invoke-GitHubApiSafe -Uri 'https://api.github.com/repos/SpotX-Official/SpotX/commits/main' -Headers $headers -Label 'SpotX'
         $latestSha = $rel.sha
@@ -3699,27 +3705,39 @@ function Check-ForUpdates {
             $updates += "SpotX: new commit $short"
             Write-Log "  SpotX: new commit $short ($msg)" -Level 'WARN'
         } else { Write-Log "  SpotX: $($pinnedSha.Substring(0,10)) (up to date)" }
-    } catch { Write-Log "  SpotX: check failed ($($_.Exception.Message))" -Level 'WARN' }
+    } catch {
+        $unreachable += 'SpotX'
+        Write-Log "  SpotX: check failed ($($_.Exception.Message))" -Level 'WARN'
+    }
 
     # Spicetify CLI
+    $checked++
     try {
         $rel = Invoke-GitHubApiSafe -Uri 'https://api.github.com/repos/spicetify/cli/releases/latest' -Headers $headers -Label 'Spicetify CLI'
         $latest = $rel.tag_name -replace '^v',''
         $pinned = $global:PinnedReleases.SpicetifyCLI.Version
         if (Compare-LibreSpotVersions -Latest $latest -Current $pinned) { $updates += "CLI: $pinned -> $latest"; Write-Log "  Spicetify CLI: $pinned -> $latest available" -Level 'WARN' }
         else { Write-Log "  Spicetify CLI: v$pinned (up to date)" }
-    } catch { Write-Log "  Spicetify CLI: check failed ($($_.Exception.Message))" -Level 'WARN' }
+    } catch {
+        $unreachable += 'Spicetify CLI'
+        Write-Log "  Spicetify CLI: check failed ($($_.Exception.Message))" -Level 'WARN'
+    }
 
     # Marketplace
+    $checked++
     try {
         $rel = Invoke-GitHubApiSafe -Uri 'https://api.github.com/repos/spicetify/marketplace/releases/latest' -Headers $headers -Label 'Marketplace'
         $latest = $rel.tag_name -replace '^v',''
         $pinned = $global:PinnedReleases.Marketplace.Version
         if (Compare-LibreSpotVersions -Latest $latest -Current $pinned) { $updates += "Marketplace: $pinned -> $latest"; Write-Log "  Marketplace: $pinned -> $latest available" -Level 'WARN' }
         else { Write-Log "  Marketplace: v$pinned (up to date)" }
-    } catch { Write-Log "  Marketplace: check failed ($($_.Exception.Message))" -Level 'WARN' }
+    } catch {
+        $unreachable += 'Marketplace'
+        Write-Log "  Marketplace: check failed ($($_.Exception.Message))" -Level 'WARN'
+    }
 
     # Themes
+    $checked++
     try {
         $rel = Invoke-GitHubApiSafe -Uri 'https://api.github.com/repos/spicetify/spicetify-themes/commits/master' -Headers $headers -Label 'Themes'
         $latest = $rel.sha
@@ -3730,11 +3748,15 @@ function Check-ForUpdates {
             $updates += "Themes: new commit $short"
             Write-Log "  Themes: new commit $short ($msg)" -Level 'WARN'
         } else { Write-Log "  Themes: $($pinned.Substring(0,10)) (up to date)" }
-    } catch { Write-Log "  Themes: check failed ($($_.Exception.Message))" -Level 'WARN' }
+    } catch {
+        $unreachable += 'Themes'
+        Write-Log "  Themes: check failed ($($_.Exception.Message))" -Level 'WARN'
+    }
 
     $compatWarnings = @(Write-LibreSpotCompatibilityMatrix)
 
     # LibreSpot itself
+    $checked++
     try {
         $rel = Invoke-GitHubApiSafe -Uri 'https://api.github.com/repos/SysAdminDoc/LibreSpot/releases/latest' -Headers $headers -Label 'LibreSpot'
         $latest = $rel.tag_name -replace '^v',''
@@ -3744,12 +3766,26 @@ function Check-ForUpdates {
         } else {
             Write-Log "  LibreSpot: v$($global:VERSION) (up to date)"
         }
-    } catch { Write-Log "  LibreSpot: check failed ($($_.Exception.Message))" -Level 'WARN' }
+    } catch {
+        $unreachable += 'LibreSpot'
+        Write-Log "  LibreSpot: check failed ($($_.Exception.Message))" -Level 'WARN'
+    }
 
-    if ($updates.Count -eq 0 -and $compatWarnings.Count -eq 0) {
-        Write-Log "All dependencies and compatibility baselines are up to date." -Level 'SUCCESS'
-    } else {
+    # Three outcomes, not two. "Nothing to report" is only true when every check
+    # actually completed; otherwise the honest answer names what was not reached.
+    if ($unreachable.Count -ge $checked -and $checked -gt 0) {
+        Write-Log "Could not check any of the $checked pinned dependencies ($($unreachable -join ', ')). This says nothing about whether they are current; try again when GitHub is reachable." -Level 'WARN'
+    } elseif ($unreachable.Count -gt 0) {
+        Write-Log "$($unreachable.Count) of $checked dependency checks could not reach GitHub ($($unreachable -join ', ')); those pins were not verified." -Level 'WARN'
         if ($updates.Count -eq 0) {
+            Write-Log "The $($checked - $unreachable.Count) dependency check(s) that did complete found no update." -Level 'INFO'
+        }
+    } elseif ($updates.Count -eq 0 -and $compatWarnings.Count -eq 0) {
+        Write-Log "All dependencies and compatibility baselines are up to date." -Level 'SUCCESS'
+    }
+
+    if ($unreachable.Count -eq 0 -or $updates.Count -gt 0 -or $compatWarnings.Count -gt 0) {
+        if ($updates.Count -eq 0 -and $unreachable.Count -eq 0 -and $compatWarnings.Count -gt 0) {
             Write-Log "All pinned dependency versions are current." -Level 'SUCCESS'
         }
         if ($updates.Count -gt 0) {
