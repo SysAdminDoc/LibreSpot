@@ -293,12 +293,20 @@ public sealed class WpfUiAutomationSmokeTests
         "home-destructive",
     ];
 
-    public static TheoryData<string> AccessibilityScanStates()
+    /// <summary>
+    /// The minimum window LibreSpot supports. A responsive rule can drop an
+    /// accessible name or shrink a hit target inside a breakpoint the default
+    /// window never enters, and every scan used to run at one size.
+    /// </summary>
+    private const string MinimumWindowSize = "1080x720";
+
+    public static TheoryData<string, string?> AccessibilityScanStates()
     {
-        var data = new TheoryData<string>();
+        var data = new TheoryData<string, string?>();
         foreach (var state in ScanStates)
         {
-            data.Add(state);
+            data.Add(state, null);
+            data.Add(state, MinimumWindowSize);
         }
 
         return data;
@@ -344,9 +352,9 @@ public sealed class WpfUiAutomationSmokeTests
 
     [Theory]
     [MemberData(nameof(AccessibilityScanStates))]
-    public void AxeWindowsScan_FindsNoViolationOutsideTheRecordedBaseline(string state)
+    public void AxeWindowsScan_FindsNoViolationOutsideTheRecordedBaseline(string state, string? size)
     {
-        using var app = LaunchSmokeState(state);
+        using var app = LaunchSmokeState(state, size: size);
         var window = WaitForMainWindow(app.Process, MainWindowTimeout);
 
         WaitForScanState(window, state, SmokeReadyTimeout);
@@ -399,7 +407,9 @@ public sealed class WpfUiAutomationSmokeTests
             unexpected.Count == 0,
             "Axe.Windows reported accessibility violations for the "
                 + state
-                + " state that schemas/axe-windows-baseline.json does not record:"
+                + " state at "
+                + (size ?? "the default size")
+                + " that schemas/axe-windows-baseline.json does not record:"
                 + Environment.NewLine
                 + report
                 + Environment.NewLine
@@ -470,9 +480,9 @@ public sealed class WpfUiAutomationSmokeTests
 
     [Theory]
     [MemberData(nameof(AccessibilityScanStates))]
-    public void InteractiveTargets_AreAtLeastTwentyFourByTwentyFourDips(string state)
+    public void InteractiveTargets_AreAtLeastTwentyFourByTwentyFourDips(string state, string? size)
     {
-        using var app = LaunchSmokeState(state);
+        using var app = LaunchSmokeState(state, size: size);
         var window = WaitForMainWindow(app.Process, MainWindowTimeout);
         WaitForScanState(window, state, SmokeReadyTimeout);
 
@@ -480,15 +490,56 @@ public sealed class WpfUiAutomationSmokeTests
 
         // Without this the rule could report nothing because the walk
         // charted nothing, which is not the same as a clean result.
-        Assert.True(charted > 1, $"The walk charted {charted} elements for {state}, so this proved nothing.");
+        Assert.True(charted > 1, $"The walk charted {charted} elements for {state} at {size ?? "the default size"}, so this proved nothing.");
         Assert.True(scale > 0, "Could not determine the display scale.");
 
         Assert.True(
             undersized.Count == 0,
-            $"These targets in the {state} state are smaller than {MinimumTargetSizeDips} by {MinimumTargetSizeDips} "
+            $"These targets in the {state} state at {size ?? "the default size"} are smaller than "
+                + $"{MinimumTargetSizeDips} by {MinimumTargetSizeDips} "
                 + "device-independent pixels, which WCAG 2.2 success criterion 2.5.8 asks for:"
                 + Environment.NewLine
                 + string.Join(Environment.NewLine, undersized));
+    }
+
+    [Fact]
+    public void TargetSizeRule_OnlyReportsTheResponsiveControlAtTheMinimumWindow()
+    {
+        // The point of scanning a second size. If the narrow pass merely repeated
+        // the default pass, this control would be reported at both sizes or at
+        // neither, and the extra 13 launches would be buying nothing.
+        using (var wide = LaunchSmokeState("target-size-responsive-control"))
+        {
+            var window = WaitForMainWindow(wide.Process, MainWindowTimeout);
+            WaitForSnapshotContainingAutomationId(
+                window,
+                MainWindow.UiAutomationResponsiveTargetControlAutomationId,
+                SmokeReadyTimeout);
+
+            var undersized = UndersizedTargets(window, out _, out var charted);
+            Assert.True(charted > 1, "The walk charted nothing at the default size, so this proved nothing.");
+            Assert.DoesNotContain(
+                undersized,
+                entry => entry.Contains(MainWindow.UiAutomationResponsiveTargetControlAutomationId, StringComparison.Ordinal));
+        }
+
+        using (var narrow = LaunchSmokeState("target-size-responsive-control", size: MinimumWindowSize))
+        {
+            var window = WaitForMainWindow(narrow.Process, MainWindowTimeout);
+            WaitForSnapshotContainingAutomationId(
+                window,
+                MainWindow.UiAutomationResponsiveTargetControlAutomationId,
+                SmokeReadyTimeout);
+
+            var undersized = UndersizedTargets(window, out _, out var charted);
+            Assert.True(charted > 1, "The walk charted nothing at the minimum window, so this proved nothing.");
+            Assert.True(
+                undersized.Any(entry => entry.Contains(MainWindow.UiAutomationResponsiveTargetControlAutomationId, StringComparison.Ordinal)),
+                "The rule did not report the control that is only undersized at "
+                    + MinimumWindowSize
+                    + ", so scanning the minimum window adds nothing over the default size. Reported: "
+                    + string.Join(", ", undersized));
+        }
     }
 
     [Fact]
@@ -736,7 +787,7 @@ public sealed class WpfUiAutomationSmokeTests
         }
     }
 
-    private static SmokeApp LaunchSmokeState(string state, string culture = "en")
+    private static SmokeApp LaunchSmokeState(string state, string culture = "en", string? size = null)
     {
         var appPath = Path.Combine(AppContext.BaseDirectory, "LibreSpot.exe");
         Assert.True(File.Exists(appPath), $"Expected WPF executable at {appPath}.");
@@ -752,6 +803,11 @@ public sealed class WpfUiAutomationSmokeTests
         };
         startInfo.ArgumentList.Add($"--uia-smoke={state}");
         startInfo.ArgumentList.Add($"--uia-culture={culture}");
+        if (!string.IsNullOrWhiteSpace(size))
+        {
+            startInfo.ArgumentList.Add($"--uia-size={size}");
+        }
+
         startInfo.ArgumentList.Add("--uia-background");
         startInfo.Environment["LIBRESPOT_UIA_ROOT"] = root;
 

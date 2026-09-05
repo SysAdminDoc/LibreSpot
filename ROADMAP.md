@@ -6,13 +6,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 Added 2026-09-05 from RESEARCH.md. IDs continue the RD scheme; RD-200 was the last used.
 
-- [ ] P2: RD-204: Scan accessibility at the minimum window size as well as the default
-  Why: every Axe and target-size scan runs at whatever size the shell opens at, so a responsive rule that drops an accessible name or shrinks a hit target inside a narrower breakpoint is invisible to the gate. The `--uia-size` flag already exists and is already used at 1280x800 for the footprint measurement, and RD-186 fixes the minimum window at 1080x720, so the second size costs a flag.
-  Evidence: `tests/LibreSpot.Desktop.Tests/WpfUiAutomationSmokeTests.cs` `LaunchSmokeState` passes only `--uia-smoke`, `--uia-culture` and `--uia-background`; `schemas/publish-footprint-budget.json:56` records `--uia-size=1280x800 --uia-capture` in use; RD-186 names the 1080x720 minimum.
-  Touches: `tests/LibreSpot.Desktop.Tests/WpfUiAutomationSmokeTests.cs`, `schemas/axe-windows-baseline.json` (baseline keys become size-qualified).
-  Acceptance: both rules SHALL run at the default size and at 1080x720 for every covered state; a violation planted so that it only appears at the narrow size SHALL fail the suite, proving the second size adds signal rather than repeating the first.
-  Complexity: S
-
 - [ ] P2: RD-205: Read the classmap bound from the upstream index instead of inferring it from a directory listing
   Why: the reviewable-bound calculation lists the classmaps repository contents over the GitHub API, matches directory names against a regex, takes the highest and rebuilds a three-part version by string arithmetic. Upstream now publishes `index.json`, a 2.9 KB file giving each key its exact `spotifyVersion` (1020097 is 1.2.97.270) and a `status` field, with a sha256 for every referenced file. A directory listing cannot tell a verified classmap from an inherited one, which is the exact distinction RD-189 exists to reason about, and it burns unauthenticated GitHub API quota that the raw URL does not.
   Evidence: `Build-Scripts.ps1:2854` (the classmaps API URL pointing at `/contents`) and `:2877-2884` (the name regex and version arithmetic); https://raw.githubusercontent.com/spicetify/classmaps/main/index.json read on 2026-09-05 showing 1020084 through 1020097 with `spotifyVersion` and `status: verified`; classmaps commit `5259db3630` (2026-09-03) publishing the exposure patch set through the index.

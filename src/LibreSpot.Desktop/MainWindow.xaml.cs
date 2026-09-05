@@ -47,6 +47,15 @@ public partial class MainWindow : Window
     /// </summary>
     internal const string UiAutomationTargetSizeControlAutomationId = "TargetSizeControlSmallButton";
 
+    /// <summary>
+    /// Automation id of a control that is only undersized in a narrow window.
+    /// The target-size rule used to run at one window size, so a responsive
+    /// rule that shrinks a target inside a breakpoint was invisible to it.
+    /// This is what proves the minimum-window pass adds signal instead of
+    /// repeating the default-size pass.
+    /// </summary>
+    internal const string UiAutomationResponsiveTargetControlAutomationId = "TargetSizeControlNarrowOnlyButton";
+
     private readonly MainViewModel _viewModel;
     private readonly string? _uiAutomationSmokeState;
     private readonly string _uiAutomationSmokeCulture;
@@ -280,6 +289,35 @@ public partial class MainWindow : Window
                         undersizedButton,
                         UiAutomationTargetSizeControlAutomationId);
                     SimpleShellHost.Children.Add(undersizedButton);
+                }
+                if (string.Equals(uiAutomationSmokeState, "target-size-responsive-control", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Models a responsive rule: comfortably above the 24 by 24
+                    // minimum in a normal window and below it once the shell is
+                    // at its documented 1080 by 720 floor. A threshold rather
+                    // than a ratio, so it does not depend on the display scale
+                    // or on what the default window happens to measure.
+                    await Dispatcher.InvokeAsync(
+                        () =>
+                        {
+                            var narrow = ActualWidth < 1200;
+                            var responsiveButton = new System.Windows.Controls.Button
+                            {
+                                Width = narrow ? 20 : 32,
+                                Height = narrow ? 20 : 32,
+                                Content = "r",
+                                HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
+                                VerticalAlignment = System.Windows.VerticalAlignment.Top
+                            };
+                            System.Windows.Automation.AutomationProperties.SetName(
+                                responsiveButton,
+                                "Responsive target control");
+                            System.Windows.Automation.AutomationProperties.SetAutomationId(
+                                responsiveButton,
+                                UiAutomationResponsiveTargetControlAutomationId);
+                            SimpleShellHost.Children.Add(responsiveButton);
+                        },
+                        DispatcherPriority.Loaded);
                 }
                 if (string.Equals(uiAutomationSmokeState, "provenance", StringComparison.OrdinalIgnoreCase))
                 {
