@@ -48,23 +48,9 @@ Added 2026-09-05 from RESEARCH.md. IDs continue the RD scheme; RD-200 was the la
   Acceptance: the themes commit and its archive SHA256 SHALL be updated together and match a freshly downloaded archive; `Build-Scripts.ps1 -CatalogTruth` and the community asset freshness gate SHALL pass; a run of the update check against live upstream SHALL report themes as up to date; the five bundled themes SHALL still apply on the pinned Spotify build.
   Complexity: S
 
-- [ ] P3: RD-210: Claim the discoverability channels that cost nothing and are currently unused
-  Why: LibreSpot has 12 stars, 0 forks, an empty tracker and no mentions anywhere, so there is no feedback loop at all, which is why every finding in this research came from code and upstream rather than from users. Three channels are free and open. The repository carries the `spicetify` topic and appears in that listing, but it is absent from the `spotx` topic despite wrapping SpotX. The Spicetify page on AlternativeTo lists nine alternatives and LibreSpot is not among them, and submissions are open to any registered account. Awesome-Windows accepts pull requests through a published contributing file.
-  Evidence: `gh repo view` on 2026-09-04 (12 stars, 0 forks, 0 open issues); https://github.com/topics/spotx (18 repositories, LibreSpot absent); https://alternativeto.net/software/spicetify; https://github.com/Awesome-Windows/Awesome/blob/master/Contributing.md. Explicitly not winget, which repo policy forbids, and explicitly not r/Piracy, which bans self-promotion.
-  Touches: repository topics through `gh repo edit --add-topic`, and the two external submissions. No source change.
-  Acceptance: the `spotx` topic SHALL be present on the repository; the Awesome-Windows contributing file SHALL be read before any submission and the submission SHALL meet every requirement it lists; an AlternativeTo entry SHALL exist for LibreSpot linked from the Spicetify page. Each of the three SHALL be confirmed live rather than assumed from a submission being sent.
-  Complexity: S
-
 - [ ] P3: RD-211: Collapse the duplicate root icon to one tracked file
   Why: `LibreSpot.ico` and `icon.ico` are byte-identical and both tracked, and they are consumed by different build paths, so a future icon change can update one and ship two artifacts with different icons. The standalone script already probes both as a fallback pair, which is the workaround rather than the fix, and it costs 68 KB of duplicate history on every change.
   Evidence: both files hash to `2939774dfcc00dce91fa551588bdbc76d0833688a2f467120545c441e2497c30`; `Build-Scripts.ps1:1952` uses `LibreSpot.ico`; `src/LibreSpot.Desktop/LibreSpot.Desktop.csproj:15,27` uses `icon.ico`; `LibreSpot.ps1:3782-3783` probes both.
   Touches: `Build-Scripts.ps1`, `src/LibreSpot.Desktop/LibreSpot.Desktop.csproj`, `LibreSpot.ps1`, `src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1`, `tests/LibreSpot.Desktop.Tests/ReleaseTruthTests.cs`.
   Acceptance: exactly one `.ico` SHALL be tracked at the repository root, every build path SHALL reference it, the WPF executable and the PS2EXE executable SHALL both carry that icon, and a test SHALL fail if a second `.ico` is added at the root.
-  Complexity: S
-
-- [ ] P3: RD-212: Clear the dead ignore rule and the leftover pack objects
-  Why: `.gitignore` ignores a filename that does not exist, so the rule protects nothing and reads as though `Roadmap_Blocked.md` is ignored when it is a tracked project document. Separately the object store holds 640 KiB of leftover temporary packs from an interrupted repack, which `git count-objects` reports as garbage on every run.
-  Evidence: `.gitignore:35` reads `Roadmap_Blocks.md` while the tracked file is `Roadmap_Blocked.md`; `git count-objects -vH` reports five `tmp_pack_*` objects totalling 640 KiB.
-  Touches: `.gitignore`.
-  Acceptance: the dead ignore line SHALL be removed or corrected to a name that exists; `git count-objects -vH` SHALL report no garbage after a `git gc`; `git check-ignore -v Roadmap_Blocked.md` SHALL report the file as not ignored.
   Complexity: S

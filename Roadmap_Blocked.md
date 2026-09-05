@@ -4,7 +4,7 @@ Items moved here from `ROADMAP.md` because they require operator decisions,
 credentials, or policy calls that an implementer cannot resolve autonomously.
 Return items to `ROADMAP.md` once the blocking decision is made.
 
-Last updated: 2026-09-04.
+Last updated: 2026-09-05.
 
 Entries whose blocker was resolved or whose premise was overtaken by v4.0.0 stable, local-only releases, immutable release assets, the unsigned-by-design decision, or .NET 10 are kept under an `Archived` heading with the resolution, so the decision record survives without steering new work.
 
@@ -1019,3 +1019,28 @@ Reproducible pilot recipe:
 Next acceptance: expand the selected Core files only after a later MTP release
 improves coverage reporting, then raise the break threshold from the measured
 baseline instead of treating the current pilot as a whole-repository score.
+
+## RD-210: List LibreSpot on Awesome-Windows and AlternativeTo
+
+Blocked on third-party accounts and an outward-facing submission decision, not on code.
+
+The zero-cost half shipped on 2026-09-05: the repository was missing the `spotx`
+topic despite wrapping SpotX, and it now carries it alongside `spicetify`,
+`spotify`, `powershell`, `automation` and `dark-theme`. That was the only part an
+implementer could complete and verify alone.
+
+What remains needs a person:
+- **Awesome-Windows** (https://github.com/Awesome-Windows/Awesome) takes a pull
+  request against its `Contributing.md` checklist. Someone has to read that file,
+  judge whether LibreSpot meets its bar today at 12 stars, and submit under their
+  own GitHub identity. A submission that does not meet the checklist wastes a
+  maintainer's time and reflects on the project.
+- **AlternativeTo** (https://alternativeto.net/software/spicetify) accepts entries
+  from any registered account, which this machine does not have. Creating one and
+  posting a listing is an outward-facing act under someone's name.
+
+Explicitly out of scope either way: winget, which repo policy forbids, and
+r/Piracy, which bans self-promotion outright.
+
+Return this to `ROADMAP.md` once the operator decides whether to submit and under
+which identity.

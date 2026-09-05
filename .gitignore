@@ -32,7 +32,6 @@ update-check.json
 # that folder's own ignore rules for generated notes and release checksums.
 LOGO_PROMPTS.md
 design-qa.md
-Roadmap_Blocks.md
 docs/archive/research/*.md
 
 # AI config
