@@ -1044,3 +1044,40 @@ r/Piracy, which bans self-promotion outright.
 
 Return this to `ROADMAP.md` once the operator decides whether to submit and under
 which identity.
+
+## RD-208: Advance the spicetify-themes pin
+
+Blocked on a product decision: advancing this pin removes a theme LibreSpot advertises.
+
+The roadmap item said the pin was one commit behind and that the delta was a
+single reviewed CSS fix targeting Spotify 1.2.98. Checked on 2026-09-05 against
+the upstream compare API, that premise is wrong. The range
+`df033493...3f55a370` is **five** commits, and one of them is
+`33ab071b08 chore(Blackout): remove theme (#1283)`, which deletes the Blackout
+theme outright. The others touch Dribbblish, StarryNight, Ziro and text.
+
+LibreSpot offers Blackout today. It appears in `LibreSpot.ps1:1536`,
+`schemas/librespot-customization.json:6108`, `schemas/theme-preview-manifest.json:199`
+(whose preview image URLs are pinned to the current commit and would 404),
+`src/LibreSpot.App/src/panels/store-metadata.ts:11`, and `README.md:441`, which
+advertises "16 official themes" by name.
+
+So the pin advance is not the cheap refresh it was filed as. It is a decision to
+drop an advertised theme from the catalog, which also means a README count change
+from 16 to 15, a catalog regeneration, new preview URLs, and a user-visible
+removal for anyone currently on Blackout. None of that follows from the stated
+reason for the item, which was only to silence a recurring "Themes: new commit"
+line in the update check.
+
+Verified while investigating, so a later pass does not repeat it:
+- candidate archive `3f55a3702bd6d87799dc97023e0fe2b11d88c704` SHA256
+  `4f5a54d00a9b621a349f37aea48184da2993c12fe4ed43c9718dfebb644050d2` (102,150,121 bytes)
+- the currently pinned archive re-downloads to
+  `c837828c71d7a938898f87965b1fe9e5812cec831bd9cb1619bd8feb6020fdc3`, which matches
+  the recorded pin exactly, so the hashing method above is sound
+- the five bundled themes (Catppuccin, Comfy, Bloom, Lucid, Hazy) come from their
+  own pinned repositories, not from this archive, so they are unaffected either way
+
+Return this to `ROADMAP.md` once the operator decides whether dropping Blackout is
+acceptable. If it is not, the honest alternative is to hold the pin and stop the
+update check treating a themes commit as actionable.
