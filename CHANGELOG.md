@@ -6,6 +6,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Fixed
 
+- LibreSpot now tells you the installed Spotify is newer than the build it verified on every surface, not just the Custom install preview. The Recommended screen says so before a one-click run starts, `librespot status` prints it with or without `--json`, and the standalone script logs it. Spotify has been shipping 1.2.98 while the verified ceiling is 1.2.93, so most people were in that band and were never told.
 - An in-Spotify profile that cannot be read is now kept instead of deleted. LibreSpot starts from defaults, and Health offers the original back so a truncated write or a future format change no longer takes every saved theme, tweak and preset with it.
 - The auto-reapply watcher now stops after three failed attempts on the same Spotify build instead of retrying every half hour indefinitely. Maintenance names the build, the failure count and the reason, and offers Reapply. A new Spotify version or a successful reapply clears the hold.
 - The fleet return-code table in the README now lists all fifteen exit codes with the Intune behaviour each one carries, including the retry and reboot classes that were missing. A test keeps the table and the shared schema in step.

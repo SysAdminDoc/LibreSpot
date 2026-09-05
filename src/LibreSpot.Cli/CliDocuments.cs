@@ -28,7 +28,11 @@ public sealed record StatusDocument(
     IReadOnlyList<string> RecommendedRepairIds,
     IReadOnlyList<CommunityAssetDocument> CommunityAssets,
     IReadOnlyList<UpstreamDependencyDocument> UpstreamDependencies,
-    IReadOnlyList<ComponentDocument> Components);
+    IReadOnlyList<ComponentDocument> Components,
+    // Schema 4. Reporting the pinned tuple said nothing about the client the
+    // operator actually has, so a fleet sitting on a Spotify build past the
+    // verified ceiling looked identical to one inside it.
+    IReadOnlyList<string> CompatibilityWarnings);
 
 public sealed record PatcherOwnershipDocument(
     string Ownership,

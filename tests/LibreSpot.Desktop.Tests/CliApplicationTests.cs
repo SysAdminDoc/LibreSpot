@@ -39,6 +39,50 @@ public sealed class CliApplicationTests
         Assert.Equal(string.Empty, result.Stderr);
     }
 
+    [Theory]
+    // Past Spicetify's own declared range, so upstream's limit is the one to name.
+    [InlineData("1.2.98.301", "Spicetify CLI 2.44.0 declares support for (1.2.96)")]
+    // Inside Spicetify's range but past what LibreSpot checked, which is a
+    // different statement and has to stay attributed to LibreSpot.
+    [InlineData("1.2.95", "newer than the build LibreSpot has verified (1.2.93)")]
+    public void StatusJson_NamesAnInstalledSpotifyPastTheVerifiedCeiling(string installed, string expected)
+    {
+        var snapshot = Snapshot(
+            true,
+            true,
+            Component("spotify", "Spotify", "Detected", CliHealthSeverity.Ready, version: installed));
+
+        var result = Run(new[] { "status", "--json" }, _ => snapshot);
+
+        Assert.Equal(0, result.ExitCode);
+        using var doc = JsonDocument.Parse(result.Stdout);
+        var warnings = doc.RootElement
+            .GetProperty("compatibilityWarnings")
+            .EnumerateArray()
+            .Select(entry => entry.GetString() ?? string.Empty)
+            .ToArray();
+
+        Assert.NotEmpty(warnings);
+        Assert.Contains(warnings, warning => warning.Contains(installed, StringComparison.Ordinal));
+        Assert.Contains(warnings, warning => warning.Contains(expected, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void StatusText_RepeatsTheCompatibilityWarningForSomeoneNotReadingJson()
+    {
+        // The operator running this by hand is the one who most needs to hear it,
+        // and they are the least likely to be passing --json.
+        var snapshot = Snapshot(
+            true,
+            true,
+            Component("spotify", "Spotify", "Detected", CliHealthSeverity.Ready, version: "1.2.98.301"));
+
+        var result = Run(new[] { "status" }, _ => snapshot);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Contains("1.2.98.301", result.Stdout, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void VersionJson_EmitsDependencyPins()
     {
@@ -196,7 +240,12 @@ public sealed class CliApplicationTests
 
         Assert.Equal(0, result.ExitCode);
         using var doc = JsonDocument.Parse(result.Stdout);
-        Assert.Equal(3, doc.RootElement.GetProperty("schemaVersion").GetInt32());
+        // Schema 4 adds compatibilityWarnings. The bump is not cosmetic: a fleet
+        // consumer keying off the version needs to know the field is there.
+        Assert.Equal(4, doc.RootElement.GetProperty("schemaVersion").GetInt32());
+        // This snapshot sits on 1.2.93, the verified ceiling, so the new array
+        // has to be present and empty rather than absent.
+        Assert.Empty(doc.RootElement.GetProperty("compatibilityWarnings").EnumerateArray());
         Assert.Equal("Stack ready", doc.RootElement.GetProperty("statusTitle").GetString());
         Assert.Equal("C:\\LibreSpot\\config.json", doc.RootElement.GetProperty("configPath").GetString());
         Assert.Equal(2, doc.RootElement.GetProperty("backupCount").GetInt32());

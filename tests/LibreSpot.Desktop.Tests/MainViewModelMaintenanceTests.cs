@@ -1098,6 +1098,39 @@ public sealed class MainViewModelMaintenanceTests
         }).Unwrap();
     }
 
+    [Theory]
+    // Past the verified ceiling: the Recommended screen has to say so before the
+    // one-click run starts. This used to appear only in the Custom install
+    // preview, so the one-click path found out by breaking.
+    [InlineData("1.2.98.301", true)]
+    [InlineData("1.2.95", true)]
+    // At the verified ceiling there is nothing to say and the block stays hidden.
+    [InlineData("1.2.93", false)]
+    public Task RecommendedCompatibilityWarning_TracksTheInstalledSpotifyBuild(string installed, bool expectWarning) =>
+        RunStaAsync(async () =>
+        {
+            using var fixture = new SnapshotFixture();
+            // Spotify has to be on disk or the health report records the component
+            // as not installed and drops the version entirely, which would make
+            // this test agree with a broken build for the wrong reason.
+            fixture.WriteSpotify(withSpotXMarkers: false);
+            using var viewModel = await fixture.CreateInitializedViewModelAsync(spotifyVersion: installed);
+
+            Assert.Equal(
+                installed,
+                AppCatalog.InstalledSpotifyVersion(viewModel.Snapshot));
+            Assert.Equal(expectWarning, viewModel.HasRecommendedCompatibilityWarning);
+
+            if (expectWarning)
+            {
+                Assert.Contains(installed, viewModel.RecommendedCompatibilityWarning, StringComparison.Ordinal);
+            }
+            else
+            {
+                Assert.Equal(string.Empty, viewModel.RecommendedCompatibilityWarning);
+            }
+        });
+
     private sealed class SnapshotFixture : IDisposable
     {
         public SnapshotFixture()

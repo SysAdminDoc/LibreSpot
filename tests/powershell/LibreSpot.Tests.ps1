@@ -3656,3 +3656,51 @@ Describe 'Silenced failure-path writes' {
         $completion | Should -Match "-Kind 'result' -Level 'WARN'"
     }
 }
+
+# =============================================================================
+# Get-LibreSpotCompatibilityWarnings installed-build verdict (dot-sourced)
+# =============================================================================
+Describe 'Get-LibreSpotCompatibilityWarnings installed build' {
+    BeforeAll {
+        $script:compatSharedDir = Join-Path $PSScriptRoot '..\..\src\powershell\shared'
+        foreach ($fn in @('Compare-LibreSpotVersions', 'Get-LibreSpotCompatibilityWarnings')) {
+            $raw = Get-Content -Path (Join-Path $script:compatSharedDir "$fn.ps1") -Raw
+            Invoke-Expression (Extract-FunctionBlock $raw $fn)
+        }
+
+        # Hold the SpotX target at the verified build so the pinned-tuple
+        # warnings stay silent and only the installed-build verdict can fire.
+        function Get-LibreSpotCurrentSpotifyTarget {
+            return [pscustomobject]@{ Id = '1.2.93'; Version = '1.2.93.667' }
+        }
+
+        $global:PinnedReleases = @{
+            SpicetifyCLI = @{
+                Version                     = '2.44.0'
+                WindowsDeclaredMaxSpotify   = '1.2.96'
+                LibreSpotVerifiedMaxSpotify = '1.2.93'
+            }
+        }
+    }
+
+    It 'Names a build past what Spicetify declares and attributes the limit upstream' {
+        $warnings = @(Get-LibreSpotCompatibilityWarnings -InstalledSpotifyVersion '1.2.98.301')
+        $warnings.Count | Should -Be 1
+        $warnings[0] | Should -Match '1\.2\.98\.301'
+        $warnings[0] | Should -Match 'Spicetify CLI 2\.44\.0 declares support for \(1\.2\.96\)'
+    }
+
+    It 'Keeps LibreSpot own ceiling separate from Spicetify declared range' {
+        $warnings = @(Get-LibreSpotCompatibilityWarnings -InstalledSpotifyVersion '1.2.95')
+        $warnings.Count | Should -Be 1
+        $warnings[0] | Should -Match 'newer than the build LibreSpot has verified \(1\.2\.93\)'
+    }
+
+    It 'Says nothing at the verified build' {
+        @(Get-LibreSpotCompatibilityWarnings -InstalledSpotifyVersion '1.2.93') | Should -BeNullOrEmpty
+    }
+
+    It 'Says nothing when the installed version could not be read' {
+        @(Get-LibreSpotCompatibilityWarnings -InstalledSpotifyVersion '') | Should -BeNullOrEmpty
+    }
+}

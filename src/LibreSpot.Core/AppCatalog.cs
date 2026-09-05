@@ -1198,6 +1198,24 @@ public static class AppCatalog
         return null;
     }
 
+    /// <summary>
+    /// The same verdict taken straight off a snapshot. Every surface that has a
+    /// snapshot was previously reaching into the health report itself to find
+    /// the Spotify component, and only one of them ever did, so the check
+    /// reached one screen in the whole product.
+    /// </summary>
+    public static IReadOnlyList<string> CheckInstalledSpotifyCompatibility(EnvironmentSnapshot? snapshot) =>
+        CheckInstalledSpotifyCompatibility(InstalledSpotifyVersion(snapshot));
+
+    /// <summary>
+    /// Spotify's detected version as the health report recorded it, or null when
+    /// Spotify is absent or its version could not be read.
+    /// </summary>
+    public static string? InstalledSpotifyVersion(EnvironmentSnapshot? snapshot) =>
+        snapshot?.HealthReport.Components
+            .FirstOrDefault(component => string.Equals(component.Id, "spotify", StringComparison.OrdinalIgnoreCase))
+            ?.DetectedVersion;
+
     public static IReadOnlyList<string> CheckInstalledSpotifyCompatibility(string? installedSpotifyVersion)
     {
         var warnings = new List<string>();

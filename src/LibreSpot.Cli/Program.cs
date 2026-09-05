@@ -242,6 +242,10 @@ public static class CliApplication
         else
         {
             stdout.WriteLine($"{snapshot.HealthReport.StatusTitle}: {snapshot.HealthReport.IssueSummary}");
+            foreach (var warning in document.CompatibilityWarnings)
+            {
+                stdout.WriteLine(warning);
+            }
         }
 
         return Success;
@@ -1403,7 +1407,7 @@ public static class CliApplication
 
     private static StatusDocument BuildStatusDocument(EnvironmentSnapshot snapshot, string configPath) =>
         new(
-            3,
+            4,
             ProductVersion,
             DateTimeOffset.UtcNow,
             configPath,
@@ -1427,7 +1431,8 @@ public static class CliApplication
             RecommendedRepairIds(snapshot),
             snapshot.CommunityAssetDriftReport.Assets.Select(CommunityAssetDocument.From).ToArray(),
             snapshot.UpstreamDriftReport.Dependencies.Select(UpstreamDependencyDocument.From).ToArray(),
-            snapshot.HealthReport.Components.Select(ComponentDocument.From).ToArray());
+            snapshot.HealthReport.Components.Select(ComponentDocument.From).ToArray(),
+            AppCatalog.CheckInstalledSpotifyCompatibility(snapshot));
 
     private static DetectionDocument BuildDetectionDocument(EnvironmentSnapshot snapshot, string configPath)
     {

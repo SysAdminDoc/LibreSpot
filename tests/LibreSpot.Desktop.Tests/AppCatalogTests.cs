@@ -305,6 +305,45 @@ public sealed class AppCatalogTests
     }
 
     [Fact]
+    public void CheckInstalledSpotifyCompatibility_ReadsTheSpotifyComponentOffASnapshot()
+    {
+        // Every surface used to dig the Spotify component out of the health
+        // report itself, and only one of them ever did. Taking a snapshot
+        // directly is what lets the CLI and the shell ask the same question.
+        var warned = AppCatalog.CheckInstalledSpotifyCompatibility(SnapshotWithSpotify("1.2.98.301"));
+        var warnedText = Assert.Single(warned);
+        Assert.Contains("1.2.98.301", warnedText);
+
+        Assert.Empty(AppCatalog.CheckInstalledSpotifyCompatibility(SnapshotWithSpotify("1.2.93")));
+
+        // A snapshot with no Spotify component at all must not invent a verdict.
+        Assert.Empty(AppCatalog.CheckInstalledSpotifyCompatibility(new EnvironmentSnapshot()));
+        Assert.Empty(AppCatalog.CheckInstalledSpotifyCompatibility((EnvironmentSnapshot?)null));
+
+        Assert.Equal("1.2.98.301", AppCatalog.InstalledSpotifyVersion(SnapshotWithSpotify("1.2.98.301")));
+        Assert.Null(AppCatalog.InstalledSpotifyVersion(new EnvironmentSnapshot()));
+    }
+
+    private static EnvironmentSnapshot SnapshotWithSpotify(string version) =>
+        new()
+        {
+            SpotifyInstalled = true,
+            HealthReport = new StackHealthReport(new[]
+            {
+                new StackHealthComponent(
+                    "spotify",
+                    "Spotify",
+                    "Detected",
+                    HealthSeverity.Ready,
+                    version,
+                    null,
+                    null,
+                    "Detected from the installed client.",
+                    Array.Empty<string>())
+            })
+        };
+
+    [Fact]
     public void MaintenanceActions_ExposeMarketplaceRepair()
     {
         var action = Assert.Single(AppCatalog.MaintenanceActions, item => item.Action == "RepairMarketplace");

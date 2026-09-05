@@ -356,6 +356,18 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 ? HealthIssueSummary
                 : L("Vm_ShellNoBlockingIssues");
 
+    /// <summary>
+    /// Says the installed Spotify is past what LibreSpot verified, on the screen
+    /// the Recommended run starts from. The Custom install preview was the only
+    /// place this ever appeared, so anyone taking the one-click path was never
+    /// told before the run instead of after it broke.
+    /// </summary>
+    public string RecommendedCompatibilityWarning =>
+        string.Join(Environment.NewLine, AppCatalog.CheckInstalledSpotifyCompatibility(Snapshot));
+
+    public bool HasRecommendedCompatibilityWarning =>
+        !string.IsNullOrWhiteSpace(RecommendedCompatibilityWarning);
+
     public string ShellReadinessPercent
     {
         get
@@ -1544,6 +1556,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     {
         OnPropertyChanged(nameof(ShellReadinessValue));
         OnPropertyChanged(nameof(ShellReadinessDetail));
+        OnPropertyChanged(nameof(RecommendedCompatibilityWarning));
+        OnPropertyChanged(nameof(HasRecommendedCompatibilityWarning));
         OnPropertyChanged(nameof(ShellStackStatusTitle));
         OnPropertyChanged(nameof(ShellStackStatusDetail));
         OnPropertyChanged(nameof(ShellSummaryItems));

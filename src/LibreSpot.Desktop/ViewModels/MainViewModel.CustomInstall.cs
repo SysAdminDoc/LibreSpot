@@ -885,10 +885,7 @@ public sealed partial class MainViewModel
             try { File.Delete(planConfigPath); } catch { }
         }
 
-        var compatWarnings = AppCatalog.CheckInstalledSpotifyCompatibility(
-            Snapshot.HealthReport.Components
-                .FirstOrDefault(c => string.Equals(c.Id, "spotify", StringComparison.OrdinalIgnoreCase))
-                ?.DetectedVersion);
+        var compatWarnings = AppCatalog.CheckInstalledSpotifyCompatibility(Snapshot);
 
         if (planLines.Count == 0 && compatWarnings.Count == 0)
         {

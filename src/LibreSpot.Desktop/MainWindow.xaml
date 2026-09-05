@@ -2638,6 +2638,13 @@
                 <TextBlock Text="{Binding ShellReadinessDetail}"
                            Style="{StaticResource CaptionTextStyle}"
                            Margin="0,4,0,0" />
+                <TextBlock Text="{Binding RecommendedCompatibilityWarning}"
+                           Style="{StaticResource CaptionTextStyle}"
+                           AutomationProperties.AutomationId="RecommendedCompatibilityWarningText"
+                           Foreground="{DynamicResource DangerTextBrush}"
+                           TextWrapping="Wrap"
+                           Margin="0,8,0,0"
+                           Visibility="{Binding HasRecommendedCompatibilityWarning, Converter={StaticResource BoolToVisibilityConverter}}" />
               </StackPanel>
             </Grid>
 
