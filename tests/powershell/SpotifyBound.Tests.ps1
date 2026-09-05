@@ -243,6 +243,42 @@ Describe 'Newest verified classmap' {
         Get-LibreSpotNewestVerifiedClassmap -IndexJson $index | Should -Be '1.2.96.518'
     }
 
+    It 'picks the higher build when two verified entries share a three-part core' {
+        # Ranking on the core made 1.2.97.270 and 1.2.97.300 compare equal, so
+        # -gt never fired and whichever the JSON listed first won. Both orderings
+        # are asserted because the bug only showed in one of them.
+        $ascending = @'
+{
+  "keys": {
+    "1020097": { "spotifyVersion": "1.2.97.270", "status": "verified" },
+    "1020098": { "spotifyVersion": "1.2.97.300", "status": "verified" }
+  }
+}
+'@
+        $descending = @'
+{
+  "keys": {
+    "1020098": { "spotifyVersion": "1.2.97.300", "status": "verified" },
+    "1020097": { "spotifyVersion": "1.2.97.270", "status": "verified" }
+  }
+}
+'@
+        Get-LibreSpotNewestVerifiedClassmap -IndexJson $ascending | Should -Be '1.2.97.300'
+        Get-LibreSpotNewestVerifiedClassmap -IndexJson $descending | Should -Be '1.2.97.300'
+    }
+
+    It 'still ranks correctly when a build carries a suffix' {
+        $index = @'
+{
+  "keys": {
+    "1020096": { "spotifyVersion": "1.2.96.518.g1234abcd", "status": "verified" },
+    "1020097": { "spotifyVersion": "1.2.97.270.gdeadbeef", "status": "verified" }
+  }
+}
+'@
+        Get-LibreSpotNewestVerifiedClassmap -IndexJson $index | Should -Be '1.2.97.270.gdeadbeef'
+    }
+
     It 'reports unknown rather than guessing when the index cannot be parsed' {
         Get-LibreSpotNewestVerifiedClassmap -IndexJson 'not json at all' | Should -BeNullOrEmpty
         Get-LibreSpotNewestVerifiedClassmap -IndexJson '' | Should -BeNullOrEmpty

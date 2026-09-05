@@ -2883,11 +2883,17 @@ function Get-LibreSpotNewestVerifiedClassmap {
         if (-not $entry.PSObject.Properties['spotifyVersion']) { continue }
 
         $version = [string]$entry.spotifyVersion
-        $core = Get-SpotifyVersionCore -Version $version
-        if ([string]::IsNullOrWhiteSpace($core)) { continue }
+
+        # Rank on the whole build, not the three-part core. The point of reading
+        # the index is that upstream states the exact build, and 1.2.97.270 and
+        # 1.2.97.300 share a core: comparing cores makes them equal, -gt never
+        # fires, and whichever the JSON happens to list first wins. Take the
+        # leading numeric components so a suffixed build string still parses.
+        $numeric = [regex]::Match($version.Trim(), '^(\d+(?:\.\d+){0,3})')
+        if (-not $numeric.Success) { continue }
 
         $parsed = $null
-        try { $parsed = [Version]$core } catch { continue }
+        try { $parsed = [Version]$numeric.Groups[1].Value } catch { continue }
 
         if ($null -eq $newest -or $parsed -gt $newest.Parsed) {
             $newest = [pscustomobject]@{ Parsed = $parsed; Version = $version }
