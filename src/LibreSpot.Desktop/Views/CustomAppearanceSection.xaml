@@ -11,7 +11,6 @@
        whether Spotify opens when the run finishes. Everything else is behind
        the expanders in CustomWorkspaceView. -->
   <Border Style="{StaticResource MinimalSectionStyle}"
-          Visibility="{Binding HasVisibleEssentials, Converter={StaticResource BoolToVisibilityConverter}}"
           AutomationProperties.AutomationId="SettingsEssentials"
           AutomationProperties.Name="{services:Loc Settings_EssentialsTitle}">
     <Grid>

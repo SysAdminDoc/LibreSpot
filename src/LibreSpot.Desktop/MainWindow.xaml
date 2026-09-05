@@ -3541,7 +3541,8 @@
                                Foreground="{DynamicResource TextBrush}"
                                Margin="0,4,0,10"
                                TextWrapping="Wrap" />
-                    <ItemsControl ItemsSource="{Binding UndoActionItems}">
+                    <ItemsControl ItemsSource="{Binding UndoActionItems}"
+                                  AutomationProperties.Name="{services:Loc UndoPaneTitle}">
                       <ItemsControl.ItemTemplate>
                         <DataTemplate>
                           <Grid Margin="0,3">

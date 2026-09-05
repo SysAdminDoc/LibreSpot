@@ -270,16 +270,86 @@ public sealed class WpfUiAutomationSmokeTests
         });
     }
 
+    /// <summary>
+    /// The states both accessibility rules scan. Overlays, destructive
+    /// confirmations, and the error and empty states are where an accessible
+    /// name or a hit target is most likely to go missing, and for a long time
+    /// the two rules only ever saw the three top-level workspaces.
+    /// </summary>
+    private static readonly string[] ScanStates =
+    [
+        "recommended",
+        "custom",
+        "maintenance",
+        "prompt",
+        "prompt-destructive",
+        "activity",
+        "activity-error",
+        "activity-undo",
+        "activity-empty",
+        "snapshot-error",
+        "snapshot-loading",
+        "custom-no-results",
+        "home-destructive",
+    ];
+
+    public static TheoryData<string> AccessibilityScanStates()
+    {
+        var data = new TheoryData<string>();
+        foreach (var state in ScanStates)
+        {
+            data.Add(state);
+        }
+
+        return data;
+    }
+
+    /// <summary>
+    /// What proves a state finished drawing. A workspace is named, but an
+    /// overlay has to be waited on by automation id: the shell underneath it is
+    /// already present, so waiting on "Home" would scan before the overlay drew
+    /// and quietly report on the wrong tree.
+    /// </summary>
+    private static readonly IReadOnlyDictionary<string, (string Witness, bool IsAutomationId)> ScanWitnesses =
+        new Dictionary<string, (string, bool)>(StringComparer.Ordinal)
+        {
+            ["recommended"] = ("Home", false),
+            ["custom"] = ("Settings", false),
+            ["maintenance"] = ("Maintenance", false),
+            ["prompt"] = ("PromptConfirmButton", true),
+            ["prompt-destructive"] = ("PromptConfirmButton", true),
+            ["activity"] = ("ActivityCloseButton", true),
+            ["activity-error"] = ("ActivityExportFailureBundleButton", true),
+            ["activity-undo"] = ("ActivityCloseButton", true),
+            ["activity-empty"] = ("Home", false),
+            // The snapshot-error surface offers its retry through the Home
+            // primary action, not the inspector's own retry button.
+            ["snapshot-error"] = ("HomePrimaryActionButton", true),
+            ["snapshot-loading"] = ("Home", false),
+            ["custom-no-results"] = ("SettingsSearchClearButton", true),
+            ["home-destructive"] = ("Home", false),
+        };
+
+    private static IReadOnlyList<UiaNode> WaitForScanState(AutomationElement window, string state, TimeSpan timeout)
+    {
+        Assert.True(
+            ScanWitnesses.TryGetValue(state, out var witness),
+            $"No readiness witness is recorded for the '{state}' scan state, so the scan would run against whatever "
+                + "happened to be drawn. Add one to ScanWitnesses.");
+
+        return witness.IsAutomationId
+            ? WaitForSnapshotContainingAutomationId(window, witness.Witness, timeout)
+            : WaitForSnapshotContaining(window, witness.Witness, timeout);
+    }
+
     [Theory]
-    [InlineData("recommended", "Home")]
-    [InlineData("custom", "Settings")]
-    [InlineData("maintenance", "Maintenance")]
-    public void AxeWindowsScan_FindsNoViolationOutsideTheRecordedBaseline(string state, string expectedName)
+    [MemberData(nameof(AccessibilityScanStates))]
+    public void AxeWindowsScan_FindsNoViolationOutsideTheRecordedBaseline(string state)
     {
         using var app = LaunchSmokeState(state);
         var window = WaitForMainWindow(app.Process, MainWindowTimeout);
 
-        WaitForSnapshotContaining(window, expectedName, SmokeReadyTimeout);
+        WaitForScanState(window, state, SmokeReadyTimeout);
 
         var baseline = LoadAxeBaseline(state);
         var scan = ScanUntilSettled(app.Process, window, SmokeReadyTimeout);
@@ -399,14 +469,12 @@ public sealed class WpfUiAutomationSmokeTests
     };
 
     [Theory]
-    [InlineData("recommended")]
-    [InlineData("custom")]
-    [InlineData("maintenance")]
+    [MemberData(nameof(AccessibilityScanStates))]
     public void InteractiveTargets_AreAtLeastTwentyFourByTwentyFourDips(string state)
     {
         using var app = LaunchSmokeState(state);
         var window = WaitForMainWindow(app.Process, MainWindowTimeout);
-        WaitForSnapshotContaining(window, "Home", SmokeReadyTimeout);
+        WaitForScanState(window, state, SmokeReadyTimeout);
 
         var undersized = UndersizedTargets(window, out var scale, out var charted);
 
@@ -456,6 +524,14 @@ public sealed class WpfUiAutomationSmokeTests
 
         return nodes
             .Where(node => node.IsInteractive && node.IsEnabled)
+            // A row that offers only SelectionItemPattern and cannot take focus
+            // is not something a person points at. The run log is a ListBox so it
+            // can virtualise thousands of lines; its ListBoxItem style sets
+            // Focusable="False" and templates the container down to a bare
+            // ContentPresenter, so the rows carry no selection affordance at all.
+            // WCAG 2.5.8 governs pointer targets, and growing a log line to 24
+            // dips would treble the height of every line to no one's benefit.
+            .Where(node => node.HasNonSelectionPattern || node.IsKeyboardFocusable)
             // WCAG 2.5.8 exempts a control whose size the user agent determines.
             // These are the parts of the platform scrollbar, which is 17 pixels
             // wide because Windows says so; LibreSpot neither sets nor can set
@@ -566,6 +642,42 @@ public sealed class WpfUiAutomationSmokeTests
         }
 
         return dir?.FullName ?? throw new InvalidOperationException("Could not locate repo root.");
+    }
+
+    [Fact]
+    public void AxeBaseline_RecordsEveryScannedStateAndNothingElse()
+    {
+        // Two ways this drifts and both are silent. A state added to the scan
+        // without a baseline key fails one row with a confusing message, and a
+        // baseline key left behind after a state is dropped looks like coverage
+        // that no longer exists. This is a source gate so it costs no shell
+        // launches.
+        var path = Path.Combine(ResolveRepoRoot(), "schemas", "axe-windows-baseline.json");
+        using var document = JsonDocument.Parse(File.ReadAllText(path));
+        var recorded = document.RootElement
+            .GetProperty("states")
+            .EnumerateObject()
+            .Select(property => property.Name)
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToArray();
+
+        var scanned = ScanStates
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.Equal(scanned, recorded);
+    }
+
+    [Fact]
+    public void AccessibilityScanStates_AllHaveAReadinessWitness()
+    {
+        // A scanned state with no witness would fall through to whatever the
+        // shell happened to have drawn, which is how an accessibility scan goes
+        // green against the wrong tree.
+        foreach (var state in ScanStates)
+        {
+            Assert.True(ScanWitnesses.ContainsKey(state), $"No readiness witness recorded for '{state}'.");
+        }
     }
 
     private static Dictionary<string, int> LoadAxeBaseline(string state)
@@ -925,7 +1037,8 @@ public sealed class WpfUiAutomationSmokeTests
         string AutomationId,
         string ClassName,
         Rect BoundingRectangle,
-        bool IsInteractive)
+        bool IsInteractive,
+        bool HasNonSelectionPattern)
     {
         public string DebugLabel =>
             $"{ControlType.ProgrammaticName}:{Name}:{AutomationId}:class={ClassName}:enabled={IsEnabled}:focusable={IsKeyboardFocusable}:bounds={BoundingRectangle}";
@@ -939,7 +1052,8 @@ public sealed class WpfUiAutomationSmokeTests
                 TryGet(element, AutomationElement.AutomationIdProperty, string.Empty),
                 TryGet(element, AutomationElement.ClassNameProperty, string.Empty),
                 TryGet(element, AutomationElement.BoundingRectangleProperty, Rect.Empty),
-                SupportsAnInteractionPattern(element));
+                SupportsAnInteractionPattern(element),
+                SupportsAPatternOtherThanSelection(element));
 
         /// <summary>
         /// Whether a person can operate this element. WCAG 2.2's target-size
@@ -955,6 +1069,34 @@ public sealed class WpfUiAutomationSmokeTests
                     if (pattern == InvokePattern.Pattern
                         || pattern == TogglePattern.Pattern
                         || pattern == SelectionItemPattern.Pattern
+                        || pattern == ExpandCollapsePattern.Pattern)
+                    {
+                        return true;
+                    }
+                }
+            }
+            catch (ElementNotAvailableException)
+            {
+                // A node that vanished mid-walk is not a target.
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Whether the element can be operated by something other than being
+        /// selected. WPF hands every ListBoxItem a SelectionItemPattern whether
+        /// or not the list is meant to be operated, so selection alone does not
+        /// make a row a pointer target.
+        /// </summary>
+        private static bool SupportsAPatternOtherThanSelection(AutomationElement element)
+        {
+            try
+            {
+                foreach (var pattern in element.GetSupportedPatterns())
+                {
+                    if (pattern == InvokePattern.Pattern
+                        || pattern == TogglePattern.Pattern
                         || pattern == ExpandCollapsePattern.Pattern)
                     {
                         return true;

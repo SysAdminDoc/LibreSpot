@@ -6,13 +6,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 Added 2026-09-05 from RESEARCH.md. IDs continue the RD scheme; RD-200 was the last used.
 
-- [ ] P1: RD-203: Run the Axe and target-size rules against the overlay, prompt, error and empty states
-  Why: `MainViewModel.ApplyUiAutomationSmokeState` recognises 43 states and both accessibility rules cover three of them, all top-level workspaces. The unscanned set is where accessibility usually breaks: modal overlays, destructive confirmations, error and empty states, `snapshot-loading`, `custom-no-results`, `global-search` and `reduced-motion`. The same test file already launches `prompt`, `activity`, `activity-running`, `activity-error` and `activity-undo` for named-control assertions, so the harness cost is one `InlineData` row each, and both rules already carry planted positive controls proving they can fail.
-  Evidence: `tests/LibreSpot.Desktop.Tests/WpfUiAutomationSmokeTests.cs:274-276` (Axe rows) and `:402-404` (target-size rows) against `src/LibreSpot.Desktop/ViewModels/MainViewModel.cs:2598` (the 43 states); existing launches at `WpfUiAutomationSmokeTests.cs:47-81`; positive controls at `:341` and `:426`; `schemas/axe-windows-baseline.json` has only `recommended`, `custom` and `maintenance` keys.
-  Touches: `tests/LibreSpot.Desktop.Tests/WpfUiAutomationSmokeTests.cs`, `schemas/axe-windows-baseline.json`.
-  Acceptance: both rules SHALL cover at least `prompt`, `prompt-destructive`, `activity`, `activity-error`, `activity-undo`, `activity-empty`, `snapshot-error`, `snapshot-loading`, `custom-no-results` and `home-destructive`; each newly covered state SHALL have its own baseline key with a count, and the empty-baseline states SHALL still satisfy the existing `WindowsScanned > 0` and `ElementsCharted > 1` assertions; any violation the scan finds SHALL be fixed in the view rather than recorded in the baseline unless the entry carries a written reason.
-  Complexity: M
-
 - [ ] P2: RD-204: Scan accessibility at the minimum window size as well as the default
   Why: every Axe and target-size scan runs at whatever size the shell opens at, so a responsive rule that drops an accessible name or shrinks a hit target inside a narrower breakpoint is invisible to the gate. The `--uia-size` flag already exists and is already used at 1280x800 for the footprint measurement, and RD-186 fixes the minimum window at 1080x720, so the second size costs a flag.
   Evidence: `tests/LibreSpot.Desktop.Tests/WpfUiAutomationSmokeTests.cs` `LaunchSmokeState` passes only `--uia-smoke`, `--uia-culture` and `--uia-background`; `schemas/publish-footprint-budget.json:56` records `--uia-size=1280x800 --uia-capture` in use; RD-186 names the 1080x720 minimum.

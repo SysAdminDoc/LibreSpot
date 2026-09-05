@@ -1,10 +1,20 @@
 {
-  "$comment": "Axe.Windows rule violations accepted for now in the offscreen UIA smoke scan. Keys are ruleId|controlType|automationId as the scan reports them. Counts matter: these elements are generated chrome with no automation id, so without a count one recorded entry would absorb every future violation of the same shape. A key that is not listed, or a count higher than the one recorded, fails WpfUiAutomationSmokeTests.AxeWindowsScan_FindsNoViolationOutsideTheRecordedBaseline. Regenerate by running that test and reading the failure message.",
+  "$comment": "Axe.Windows rule violations accepted for now in the offscreen UIA smoke scan. Keys are ruleId|controlType|automationId as the scan reports them. Counts matter: these elements are generated chrome with no automation id, so without a count one recorded entry would absorb every future violation of the same shape. A key that is not listed, or a count higher than the one recorded, fails WpfUiAutomationSmokeTests.AxeWindowsScan_FindsNoViolationOutsideTheRecordedBaseline. Regenerate by running that test and reading the failure message. The state set here must match WpfUiAutomationSmokeTests.AccessibilityScanStates; AxeBaseline_RecordsEveryScannedState fails when they drift, so a newly scanned state cannot quietly run without a baseline.",
   "schemaVersion": 1,
-  "lastUpdated": "2026-09-03",
+  "lastUpdated": "2026-09-05",
   "states": {
     "recommended": [],
     "custom": [],
-    "maintenance": []
+    "maintenance": [],
+    "prompt": [],
+    "prompt-destructive": [],
+    "activity": [],
+    "activity-error": [],
+    "activity-undo": [],
+    "activity-empty": [],
+    "snapshot-error": [],
+    "snapshot-loading": [],
+    "custom-no-results": [],
+    "home-destructive": []
   }
 }

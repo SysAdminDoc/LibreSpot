@@ -84,7 +84,12 @@
           </Grid>
         </Border>
 
-        <views:CustomAppearanceSection />
+        <!-- Collapsed here rather than inside the control. Hiding only the inner
+             border left the UserControl in the tree at zero size on a search that
+             matches nothing, which Axe reports as a Custom element with no
+             bounding rectangle. Every sibling section is governed from here too. -->
+        <views:CustomAppearanceSection
+          Visibility="{Binding HasVisibleEssentials, Converter={StaticResource BoolToVisibilityConverter}}" />
 
         <Expander Style="{StaticResource SettingsSectionExpanderStyle}"
                   Header="{services:Loc Settings_InstallationDetails}"
