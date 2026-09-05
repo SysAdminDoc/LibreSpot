@@ -2844,6 +2844,59 @@ function Get-SpotifyVersionCore {
     return $Version.Trim()
 }
 
+function Get-LibreSpotNewestVerifiedClassmap {
+    <#
+        The newest Spotify build that spicetify/classmaps has actually verified.
+
+        This used to be inferred from a directory listing: take the highest
+        10200NN folder name and rebuild a three-part version from its digits.
+        A listing carries no status, so an inherited classmap counted the same
+        as a verified one, and the reconstructed string dropped the build
+        number the tuple is otherwise compared against.
+
+        Upstream publishes index.json for exactly this. Each key carries its
+        own spotifyVersion and a status, so read it rather than guess. Entries
+        with no status are the pre-versioned legacy maps and are not evidence
+        that any Spotify build is covered.
+
+        Pure so Pester can pin a captured index and assert the bound.
+    #>
+    [CmdletBinding()]
+    param([Parameter(Mandatory = $true)][AllowEmptyString()][string]$IndexJson)
+
+    if ([string]::IsNullOrWhiteSpace($IndexJson)) { return '' }
+
+    try {
+        $index = $IndexJson | ConvertFrom-Json -ErrorAction Stop
+    } catch {
+        return ''
+    }
+
+    if ($null -eq $index -or -not $index.PSObject.Properties['keys']) { return '' }
+
+    $newest = $null
+    foreach ($key in $index.keys.PSObject.Properties) {
+        $entry = $key.Value
+        if ($null -eq $entry) { continue }
+        if (-not $entry.PSObject.Properties['status']) { continue }
+        if ([string]$entry.status -ne 'verified') { continue }
+        if (-not $entry.PSObject.Properties['spotifyVersion']) { continue }
+
+        $version = [string]$entry.spotifyVersion
+        $core = Get-SpotifyVersionCore -Version $version
+        if ([string]::IsNullOrWhiteSpace($core)) { continue }
+
+        $parsed = $null
+        try { $parsed = [Version]$core } catch { continue }
+
+        if ($null -eq $newest -or $parsed -gt $newest.Parsed) {
+            $newest = [pscustomobject]@{ Parsed = $parsed; Version = $version }
+        }
+    }
+
+    if ($null -eq $newest) { return '' }
+    return $newest.Version
+}
 function Get-LibreSpotUpstreamSpotifyBounds {
     # Fetches the three bounds. Every failure is reported as unknown rather
     # than guessed, because a bound invented from two of three sources is the
@@ -2851,7 +2904,7 @@ function Get-LibreSpotUpstreamSpotifyBounds {
     [CmdletBinding()]
     param(
         [string]$SpotXRunUrl = 'https://raw.githubusercontent.com/SpotX-Official/SpotX/main/run.ps1',
-        [string]$ClassmapsApiUrl = 'https://api.github.com/repos/spicetify/classmaps/contents'
+        [string]$ClassmapsIndexUrl = 'https://raw.githubusercontent.com/spicetify/classmaps/main/index.json'
     )
 
     $spotXTarget = ''
@@ -2873,17 +2926,17 @@ function Get-LibreSpotUpstreamSpotifyBounds {
         }
 
         try {
+            # raw.githubusercontent, not the API: this costs no unauthenticated
+            # GitHub rate limit, which the other checks in this repository do
+            # spend and can exhaust on a shared address.
             $headers = @{ 'User-Agent' = 'LibreSpot-Build-Scripts' }
-            $listing = (Invoke-WebRequest -Uri $ClassmapsApiUrl -UseBasicParsing -TimeoutSec 20 -Headers $headers -ErrorAction Stop).Content | ConvertFrom-Json
-            # Classmap keys are the Spotify build as 10200NN / 1020NNN.
-            $keys = @($listing | Where-Object { $_.name -match '^10(?<n>\d{5})' } | ForEach-Object { [int]$Matches['n'] })
-            if ($keys.Count -gt 0) {
-                $highest = ($keys | Sort-Object -Descending | Select-Object -First 1)
-                # 20097 -> 1.2.97
-                $newestClassmap = '1.{0}.{1}' -f [int]([string]$highest).Substring(0, 1), [int]([string]$highest).Substring(1)
+            $indexJson = (Invoke-WebRequest -Uri $ClassmapsIndexUrl -UseBasicParsing -TimeoutSec 20 -Headers $headers -ErrorAction Stop).Content
+            $newestClassmap = Get-LibreSpotNewestVerifiedClassmap -IndexJson $indexJson
+            if ([string]::IsNullOrWhiteSpace($newestClassmap)) {
+                Write-Host '  spicetify/classmaps index.json carried no verified entry; the classmap bound is unknown.' -ForegroundColor Yellow
             }
         } catch {
-            Write-Host "  Could not list spicetify/classmaps: $($_.Exception.Message)" -ForegroundColor Yellow
+            Write-Host "  Could not read spicetify/classmaps index.json: $($_.Exception.Message)" -ForegroundColor Yellow
         }
     } finally {
         $ProgressPreference = $savedPP
