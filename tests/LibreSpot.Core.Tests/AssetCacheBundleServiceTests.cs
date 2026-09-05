@@ -20,12 +20,12 @@ public sealed class AssetCacheBundleServiceTests
         var bundlePath = Path.Combine(fixture.Root, "cache.zip");
         var service = new AssetCacheBundleService();
 
-        var exported = service.Export(fixture.SourceCache, bundlePath, "4.4.0");
+        var exported = service.Export(fixture.SourceCache, bundlePath, "4.5.0");
         var imported = service.Import(fixture.TargetCache, bundlePath);
 
         Assert.Equal(2, exported.EntryCount);
         Assert.Equal(2, imported.EntryCount);
-        Assert.Equal("4.4.0", imported.ProductVersion);
+        Assert.Equal("4.5.0", imported.ProductVersion);
         Assert.Equal("spotify-installer", imported.ExternalRequirementId);
         Assert.Contains("SpotX's Spotify installer chain", imported.ExternalRequirement, StringComparison.Ordinal);
         Assert.Equal(alpha.Bytes, File.ReadAllBytes(Path.Combine(fixture.TargetCache, alpha.Hash)));
@@ -59,7 +59,7 @@ public sealed class AssetCacheBundleServiceTests
         var originalIndex = File.ReadAllBytes(indexPath);
         var bundlePath = Path.Combine(fixture.Root, "tampered.zip");
         var service = new AssetCacheBundleService();
-        service.Export(fixture.SourceCache, bundlePath, "4.4.0");
+        service.Export(fixture.SourceCache, bundlePath, "4.5.0");
 
         using (var archive = ZipFile.Open(bundlePath, ZipArchiveMode.Update))
         {
@@ -89,13 +89,13 @@ public sealed class AssetCacheBundleServiceTests
         var missingBundle = Path.Combine(fixture.Root, "missing.zip");
         File.Delete(Path.Combine(fixture.SourceCache, asset.Hash));
 
-        var missing = Assert.Throws<AssetCacheBundleException>(() => service.Export(fixture.SourceCache, missingBundle, "4.4.0"));
+        var missing = Assert.Throws<AssetCacheBundleException>(() => service.Export(fixture.SourceCache, missingBundle, "4.5.0"));
         Assert.Contains("incomplete", missing.Message, StringComparison.OrdinalIgnoreCase);
         Assert.False(File.Exists(missingBundle));
 
         File.WriteAllText(Path.Combine(fixture.SourceCache, asset.Hash), "wrong bytes");
         var corruptBundle = Path.Combine(fixture.Root, "corrupt.zip");
-        var corrupt = Assert.Throws<AssetCacheBundleException>(() => service.Export(fixture.SourceCache, corruptBundle, "4.4.0"));
+        var corrupt = Assert.Throws<AssetCacheBundleException>(() => service.Export(fixture.SourceCache, corruptBundle, "4.5.0"));
         Assert.True(
             corrupt.Message.Contains("size", StringComparison.OrdinalIgnoreCase) ||
             corrupt.Message.Contains("SHA256", StringComparison.OrdinalIgnoreCase));
@@ -110,7 +110,7 @@ public sealed class AssetCacheBundleServiceTests
         var bundlePath = Path.Combine(fixture.Root, "extra-entry.zip");
         var target = Path.Combine(fixture.Root, "empty-target", "cache");
         var service = new AssetCacheBundleService();
-        service.Export(fixture.SourceCache, bundlePath, "4.4.0");
+        service.Export(fixture.SourceCache, bundlePath, "4.5.0");
         using (var archive = ZipFile.Open(bundlePath, ZipArchiveMode.Update))
         {
             using var writer = new StreamWriter(archive.CreateEntry("../outside.txt").Open());
@@ -136,7 +136,7 @@ public sealed class AssetCacheBundleServiceTests
         fixture.AddTargetAsset("Existing", "https://example.invalid/existing", "existing bytes");
         var bundlePath = Path.Combine(fixture.Root, "invalid-state.zip");
         var service = new AssetCacheBundleService();
-        service.Export(fixture.SourceCache, bundlePath, "4.4.0");
+        service.Export(fixture.SourceCache, bundlePath, "4.5.0");
         RewriteManifest(bundlePath, manifestEntry =>
         {
             manifestEntry["status"] = status;
@@ -162,7 +162,7 @@ public sealed class AssetCacheBundleServiceTests
         fixture.AddTargetAsset("Existing", "https://example.invalid/existing", "existing bytes");
         File.WriteAllText(Path.Combine(fixture.TargetCache, "unindexed-note.txt"), "preserve me");
         var bundlePath = Path.Combine(fixture.Root, "rollback.zip");
-        new AssetCacheBundleService().Export(fixture.SourceCache, bundlePath, "4.4.0");
+        new AssetCacheBundleService().Export(fixture.SourceCache, bundlePath, "4.5.0");
         var original = SnapshotFiles(fixture.TargetCache);
         var service = new AssetCacheBundleService(stage =>
         {

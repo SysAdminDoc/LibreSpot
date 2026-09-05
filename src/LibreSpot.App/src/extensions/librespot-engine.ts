@@ -31,6 +31,7 @@ import {
 import settingsIconSource from "lucide-static/icons/settings.svg";
 import brandIconSource from "../icons/librespot.generated.txt";
 import { panelPath, type PanelId } from "../surface/navigation.ts";
+import { isCompanionApiReady } from "./companion-readiness.ts";
 
 const DESKTOP_BOOTSTRAP_REVISION_KEY = "librespot:desktop-bootstrap-revision";
 
@@ -355,14 +356,7 @@ function registerAccessEntries(): void {
 
 async function waitForApi(): Promise<void> {
   for (let attempt = 0; attempt < 300; attempt += 1) {
-    const api = window.Spicetify;
-    if (
-      api?.React &&
-      api.ReactDOM &&
-      api.Platform?.History &&
-      api.LocalStorage &&
-      api.Player
-    ) {
+    if (isCompanionApiReady(window.Spicetify)) {
       return;
     }
     await new Promise<void>((resolve) => {

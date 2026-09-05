@@ -119,6 +119,7 @@ describe("LibreSpot surface contract", () => {
     expect(css).toContain("@media (forced-colors: active)");
     expect(css).toContain("@media (max-width: 900px)");
     expect(css).toContain("@media (max-width: 1200px)");
+    expect(css).toContain("@container librespot-content (max-width: 820px)");
     expect(css).not.toContain(":has(");
     expect(css).not.toContain("backdrop-filter");
     expect(css).not.toContain("border-radius: 999px");

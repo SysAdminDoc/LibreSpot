@@ -22,6 +22,8 @@ All notable changes to LibreSpot will be documented in this file.
 - Running a setup by hand from the standalone LibreSpot window now clears an auto-reapply hold, the same as the desktop app already did.
 - Health has a Reset Marketplace storage action for the case where a removed theme keeps coming back. It copies a backup to the clipboard first and stops if that fails, then clears Marketplace's own database.
 
+## [v4.5.0] (2026-09-04)
+
 ### Added
 
 - Maintenance can start Spotify once without Spicetify extensions or custom apps. LibreSpot verifies an exact `config-xpui.ini` and `CustomApps` snapshot before changing anything, keeps the window open while safe mode is active, and offers one Restore my setup action that verifies, restores, and reapplies the saved files.
@@ -33,6 +35,8 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Fixed
 
+- The live engine no longer waits for Spicetify's optional `ReactDOM` global, which Spotify can omit after a page reload. Store and settings now return on every reload instead of intermittently leaving the engine stopped.
+- Tweaks category buttons now wrap before Spotify's narrow content column can clip the final choice.
 - Fleet exit code 13 is now classified as a successful warning in the shared taxonomy and documented for endpoint tools, matching the Desktop and CLI behavior.
 - Safe-mode recovery now treats its snapshot manifest as the only source of restore data. The small UI marker seals the snapshot path and manifest SHA256 with Windows data protection for the current account, so editing both files cannot forge a recovery state. Older plaintext marker schemas and unexpected fields are refused, and every listed CustomApps file is checked before the live setup changes. The fleet CLI opens Spotify after a successful `repair --safe-mode` run unless `--no-restart` was supplied.
 - Asset-cache imports now reject entries that weren't marked present and verified at export time. Each import prepares the complete merged cache beside the live directory, then commits it with a rollback-safe directory swap. A failed commit restores every original byte.

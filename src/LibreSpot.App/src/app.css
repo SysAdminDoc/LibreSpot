@@ -2449,6 +2449,18 @@
   to { transform: rotate(360deg); }
 }
 
+@container librespot-content (max-width: 820px) {
+  .librespot-tweak-toolbar {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .librespot-tweak-filters {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+}
+
 @container librespot-content (max-width: 700px) {
   .librespot-panel-intro,
   .librespot-profile-summary,
@@ -2497,16 +2509,6 @@
     border-bottom: 1px solid var(--ls-border);
     border-right: 0;
     min-height: 240px;
-  }
-
-  .librespot-tweak-toolbar {
-    align-items: stretch;
-    grid-template-columns: 1fr;
-  }
-
-  .librespot-tweak-filters {
-    flex-wrap: wrap;
-    overflow-x: visible;
   }
 
   .librespot-catalog-list {
