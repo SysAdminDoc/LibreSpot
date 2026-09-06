@@ -248,6 +248,40 @@ public sealed class BundledThemeTests
         return pinned;
     }
 
+    [Fact]
+    public void TheThemeSourceExistsOnceInTheTree()
+    {
+        // src/LibreSpot.App/vendor/librespot-prism held a second copy that
+        // nothing referenced, and it drifted ahead: a settings-menu retry landed
+        // there, was announced in the changelog as shipped, and never reached
+        // the pinned theme users actually get. The pin gates above cannot see a
+        // problem like that, because they only ever look at the copy they pin.
+        const string marker = "prism:settings";
+        var bundled = Path.Combine(ThemeDirectory, "theme.js");
+
+        // Positive control. Without it a renamed key turns the search below into
+        // one that finds nothing and passes for the wrong reason.
+        Assert.Contains(marker, File.ReadAllText(bundled), StringComparison.Ordinal);
+
+        var skip = new[] { ".git", "node_modules", "bin", "obj", "dist", "publish", "StrykerOutput", "TestResults", "work" };
+
+        var copies = Directory.EnumerateFiles(RepoRoot, "*.js", SearchOption.AllDirectories)
+            .Where(path => !Path.GetRelativePath(RepoRoot, path)
+                .Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                .Any(segment => skip.Contains(segment, StringComparer.OrdinalIgnoreCase)))
+            .Where(path => File.ReadAllText(path).Contains(marker, StringComparison.Ordinal))
+            .Select(path => Path.GetRelativePath(RepoRoot, path))
+            .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        Assert.True(
+            copies.Length == 1,
+            $"The bundled {ThemeId} theme source must exist once, so a fix cannot land on a copy nobody ships. Found: "
+                + string.Join(", ", copies));
+
+        Assert.Equal(Path.GetRelativePath(RepoRoot, bundled), copies[0]);
+    }
+
     private static string[] ReadQuotedList(string script, string pattern)
     {
         var match = Regex.Match(script, pattern);

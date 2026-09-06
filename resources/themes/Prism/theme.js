@@ -18,7 +18,10 @@
     Spicetify.Platform &&
     Spicetify.LocalStorage &&
     Spicetify.colorExtractor &&
+    Spicetify.React &&
+    Spicetify.ReactDOM &&
     Spicetify.Menu &&
+    Spicetify.PopupModal &&
     document.querySelector(".Root__main-view");
 
   if (!READY()) {
@@ -185,7 +188,19 @@
     Spicetify.PopupModal.display({ title: "Prism", content: container, isLarge: true });
   }
 
-  new Spicetify.Menu.Item("Prism settings", false, openSettings).register();
+  function registerSettingsMenu(attempt = 0) {
+    try {
+      new Spicetify.Menu.Item("Prism settings", false, openSettings).register();
+    } catch (error) {
+      if (attempt < 20) {
+        setTimeout(() => registerSettingsMenu(attempt + 1), 500);
+        return;
+      }
+      console.warn("[Prism] settings menu could not be registered.", error);
+    }
+  }
+
+  setTimeout(registerSettingsMenu, 1000);
 
   // ---- wire up --------------------------------------------------------
   tick();
