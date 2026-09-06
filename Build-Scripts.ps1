@@ -906,7 +906,33 @@ function Test-LocalReleaseTruth {
             $failures += "Could not list git tags to confirm the claimed public stable release 'v$claimedStable'."
         } elseif ([string]::IsNullOrWhiteSpace($tagLookup.StandardOutput)) {
             $failures += ("README claims 'v$claimedStable' is the public latest stable release, but no v$claimedStable " +
-                'tag exists in this repository. A prepared version belongs on the preview badge until it is tagged and published.')
+                'tag exists in this repository. A prepared version belongs on the Version badge until it is tagged and published.')
+        }
+
+        # The README states the published version in four places and this used to
+        # pin one of them, so a release could move the badge and the sentence and
+        # leave the summary line and both verification examples naming the old
+        # tag. Every place a reader is told which release to fetch or check has
+        # to agree, or the README contradicts itself and hands out a command for
+        # a release the reader did not download.
+        $summaryClaim = [regex]::Match($readme, 'Public latest stable release: \*\*v(?<version>\d+\.\d+\.\d+)\*\*')
+        if (-not $summaryClaim.Success) {
+            $failures += "README does not carry the version summary line naming the public latest stable release."
+        } elseif ($summaryClaim.Groups['version'].Value -ne $claimedStable) {
+            $failures += ("README summary line names 'v$($summaryClaim.Groups['version'].Value)' as the public latest " +
+                "stable release while the release guidance names 'v$claimedStable'.")
+        }
+
+        $verifyExamples = [regex]::Matches($readme, 'gh release verify-asset (?:-R \S+ )?v(?<version>\d+\.\d+\.\d+)')
+        if ($verifyExamples.Count -eq 0) {
+            $failures += 'README no longer shows a gh release verify-asset example naming a release tag.'
+        }
+
+        foreach ($example in $verifyExamples) {
+            if ($example.Groups['version'].Value -ne $claimedStable) {
+                $failures += ("README shows 'gh release verify-asset v$($example.Groups['version'].Value)' while the " +
+                    "public latest stable release is 'v$claimedStable'. A reader cannot verify a release they did not download.")
+            }
         }
     }
 

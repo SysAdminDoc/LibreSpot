@@ -11,6 +11,8 @@ Installs, configures, and maintains Spotify with themes, extensions, custom apps
 [![Version](https://img.shields.io/badge/Version-4.5.0-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
 [![Stable](https://img.shields.io/badge/Stable-4.4.0-blue.svg)](https://github.com/SysAdminDoc/LibreSpot/releases/latest)
 
+The two badges say different things on purpose. **Version** is what this source tree builds, 4.5.0, which is prepared and has not been published. **Stable** is 4.4.0, the newest release on GitHub and what every download link below gives you.
+
 </div>
 
 ## Quick Start
@@ -105,6 +107,10 @@ Do not use Telegram links, rehosted files, or builds copied to another site. Nev
 ---
 
 ## What's New in v4.5.0
+
+This is what the next release will contain. It is built from this tree and has not been published yet, so the download links above still give you v4.4.0.
+
+Prism's settings entry survives a slow client start. The retry that waits for Spotify's menu and modal APIs before registering it had been written months earlier and announced as shipped, but it only ever reached a copy of the theme that nothing installs, so the theme people actually had still registered the menu once and gave up. There is one copy of the theme in the tree now, and a test that fails if a second one appears.
 
 Safe mode now gives Spotify one clean diagnostic launch without sacrificing the current setup. LibreSpot authenticates the private recovery marker with the current Windows account, verifies the complete snapshot before changing anything, and keeps one Restore my setup action ready until the original files and Spicetify apply both succeed.
 
@@ -276,7 +282,7 @@ Scheme previews, layers, effects tiers, client-side flags, snippets, and presets
 >
 > If you manually update Spotify and patches stop working, use **Maintenance > Reapply After Update** to re-patch. The WPF Maintenance dashboard also flags **After Spotify update** drift and recommends targeted recovery steps before a full reset.
 
-Current source script version: **v3.12.0**. Current desktop and CLI release: **v4.5.0**. Public latest stable release: **v4.4.0**.
+Current source script version: **v3.12.0**. This tree builds desktop and CLI **v4.5.0**, which is prepared and not yet published. Public latest stable release: **v4.4.0**.
 
 **Pinned dependency versions in the current source script:**
 
@@ -604,7 +610,7 @@ Use Maintenance > Full Reset. This removes all modifications, uninstalls Spotify
 
 Releases ship unsigned by design. LibreSpot is not code-signed and is not waiting on a certificate: [SignPath Foundation](https://signpath.org/) OSS signing was evaluated and set aside, so there is no "once the cert arrives" milestone. `LibreSpot.exe`, `LibreSpot-Desktop.exe`, and `LibreSpot.Cli.exe` are published as unsigned artifacts, and Windows SmartScreen may warn about them. Verify identity with the SHA256 `checksums.txt` published alongside each release. A matching hash proves that the file is the release artifact, but it does not prove that the file is safe.
 
-The public latest stable release, v4.4.0, ships eight assets: `LibreSpot.ps1`, `LibreSpot.exe`, the .NET 10 `LibreSpot-Desktop.exe` and `LibreSpot.Cli.exe`, `librespot-engine.zip`, the CycloneDX SBOM, `checksums.txt`, and `librespot-release-manifest.json`. The engine archive is the same live customization app the desktop executable carries inside itself, so the script lane can install it from a file next to `LibreSpot.ps1` instead of downloading it. The repository itself does not track build artifacts. `LibreSpot.exe` and `checksums.txt` are generated fresh for each local release build, so always verify against the copies you downloaded from the [latest stable release](https://github.com/SysAdminDoc/LibreSpot/releases/latest), not against anything in a source checkout. v4.4.0 ships source script v3.11.0. Version 4.5.0 is prepared in this repository and has not been published, so its number appears on the preview badge and in What's New, not on the stable badge.
+The public latest stable release, v4.4.0, ships eight assets: `LibreSpot.ps1`, `LibreSpot.exe`, the .NET 10 `LibreSpot-Desktop.exe` and `LibreSpot.Cli.exe`, `librespot-engine.zip`, the CycloneDX SBOM, `checksums.txt`, and `librespot-release-manifest.json`. The engine archive is the same live customization app the desktop executable carries inside itself, so the script lane can install it from a file next to `LibreSpot.ps1` instead of downloading it. The repository itself does not track build artifacts. `LibreSpot.exe` and `checksums.txt` are generated fresh for each local release build, so always verify against the copies you downloaded from the [latest stable release](https://github.com/SysAdminDoc/LibreSpot/releases/latest), not against anything in a source checkout. v4.4.0 ships source script v3.11.0. Version 4.5.0 is prepared in this repository and has not been published, so its number appears on the Version badge and in What's New, while the Stable badge and the verification examples above name v4.4.0.
 
 The .NET 10 desktop and CLI artifacts publish self-contained and compressed, which embeds the runtime, so they only receive .NET servicing security fixes when rebuilt against a patched runtime. Compression takes the desktop download from about 176 MB to about 76 MB and, measured on 2026-09-03, makes the first launch faster rather than slower because the file the host reads is less than half the size; later launches cost roughly a quarter of a second more. The numbers and the method are recorded in `schemas/publish-footprint-budget.json`. Both projects set `TargetLatestRuntimePatch`, and `Build-Scripts.ps1 -DependencyHealth` records the resolved `Microsoft.NETCore.App` / `Microsoft.WindowsDesktop.App` patch level and fails the release preflight when the build host is below the documented 10.0.11 floor (`schemas/dependency-health-allowlist.json` → `dotnetRuntimeFloor`). Build release artifacts on an up-to-date .NET 10 SDK.
 
@@ -626,7 +632,7 @@ Get-Sha256 .\LibreSpot.ps1
 Get-Content  .\checksums.txt
 ```
 
-GitHub Actions build-provenance attestations are not produced by the local release process because this repository intentionally does not track build workflows. Immutable GitHub releases do generate a Sigstore-verifiable release attestation when they are published. Run `gh release verify v4.1.2` to verify the release tag and commit, then run `gh release verify-asset v4.1.2 .\LibreSpot-Desktop.exe` for a downloaded asset. Source archives are not covered by `gh release verify-asset`. Use `checksums.txt`, the release manifest, and the SBOM as the local build evidence, then match the SHA256 in `checksums.txt` to confirm a download is authentic.
+GitHub Actions build-provenance attestations are not produced by the local release process because this repository intentionally does not track build workflows. Immutable GitHub releases do generate a Sigstore-verifiable release attestation when they are published. Run `gh release verify v4.4.0` to verify the release tag and commit, then run `gh release verify-asset v4.4.0 .\LibreSpot-Desktop.exe` for a downloaded asset. Source archives are not covered by `gh release verify-asset`. Use `checksums.txt`, the release manifest, and the SBOM as the local build evidence, then match the SHA256 in `checksums.txt` to confirm a download is authentic.
 
 ## Local release procedure
 
