@@ -256,30 +256,61 @@ public sealed class BundledThemeTests
         // there, was announced in the changelog as shipped, and never reached
         // the pinned theme users actually get. The pin gates above cannot see a
         // problem like that, because they only ever look at the copy they pin.
-        const string marker = "prism:settings";
         var bundled = Path.Combine(ThemeDirectory, "theme.js");
 
-        // Positive control. Without it a renamed key turns the search below into
-        // one that finds nothing and passes for the wrong reason.
-        Assert.Contains(marker, File.ReadAllText(bundled), StringComparison.Ordinal);
+        // Searching for a marker string inside the file was the first attempt,
+        // and it missed the case that matters: a reintroduced copy that also
+        // renames the marker, which is exactly what a diverging copy carries.
+        // The question is a hash question, so ask it by hash. Every theme.js in
+        // the tree has to be one the pins record; an unpinned one is either a
+        // stale duplicate or a copy that has drifted, and both are the defect.
+        var pinnedHashes = PinnedSources
+            .SelectMany(source => ReadPinnedFiles(ReadFile(source)))
+            .Where(pin => pin.Key.Equals("theme.js", StringComparison.OrdinalIgnoreCase))
+            .Select(pin => pin.Value)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        // Guards the lookup rather than the tree: with no pins read, every file
+        // below would be reported and the failure would point at the wrong thing.
+        Assert.True(
+            pinnedHashes.Count > 0,
+            "No theme.js hash was read from any pinned source, so this test is not comparing against anything.");
 
         var skip = new[] { ".git", "node_modules", "bin", "obj", "dist", "publish", "StrykerOutput", "TestResults", "work" };
 
-        var copies = Directory.EnumerateFiles(RepoRoot, "*.js", SearchOption.AllDirectories)
+        // Other themes in the tree are vendored third-party ones with their own
+        // theme.js, so the question is narrower than "is this file pinned": it is
+        // whether a second copy of *ours* exists anywhere outside the bundled
+        // folder. Three signals, because a diverging copy defeats any one of
+        // them: the same bytes as a pinned file, our marker, or our name on the
+        // directory. The vendor copy that caused this would have matched all
+        // three on the day it was made and the last two after it drifted.
+        const string marker = "prism:settings";
+        var bundledRelative = Path.GetRelativePath(RepoRoot, bundled);
+
+        // Guards the marker rather than the tree: a renamed key would otherwise
+        // quietly reduce this to a hash-only check without saying so.
+        Assert.Contains(marker, File.ReadAllText(bundled), StringComparison.Ordinal);
+
+        var duplicates = Directory.EnumerateFiles(RepoRoot, "theme.js", SearchOption.AllDirectories)
             .Where(path => !Path.GetRelativePath(RepoRoot, path)
                 .Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
                 .Any(segment => skip.Contains(segment, StringComparer.OrdinalIgnoreCase)))
-            .Where(path => File.ReadAllText(path).Contains(marker, StringComparison.Ordinal))
+            .Where(path => !Path.GetRelativePath(RepoRoot, path).Equals(bundledRelative, StringComparison.OrdinalIgnoreCase))
+            .Where(path =>
+                pinnedHashes.Contains(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant())
+                || File.ReadAllText(path).Contains(marker, StringComparison.Ordinal)
+                || (Path.GetDirectoryName(path) ?? string.Empty).Contains(ThemeId, StringComparison.OrdinalIgnoreCase))
             .Select(path => Path.GetRelativePath(RepoRoot, path))
             .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
             .ToArray();
 
         Assert.True(
-            copies.Length == 1,
-            $"The bundled {ThemeId} theme source must exist once, so a fix cannot land on a copy nobody ships. Found: "
-                + string.Join(", ", copies));
+            duplicates.Length == 0,
+            $"The bundled {ThemeId} theme source must exist once, so a fix cannot land on a copy nobody ships. "
+                + "These look like a second copy of it: " + string.Join(", ", duplicates));
 
-        Assert.Equal(Path.GetRelativePath(RepoRoot, bundled), copies[0]);
+        Assert.True(File.Exists(bundled), $"The bundled theme source is missing from {bundledRelative}.");
     }
 
     private static string[] ReadQuotedList(string script, string pattern)

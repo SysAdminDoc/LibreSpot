@@ -1,4 +1,5 @@
 using System.IO;
+using System.IO.Compression;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
@@ -226,6 +227,35 @@ public sealed class ThirdPartyNoticesTests
         // or the commit it names becomes unreachable trivia.
         Assert.Contains("refs/archive/prism-origin", notices, StringComparison.Ordinal);
         Assert.Contains("72dc0334fdf11a156314c96593539e477aee7028", notices, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ShippedArchiveCarriesTheNoticesFileInTheTree()
+    {
+        // Fixing the notices text is only half of it: the file users receive is
+        // the copy inside librespot-engine.zip. The archive gate hashes the zip
+        // against pins that are themselves taken from the zip, so restoring an
+        // old archive together with its old pins passes every other test while
+        // shipping the wrong attribution. Compare the shipped copy with the
+        // source instead, which is the thing that can actually drift.
+        var source = File.ReadAllBytes(
+            Path.Combine(RepoRoot, "src", "LibreSpot.App", "THIRD_PARTY_NOTICES.md"));
+
+        var archivePath = Path.Combine(RepoRoot, "resources", "custom-apps", "librespot-engine.zip");
+        Assert.True(File.Exists(archivePath), $"The engine archive was not found at {archivePath}.");
+
+        using var archive = ZipFile.OpenRead(archivePath);
+        var entry = archive.GetEntry("librespot/THIRD_PARTY_NOTICES.md");
+        Assert.True(entry is not null, "librespot-engine.zip does not carry librespot/THIRD_PARTY_NOTICES.md.");
+
+        using var stream = entry!.Open();
+        using var buffer = new MemoryStream();
+        stream.CopyTo(buffer);
+
+        Assert.True(
+            buffer.ToArray().AsSpan().SequenceEqual(source),
+            "The THIRD_PARTY_NOTICES.md inside librespot-engine.zip differs from src/LibreSpot.App/THIRD_PARTY_NOTICES.md. "
+                + "Run `pnpm run bundle` from src/LibreSpot.App and move the new SHA256 onto all three pins.");
     }
 
     private static HashSet<string> GetDependencyNames(string category)
