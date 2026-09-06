@@ -69,7 +69,7 @@ Community [lost-setup](https://www.reddit.com/r/spicetify/comments/1uci5ou/spice
 
 **Verified source gap:** `core/backup.ts:parseBackup` accepts negative/fractional schema values and converts a present malformed Marketplace section into empty state. Validate the full envelope while preserving the existing absent-section compatibility case (RD-223).
 
-**Verified source paths:** `extensions/librespot-engine.ts` discards update failures through callers that void the promise and can announce success after flag application returns unavailable. Restore writes Marketplace before the engine and has no compensation for a later engine failure. Reset deletes the database after copying its recovery data only to the clipboard. A later clipboard replacement leaves no retained reset record. Recovered raw-state export also advertises Restore, whose parser currently requires a backup envelope (RD-223, RD-224, RD-228, RD-229).
+**Verified source paths:** `extensions/librespot-engine.ts` discards update failures through callers that void the promise and can announce success after flag application returns unavailable. Before RD-228, restore wrote Marketplace before the engine with no compensation for a later engine failure. RD-228 now snapshots both stores, keeps Marketplace's merge semantics explicit, compensates exact affected keys, and retains a bounded recovery record when compensation cannot finish. Reset still deletes the database after copying its recovery data only to the clipboard, so a later clipboard replacement leaves no retained reset record (RD-229). Recovered raw-state export also advertises Restore, whose parser currently requires a backup envelope (RD-223, RD-224).
 
 ### Support-export privacy
 

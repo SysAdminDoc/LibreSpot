@@ -3,9 +3,46 @@ import {
   PROFILE_SCHEMA_VERSION,
   type EngineState,
 } from "./state.ts";
-import { parseProfile, serializeEngineState } from "./profile.ts";
+import { parseProfile, serializeEngineState, validateEngineState } from "./profile.ts";
 
 export const ENGINE_STORAGE_KEY = "librespot:engine-state";
+
+/**
+ * A single durable recovery record covers cross-store restores and Marketplace
+ * resets. It lives in LibreSpot's own storage namespace, outside Marketplace's
+ * database, so deleting that database cannot delete the only recovery copy.
+ */
+export const RECOVERY_RECORD_KEY = "librespot:recovery-record";
+export const RECOVERY_RECORD_SCHEMA_VERSION = 1 as const;
+export const MAX_RECOVERY_RECORD_BYTES = 8 * 1024 * 1024 + 64 * 1024;
+
+export type RecoveryRecord = {
+  schemaVersion: typeof RECOVERY_RECORD_SCHEMA_VERSION;
+  kind: "restore" | "marketplace-reset";
+  createdAt: string;
+  message: string;
+  incomplete: string[];
+  raw: string;
+};
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === "string");
+}
+
+function isRecoveryRecord(value: unknown): value is RecoveryRecord {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false;
+  }
+  const record = value as Record<string, unknown>;
+  return (
+    record.schemaVersion === RECOVERY_RECORD_SCHEMA_VERSION &&
+    (record.kind === "restore" || record.kind === "marketplace-reset") &&
+    typeof record.createdAt === "string" &&
+    typeof record.message === "string" &&
+    typeof record.raw === "string" &&
+    isStringArray(record.incomplete)
+  );
+}
 
 /**
  * Where an unreadable saved state goes instead of the bin. The raw bytes land
@@ -129,6 +166,71 @@ export class EngineStore {
     this.storage.remove(QUARANTINE_POINTER_KEY);
   }
 
+  /** Reads the one retained cross-store recovery copy, if it is valid. */
+  public readRecovery(): RecoveryRecord | null {
+    const raw = this.storage.get(RECOVERY_RECORD_KEY);
+    if (raw === null) {
+      return null;
+    }
+    if (new TextEncoder().encode(raw).length > MAX_RECOVERY_RECORD_BYTES) {
+      return null;
+    }
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return null;
+    }
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+      return null;
+    }
+    const record = parsed as Record<string, unknown>;
+    if (!isRecoveryRecord(record)) {
+      return null;
+    }
+
+    return {
+      schemaVersion: RECOVERY_RECORD_SCHEMA_VERSION,
+      kind: record.kind,
+      createdAt: record.createdAt,
+      message: record.message,
+      incomplete: [...record.incomplete],
+      raw: record.raw,
+    };
+  }
+
+  /** Retains one bounded recovery copy and verifies that storage kept it. */
+  public writeRecovery(record: RecoveryRecord): void {
+    if (!isRecoveryRecord(record)) {
+      throw new Error("The recovery record is malformed.");
+    }
+
+    const payload = JSON.stringify({
+      schemaVersion: record.schemaVersion,
+      kind: record.kind,
+      createdAt: record.createdAt,
+      message: record.message,
+      incomplete: [...record.incomplete],
+      raw: record.raw,
+    });
+    if (new TextEncoder().encode(payload).length > MAX_RECOVERY_RECORD_BYTES) {
+      throw new Error(
+        `The recovery record exceeds the ${MAX_RECOVERY_RECORD_BYTES}-byte limit.`,
+      );
+    }
+
+    this.storage.set(RECOVERY_RECORD_KEY, payload);
+    if (this.storage.get(RECOVERY_RECORD_KEY) !== payload) {
+      throw new Error("The recovery record could not be verified.");
+    }
+  }
+
+  /** Drops a retained recovery copy after a successful replacement or dismissal. */
+  public discardRecovery(): void {
+    this.storage.remove(RECOVERY_RECORD_KEY);
+  }
+
   /** True when the raw value is safely stored and the original can be dropped. */
   private quarantine(raw: string, error: unknown): boolean {
     const candidate: QuarantinedState = {
@@ -221,6 +323,18 @@ export class EngineStore {
     next.schemaVersion = PROFILE_SCHEMA_VERSION;
     next.updatedAt = this.now().toISOString();
     this.storage.set(ENGINE_STORAGE_KEY, serializeEngineState(next));
+    return next;
+  }
+
+  /** Persists a previously captured state byte-for-byte for compensation. */
+  public restoreExact(state: EngineState): EngineState {
+    validateEngineState(state);
+    const next = structuredClone(state);
+    const raw = serializeEngineState(next);
+    this.storage.set(ENGINE_STORAGE_KEY, raw);
+    if (this.storage.get(ENGINE_STORAGE_KEY) !== raw) {
+      throw new Error("The previous engine state could not be verified.");
+    }
     return next;
   }
 

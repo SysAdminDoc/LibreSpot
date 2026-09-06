@@ -5,6 +5,10 @@ import {
   parseProfile,
   serializeProfile,
 } from "./profile.ts";
+import {
+  RECOVERY_RECORD_SCHEMA_VERSION,
+  type RecoveryRecord,
+} from "./store.ts";
 
 /**
  * One file that holds everything a person would lose if their Spotify profile
@@ -162,7 +166,19 @@ export type MarketplaceReadResult = {
 
 export type MarketplaceStore = {
   readAll(): Promise<MarketplaceReadResult>;
+  /**
+   * Merges the supplied keys into Marketplace's settings store. Existing keys
+   * outside the supplied set are intentionally left untouched.
+   */
   writeAll(entries: MarketplaceEntries): Promise<void>;
+  /**
+   * Restores exactly the listed keys while leaving all other Marketplace keys
+   * alone. Missing keys in the snapshot are removed.
+   */
+  restoreKeys(
+    entries: MarketplaceEntries,
+    keys: readonly string[],
+  ): Promise<void>;
   /**
    * Removes Marketplace's whole database. Stale records from an older
    * install survive a full Spicetify reinstall and can put back themes the
@@ -304,6 +320,51 @@ export function indexedDbMarketplaceStore(
         database.close();
       }
     },
+    restoreKeys: async (entries, keys) => {
+      const distinctKeys = [...new Set(keys)];
+      if (distinctKeys.length === 0) {
+        return;
+      }
+
+      const database = await open();
+      if (!database) {
+        throw new Error(
+          "Marketplace's database is not available, so its previous settings could not be restored.",
+        );
+      }
+      try {
+        await new Promise<void>((resolve, reject) => {
+          try {
+            const transaction = database.transaction(MARKETPLACE_STORE, "readwrite");
+            const store = transaction.objectStore(MARKETPLACE_STORE);
+            for (const key of distinctKeys) {
+              if (Object.prototype.hasOwnProperty.call(entries, key)) {
+                store.put({ key, value: entries[key] });
+              } else {
+                store.delete(key);
+              }
+            }
+            transaction.oncomplete = () => {
+              resolve();
+            };
+            transaction.onerror = () => {
+              reject(new Error("Marketplace's previous settings could not be restored."));
+            };
+            transaction.onabort = () => {
+              reject(new Error("Marketplace's previous settings could not be restored."));
+            };
+          } catch (error) {
+            reject(
+              error instanceof Error
+                ? error
+                : new Error("Marketplace's previous settings could not be restored."),
+            );
+          }
+        });
+      } finally {
+        database.close();
+      }
+    },
     deleteAll: () =>
       new Promise<void>((resolve, reject) => {
         // Bounded like open(): a delete blocks while any other connection
@@ -351,4 +412,211 @@ export function indexedDbMarketplaceStore(
         };
       }),
   };
+}
+
+export type RestoreEnginePort = {
+  readonly state: EngineState;
+  replace(state: EngineState): EngineState;
+  restoreExact?(state: EngineState): EngineState;
+  refreshAccent(): Promise<unknown>;
+  applyFlags(
+    previousOverrides: Readonly<Record<string, boolean | number | string>>,
+  ): Promise<unknown>;
+};
+
+export type RestoreTransactionResult = {
+  state: EngineState;
+  marketplaceCount: number;
+  flagsChanged: boolean;
+  flagResult: unknown;
+};
+
+export type RestoreHalf = "engine" | "marketplace";
+
+export class RestoreTransactionError extends Error {
+  public constructor(
+    message: string,
+    public readonly incomplete: readonly RestoreHalf[],
+    public readonly recovery: RecoveryRecord,
+    public readonly recoveryRetained: boolean,
+    cause?: unknown,
+  ) {
+    super(message, cause === undefined ? undefined : { cause });
+    this.name = "RestoreTransactionError";
+  }
+}
+
+export type RestoreTransactionOptions = {
+  engine: RestoreEnginePort;
+  marketplaceStore: MarketplaceStore;
+  now?: () => Date;
+  /** Called before compensation so a process exit cannot lose the snapshot. */
+  retainRecovery?: (record: RecoveryRecord) => void;
+  /** Called only after both stores have reached the requested state. */
+  clearRecovery?: () => void;
+};
+
+function errorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback;
+}
+
+function recoveryHalfNames(halves: readonly RestoreHalf[]): string {
+  return halves
+    .map((half) => (half === "engine" ? "engine state" : "Marketplace settings"))
+    .join(" and ");
+}
+
+function restoreEngineExact(engine: RestoreEnginePort, state: EngineState): EngineState {
+  return engine.restoreExact?.(state) ?? engine.replace(state);
+}
+
+/**
+ * Restores a parsed backup as one recoverable operation. Marketplace's
+ * writeAll intentionally keeps its merge behavior for the requested restore;
+ * compensation uses restoreKeys so keys introduced by a failed write are
+ * removed while unrelated keys remain untouched.
+ */
+export async function restoreBackupTransaction(
+  restored: ParsedBackup,
+  options: RestoreTransactionOptions,
+): Promise<RestoreTransactionResult> {
+  const now = options.now ?? (() => new Date());
+  const beforeEngine = structuredClone(options.engine.state);
+  const beforeFlags = structuredClone(beforeEngine.featureOverrides);
+  const targetKeys = Object.keys(restored.marketplace);
+  let beforeMarketplace = Object.create(null) as MarketplaceEntries;
+  let marketplaceRead = false;
+
+  // Read the Marketplace snapshot before either store is touched. An
+  // unavailable database is different from an empty one and must stop here.
+  if (targetKeys.length > 0) {
+    const current = await options.marketplaceStore.readAll();
+    if (!current.available) {
+      throw new Error(
+        "Marketplace's settings could not be read, so restore stopped before changing anything. Close any other Spotify window and try again.",
+      );
+    }
+    beforeMarketplace = structuredClone(current.entries);
+    marketplaceRead = true;
+  }
+
+  const affectedKeys = [
+    ...new Set([...Object.keys(beforeMarketplace), ...targetKeys]),
+  ];
+  let marketplaceAttempted = false;
+  let engineAttempted = false;
+  let flagsAttempted = false;
+
+  try {
+    if (targetKeys.length > 0) {
+      // This is deliberately a merge. Marketplace owns keys we do not know
+      // about, so a normal restore never deletes unrelated settings.
+      marketplaceAttempted = true;
+      await options.marketplaceStore.writeAll(restored.marketplace);
+    }
+
+    engineAttempted = true;
+    const next = options.engine.replace(restored.engine);
+    await options.engine.refreshAccent();
+    const flagsChanged =
+      JSON.stringify(next.featureOverrides) !== JSON.stringify(beforeFlags);
+    let flagResult: unknown;
+    if (flagsChanged) {
+      flagsAttempted = true;
+      flagResult = await options.engine.applyFlags(beforeFlags);
+    }
+
+    try {
+      options.clearRecovery?.();
+    } catch {
+      // A stale recovery copy costs space but cannot make an already committed
+      // restore unsafe. Health can dismiss it explicitly on a later run.
+    }
+    return {
+      state: next,
+      marketplaceCount: targetKeys.length,
+      flagsChanged,
+      flagResult,
+    };
+  } catch (error) {
+    const attempted: RestoreHalf[] = [
+      ...(engineAttempted ? (["engine"] as const) : []),
+      ...(marketplaceAttempted ? (["marketplace"] as const) : []),
+    ];
+    const recovery: RecoveryRecord = {
+      schemaVersion: RECOVERY_RECORD_SCHEMA_VERSION,
+      kind: "restore",
+      createdAt: now().toISOString(),
+      message: "Restore compensation is pending.",
+      incomplete: attempted,
+      raw: serializeBackup(createBackup(beforeEngine, beforeMarketplace, now())),
+    };
+    let recoveryRetained = false;
+    if (attempted.length > 0 && options.retainRecovery) {
+      try {
+        options.retainRecovery(recovery);
+        recoveryRetained = true;
+      } catch {
+        // Compensation still runs. The final error names that no durable copy
+        // was retained, which is safer than hiding the original failure.
+      }
+    }
+
+    const incomplete: RestoreHalf[] = [];
+    if (engineAttempted) {
+      try {
+        restoreEngineExact(options.engine, beforeEngine);
+        if (flagsAttempted) {
+          await options.engine.applyFlags(restored.engine.featureOverrides);
+        }
+        await options.engine.refreshAccent();
+      } catch {
+        incomplete.push("engine");
+      }
+    }
+    if (marketplaceAttempted && marketplaceRead) {
+      try {
+        await options.marketplaceStore.restoreKeys(beforeMarketplace, affectedKeys);
+      } catch {
+        incomplete.push("marketplace");
+      }
+    }
+
+    if (incomplete.length === 0) {
+      try {
+        options.clearRecovery?.();
+      } catch {
+        // Keep the retained record if dismissal is temporarily unavailable.
+      }
+      throw new RestoreTransactionError(
+        `Restore failed: ${errorMessage(error, "an unknown error occurred")}. The previous state was restored.`,
+        [],
+        recovery,
+        recoveryRetained,
+        error,
+      );
+    }
+
+    recovery.incomplete = [...incomplete];
+    recovery.message = `Restore is incomplete for ${recoveryHalfNames(incomplete)}.`;
+    if (options.retainRecovery) {
+      try {
+        options.retainRecovery(recovery);
+        recoveryRetained = true;
+      } catch {
+        // If the first write succeeded, its snapshot is still present even if
+        // storage refuses this final status update.
+      }
+    }
+    const retainedMessage = recoveryRetained
+      ? " A recovery copy was retained for Health."
+      : " The recovery copy could not be retained.";
+    throw new RestoreTransactionError(
+      `Restore failed: ${errorMessage(error, "an unknown error occurred")}. Recovery is incomplete for ${recoveryHalfNames(incomplete)}.${retainedMessage}`,
+      incomplete,
+      recovery,
+      recoveryRetained,
+      error,
+    );
+  }
 }

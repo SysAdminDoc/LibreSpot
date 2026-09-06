@@ -7,6 +7,7 @@ All notable changes to LibreSpot will be documented in this file.
 ### Fixed
 
 - Theme replacement now uses the junction-safe remover for bundled, community, and official themes, including temporary archive cleanup. A nested junction in an old theme tree cannot redirect deletion into another folder on either supported PowerShell host.
+- Backup restore now snapshots the engine and Marketplace settings before writing. A failed half restores the exact prior keys, removes keys introduced by the failed merge, and retains a bounded recovery copy that names any half it could not compensate.
 - Recovery, restore, and feature updates now verify quarantine writes, bound backup payloads, reject inherited scheme names, and await resolver writes so silent storage failures and rejected host promises cannot turn into data loss.
 - Support exports now require the exact .NET Triage minidump flags and supported diagnostic streams. Full-memory, private-memory, token, and unknown stream combinations are skipped, while filtered stack-memory streams remain eligible. The privacy text now says that a dump may still contain sensitive diagnostic memory.
 - Support exports now redact structured JSON secrets, quoted multiword arguments, and authorization headers that have a timestamp before them while preserving neighboring harmless text.

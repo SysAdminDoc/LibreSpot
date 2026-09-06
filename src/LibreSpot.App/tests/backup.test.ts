@@ -6,11 +6,18 @@ import {
   parseBackup,
   parseRestoreSource,
   indexedDbMarketplaceStore,
+  restoreBackupTransaction,
+  RestoreTransactionError,
   serializeBackup,
   type MarketplaceEntries,
   type MarketplaceStore,
 } from "../src/core/backup.ts";
-import { EngineStore, type StorageAdapter } from "../src/core/store.ts";
+import {
+  ENGINE_STORAGE_KEY,
+  EngineStore,
+  type RecoveryRecord,
+  type StorageAdapter,
+} from "../src/core/store.ts";
 import { createDefaultState, PROFILE_SCHEMA_VERSION } from "../src/core/state.ts";
 import { MAX_PROFILE_BYTES } from "../src/core/profile.ts";
 
@@ -40,6 +47,18 @@ function memoryMarketplace(seed: MarketplaceEntries = {}): MarketplaceStore & {
       state.entries = { ...state.entries, ...entries };
       return Promise.resolve();
     },
+    restoreKeys: (entries, keys) => {
+      const next = { ...state.entries };
+      for (const key of keys) {
+        if (Object.prototype.hasOwnProperty.call(entries, key)) {
+          next[key] = entries[key];
+        } else {
+          Reflect.deleteProperty(next, key);
+        }
+      }
+      state.entries = next;
+      return Promise.resolve();
+    },
     deleteAll: () => {
       state.entries = {};
       return Promise.resolve();
@@ -56,6 +75,41 @@ function stateFixture(now: Date): ReturnType<typeof createDefaultState> {
     Light: { text: "111111", main: "FFFFFF", button: "16843D", accent: "16843D" },
   };
   return state;
+}
+
+function restoreEngineFixture(initial: ReturnType<typeof stateFixture>, storage: StorageAdapter) {
+  let current = structuredClone(initial);
+  let failTargetWrite = false;
+  let failExactRestore = false;
+  return {
+    get state() {
+      return structuredClone(current);
+    },
+    set failTargetWrite(value: boolean) {
+      failTargetWrite = value;
+    },
+    set failExactRestore(value: boolean) {
+      failExactRestore = value;
+    },
+    replace(next: ReturnType<typeof stateFixture>) {
+      current = structuredClone(next);
+      storage.set(ENGINE_STORAGE_KEY, JSON.stringify(current));
+      if (failTargetWrite && next.name === "Restored") {
+        throw new Error("engine write failed after commit");
+      }
+      return structuredClone(current);
+    },
+    restoreExact(next: ReturnType<typeof stateFixture>) {
+      if (failExactRestore) {
+        throw new Error("engine compensation failed");
+      }
+      current = structuredClone(next);
+      storage.set(ENGINE_STORAGE_KEY, JSON.stringify(current));
+      return structuredClone(current);
+    },
+    refreshAccent: () => Promise.resolve(),
+    applyFlags: () => Promise.resolve("debug-api" as const),
+  };
 }
 
 const MARKETPLACE_SEED: MarketplaceEntries = {
@@ -145,6 +199,7 @@ describe("backup", () => {
       { key: "internal:local-storage-migrated", value: "1" },
     ];
     const puts: unknown[] = [];
+    const deletes: unknown[] = [];
     let putThrew: string | null = null;
 
     const fakeFactory = {
@@ -159,6 +214,9 @@ describe("backup", () => {
                 throw new Error("in-line keys reject an explicit key");
               }
               puts.push(record);
+            },
+            delete: (key: unknown) => {
+              deletes.push(key);
             },
           };
           const transaction: Record<string, unknown> = {
@@ -190,6 +248,31 @@ describe("backup", () => {
     await store.writeAll({ "marketplace:active-tab": "Extensions" });
     expect(putThrew).toBeNull();
     expect(puts).toEqual([{ key: "marketplace:active-tab", value: "Extensions" }]);
+
+    await store.restoreKeys(
+      { "marketplace:active-tab": "Themes" },
+      ["marketplace:active-tab", "introduced"],
+    );
+    expect(puts.at(-1)).toEqual({ key: "marketplace:active-tab", value: "Themes" });
+    expect(deletes).toEqual(["introduced"]);
+  });
+
+  it("compensates exact Marketplace keys while preserving the merge boundary", async () => {
+    const marketplace = memoryMarketplace({
+      keep: "untouched",
+      changed: "before",
+    });
+
+    await marketplace.writeAll({ changed: "after", introduced: true });
+    await marketplace.restoreKeys(
+      { changed: "before" },
+      ["changed", "introduced"],
+    );
+
+    expect((await marketplace.readAll()).entries).toEqual({
+      keep: "untouched",
+      changed: "before",
+    });
   });
 
   it("reports a blocked delete instead of hanging the reset", async () => {
@@ -310,6 +393,85 @@ describe("backup", () => {
     });
 
     expect(parseBackup(file).marketplace).toEqual({});
+  });
+
+  it("compensates Marketplace when the engine store fails after its write", async () => {
+    const storage = memoryStorage();
+    const before = stateFixture(new Date("2026-09-03T10:00:00.000Z"));
+    before.name = "Before";
+    storage.set(ENGINE_STORAGE_KEY, JSON.stringify(before));
+    const engine = restoreEngineFixture(before, storage);
+    engine.failTargetWrite = true;
+    const marketplace = memoryMarketplace({
+      "marketplace:active-tab": "Extensions",
+      "keep-me": { version: 1 },
+    });
+    const restoredState = structuredClone(before);
+    restoredState.name = "Restored";
+    const source = serializeBackup(
+      createBackup(
+        restoredState,
+        { "marketplace:active-tab": "Themes", introduced: true },
+        new Date("2026-09-03T11:00:00.000Z"),
+      ),
+    );
+    const retained: RecoveryRecord[] = [];
+
+    await expect(
+      restoreBackupTransaction(parseBackup(source), {
+        engine,
+        marketplaceStore: marketplace,
+        retainRecovery: (record) => retained.push(structuredClone(record)),
+      }),
+    ).rejects.toThrow(/previous state was restored/);
+
+    expect(retained).toHaveLength(1);
+    expect((await marketplace.readAll()).entries).toEqual({
+      "marketplace:active-tab": "Extensions",
+      "keep-me": { version: 1 },
+    });
+    expect(new EngineStore(storage).load()).toEqual(before);
+    expect(engine.state).toEqual(before);
+  });
+
+  it("retains a recovery record naming Marketplace when compensation fails", async () => {
+    const storage = memoryStorage();
+    const before = stateFixture(new Date("2026-09-03T10:00:00.000Z"));
+    before.name = "Before";
+    storage.set(ENGINE_STORAGE_KEY, JSON.stringify(before));
+    const engine = restoreEngineFixture(before, storage);
+    engine.failTargetWrite = true;
+    let entries: MarketplaceEntries = { existing: "before" };
+    const marketplace: MarketplaceStore = {
+      readAll: () => Promise.resolve({ available: true, entries: { ...entries } }),
+      writeAll: (next) => {
+        entries = { ...entries, ...next };
+        return Promise.resolve();
+      },
+      restoreKeys: () => Promise.reject(new Error("Marketplace compensation failed")),
+      deleteAll: () => Promise.resolve(),
+    };
+    const restoredState = structuredClone(before);
+    restoredState.name = "Restored";
+    const source = serializeBackup(
+      createBackup(restoredState, { introduced: true }, new Date("2026-09-03T11:00:00.000Z")),
+    );
+
+    const error = await restoreBackupTransaction(parseBackup(source), {
+      engine,
+      marketplaceStore: marketplace,
+      retainRecovery: (record) => new EngineStore(storage).writeRecovery(record),
+    }).catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(RestoreTransactionError);
+    expect((error as RestoreTransactionError).incomplete).toEqual(["marketplace"]);
+    expect((error as Error).message).toMatch(/Marketplace/);
+    const recovery = new EngineStore(storage).readRecovery();
+    expect(recovery?.kind).toBe("restore");
+    expect(recovery?.incomplete).toEqual(["marketplace"]);
+    expect(parseRestoreSource(recovery?.raw ?? "").engine).toEqual(before);
+    expect(new EngineStore(storage).load()).toEqual(before);
+    expect(entries).toEqual({ existing: "before", introduced: true });
   });
 });
 

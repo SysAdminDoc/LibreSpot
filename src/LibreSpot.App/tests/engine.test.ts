@@ -202,4 +202,33 @@ describe("LibreSpot engine", () => {
       "--spice-main: #000000",
     );
   });
+
+  it("restores an exact captured state without changing its timestamp", async () => {
+    const values = new Map<string, string>();
+    const storage: StorageAdapter = {
+      get: (key) => values.get(key) ?? null,
+      set: (key, value) => values.set(key, value),
+      remove: (key) => values.delete(key),
+    };
+    const original = createDefaultState(new Date("2026-09-01T12:00:00Z"));
+    original.schemes = {
+      Dark: { main: "000000", text: "FFFFFF" },
+      Light: { main: "FFFFFF", text: "111111" },
+    };
+    const store = new EngineStore(storage);
+    const captured = store.restoreExact(original);
+    const engine = new LibreSpotEngine({
+      document,
+      window,
+      store,
+      initialState: captured,
+    });
+    await engine.start({ probePerformance: false });
+
+    engine.replace({ ...captured, name: "Temporary replacement" });
+    engine.restoreExact(captured);
+
+    expect(engine.state).toEqual(captured);
+    expect(JSON.parse(values.get(ENGINE_STORAGE_KEY) ?? "null")).toEqual(captured);
+  });
 });

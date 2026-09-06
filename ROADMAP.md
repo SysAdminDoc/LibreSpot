@@ -6,13 +6,6 @@ Incomplete, implementer-actionable work only. Operator-dependent decisions remai
 
 ### P1: Now
 
-- [ ] P1: RD-228. Make backup restoration recoverable across engine and Marketplace stores
-  Why: Impact 5/5. Marketplace commits first, so a later engine failure leaves a partially restored setup with misleading failure feedback.
-  Evidence: RESEARCH.md; src/LibreSpot.App/src/extensions/librespot-engine.ts restoreState; core/backup.ts writeAll performs a key merge.
-  Touches: Component backup/store abstractions and restoreState; tests/backup.test.ts, engine.test.ts and surface.test.ts.
-  Acceptance: After RD-223 and RD-224, validate all input and retain both pre-restore states before writing. Keep the existing Marketplace merge semantics explicit. On either store's failure, restore the exact previous affected keys, including removal of newly introduced keys, and the prior engine state. If compensation fails, retain recovery data and name the incomplete half. Reload after each injected failure and verify the resulting bytes.
-  Complexity: M
-
 - [ ] P1: RD-229. Retain a durable recovery record before resetting Marketplace
   Why: Impact 5/5. Reset deletes data after a clipboard copy, but replacing the clipboard removes the only reset recovery artifact.
   Evidence: RESEARCH.md; src/LibreSpot.App/src/extensions/librespot-engine.ts resetMarketplaceStorage; Syncify's retained-backup precedent.

@@ -168,6 +168,27 @@ export class LibreSpotEngine extends EventTarget {
     }
   }
 
+  /** Restores a captured state without changing its persisted timestamp. */
+  public restoreExact(state: EngineState): EngineState {
+    validateEngineState(state);
+    const previous = cloneState(this.#state);
+    const next = cloneState(state);
+    try {
+      this.#state = next;
+      this.apply();
+      this.#state = this.#store.restoreExact(next);
+      return this.state;
+    } catch (error) {
+      this.#state = previous;
+      try {
+        this.apply();
+      } catch {
+        // Preserve the last valid state if the host rejects visual rollback.
+      }
+      throw error;
+    }
+  }
+
   public setSnippetCatalog(catalog: Readonly<Record<string, string>>): void {
     this.#snippetCss = catalog;
     this.apply();

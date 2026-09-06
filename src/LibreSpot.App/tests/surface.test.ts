@@ -266,6 +266,16 @@ describe("LibreSpot surface contract", () => {
     expect(extension).toContain('lucide-static/icons/settings.svg');
   });
 
+  it("routes backup restores through the cross-store recovery transaction", () => {
+    const extension = readFileSync(
+      resolve(import.meta.dirname, "../src/extensions/librespot-engine.ts"),
+      "utf8",
+    );
+    expect(extension).toContain("restoreBackupTransaction");
+    expect(extension).toContain("retainRecovery: (record) => store.writeRecovery(record)");
+    expect(extension).toContain("clearRecovery: () => store.discardRecovery()");
+  });
+
   it("lets duplicate companion loads converge on one ready runtime", () => {
     const extension = readFileSync(
       resolve(import.meta.dirname, "../src/extensions/librespot-engine.ts"),

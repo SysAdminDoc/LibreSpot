@@ -10,6 +10,7 @@ import {
   indexedDbMarketplaceStore,
   parseRestoreSource,
   parseProfile,
+  restoreBackupTransaction,
   serializeBackup,
   runSelfTest,
   serializeProfile,
@@ -708,31 +709,18 @@ async function bootstrap(): Promise<void> {
         notify("Recovered state discarded.");
       },
       restoreState: async (source) => {
-        let engineRestored = false;
         try {
           const restored = parseRestoreSource(source);
-          const count = Object.keys(restored.marketplace).length;
-
-          // Marketplace first: it is the half that can refuse. Overwriting the
-          // profile and then failing would leave the user worse off with a
-          // message that reads like nothing happened.
-          if (count > 0) {
-            await marketplaceStore.writeAll(restored.marketplace);
-          }
-          const beforeFlags = engine.state.featureOverrides;
-          const next = engine.update((draft) => {
-            Object.assign(draft, restored.engine);
+          const result = await restoreBackupTransaction(restored, {
+            engine,
+            marketplaceStore,
+            retainRecovery: (record) => store.writeRecovery(record),
+            clearRecovery: () => store.discardRecovery(),
           });
-          await engine.refreshAccent();
-          const flagsChanged =
-            JSON.stringify(next.featureOverrides) !== JSON.stringify(beforeFlags);
-          const flagResult = flagsChanged
-            ? await engine.applyFlags(beforeFlags)
-            : undefined;
+          const { marketplaceCount: count, flagsChanged, flagResult } = result;
           refreshArrangements();
           health = runHealth();
           emit();
-          engineRestored = true;
 
           const message =
             count > 0
@@ -747,10 +735,7 @@ async function bootstrap(): Promise<void> {
         } catch (error) {
           const message =
             error instanceof Error ? error.message : "Restore failed.";
-          notify(
-            engineRestored ? `This profile was restored, but ${message}` : message,
-            true,
-          );
+          notify(message, true);
         }
       },
       reportError: (message) => {
