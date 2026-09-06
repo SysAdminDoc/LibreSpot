@@ -1972,10 +1972,34 @@ function Invoke-LibreSpotStableExeCompile {
     # $ScriptRoot), so an unpinned import means the bytes of LibreSpot.exe depend
     # on whatever the build machine happens to hold.
     $requiredPs2ExeVersion = Get-LibreSpotPs2ExeVersion
-    $availablePs2Exe = @(Get-Module -ListAvailable -Name 'ps2exe' | Where-Object { $_.Version -eq $requiredPs2ExeVersion })
-    if ($availablePs2Exe.Count -eq 0) {
-        throw ("ps2exe $requiredPs2ExeVersion is required for the stable executable. " +
-            "Install it with: Install-Module -Name ps2exe -RequiredVersion $requiredPs2ExeVersion -Scope CurrentUser")
+
+    # Ask the host that will do the import, not the one running this script.
+    # Windows PowerShell and PowerShell 7 keep separate user module scopes
+    # (Documents\WindowsPowerShell\Modules against Documents\PowerShell\Modules),
+    # so an in-process check answers about the wrong one: installing ps2exe from
+    # PowerShell 7, which is what the comment above tells you to target, left the
+    # check refusing a machine whose compile step would have worked.
+    $probeCommand = @(
+        "`$required = [Version]'$requiredPs2ExeVersion';",
+        "`$found = @(Get-Module -ListAvailable -Name 'ps2exe' | Where-Object { `$_.Version -eq `$required });",
+        "if (`$found.Count -gt 0) { 'FOUND=' + `$found[0].ModuleBase } else { 'MISSING=' + `$env:PSModulePath }"
+    ) -join ' '
+
+    $probeOutput = @(& $pwsh.Source -NoProfile -ExecutionPolicy Bypass -Command $probeCommand)
+    $verdict = $probeOutput | Where-Object { $_ -match '^(FOUND|MISSING)=' } | Select-Object -Last 1
+
+    if ($null -eq $verdict -or -not $verdict.StartsWith('FOUND=')) {
+        $searchedPaths = ' (the probe returned no answer)'
+        if ($null -ne $verdict) {
+            $searched = @($verdict.Substring('MISSING='.Length) -split ';' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+            $searchedPaths = [Environment]::NewLine + '  ' + ($searched -join ([Environment]::NewLine + '  '))
+        }
+
+        throw ("ps2exe $requiredPs2ExeVersion is required for the stable executable, and $($pwsh.Source) cannot see it. " +
+            "That host runs the compile, so it is the one that has to hold the module; a copy installed from a " +
+            "different PowerShell edition is in a module scope it does not read. " +
+            "Install it with: Install-Module -Name ps2exe -RequiredVersion $requiredPs2ExeVersion -Scope CurrentUser " +
+            "run from $($pwsh.Source). Module directories searched:$searchedPaths")
     }
 
     $command = @(

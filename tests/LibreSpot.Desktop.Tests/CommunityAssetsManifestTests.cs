@@ -223,6 +223,45 @@ public sealed class CommunityAssetsManifestTests
     }
 
     [Fact]
+    public void Ps2ExeAvailabilityIsCheckedInTheHostThatImportsIt()
+    {
+        // The compile shells out to pwsh and imports ps2exe there, but the check
+        // used to run Get-Module in whichever host was running Build-Scripts.ps1.
+        // Windows PowerShell and PowerShell 7 keep separate user module scopes,
+        // so a machine with ps2exe installed from PowerShell 7 was refused even
+        // though its compile step worked, and the thrown message repeated the
+        // same Install-Module line that had put it in the scope being ignored.
+        var script = ReadFile("Build-Scripts.ps1");
+
+        var compile = Regex.Match(
+            script,
+            @"function Invoke-LibreSpotStableExeCompile[\s\S]+?\n\}\r?\n",
+            RegexOptions.None);
+        Assert.True(compile.Success, "Could not isolate Invoke-LibreSpotStableExeCompile in Build-Scripts.ps1.");
+        var body = compile.Value;
+
+        // The probe has to leave this process. An in-process Get-Module for
+        // ps2exe anywhere in the function is the exact defect coming back.
+        Assert.DoesNotMatch(
+            @"^\s*\$\w+ = @\(Get-Module -ListAvailable -Name 'ps2exe'",
+            body);
+
+        var probeThroughPwsh = Regex.Match(
+            body,
+            @"\$probeOutput = @\(& \$pwsh\.Source [^)]*-Command \$probeCommand\)");
+        Assert.True(
+            probeThroughPwsh.Success,
+            "The ps2exe availability probe must run through $pwsh.Source, the same host the compile imports in.");
+
+        // Refusing has to say where it looked, or the reader repeats the install
+        // that failed. The message keeps the Install-Module line as well, which
+        // BuildScripts_PublishesTheReleaseWithReproducibleProperties pins.
+        Assert.Contains("Module directories searched:", body, StringComparison.Ordinal);
+        Assert.Contains("$env:PSModulePath", body, StringComparison.Ordinal);
+        Assert.Contains("cannot see it.", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PublishFootprint_RecordsTheCompressionDecisionAndItsMeasurements()
     {
         using var budget = JsonDocument.Parse(ReadFile("schemas", "publish-footprint-budget.json"));
