@@ -276,6 +276,35 @@ describe("LibreSpot surface contract", () => {
     expect(extension).toContain("clearRecovery: () => store.discardRecovery()");
   });
 
+  it("retains Marketplace reset recovery before clipboard access and deletion", () => {
+    const extension = readFileSync(
+      resolve(import.meta.dirname, "../src/extensions/librespot-engine.ts"),
+      "utf8",
+    );
+    const health = readFileSync(
+      resolve(import.meta.dirname, "../src/panels/health.ts"),
+      "utf8",
+    );
+    const resetStart = extension.indexOf("async function resetMarketplace()");
+    const resetEnd = extension.indexOf("const runtime:", resetStart);
+    const reset = extension.slice(resetStart, resetEnd);
+
+    expect(reset).toContain("store.writeRecovery(pending)");
+    expect(reset.indexOf("store.writeRecovery(pending)")).toBeLessThan(
+      reset.indexOf("await copyThroughPlatform(file)"),
+    );
+    expect(reset.indexOf("await copyThroughPlatform(file)")).toBeLessThan(
+      reset.indexOf("await marketplaceStore.deleteAll()"),
+    );
+    expect(extension).toContain("restoreRecovery: async ()");
+    expect(extension).toContain("exportRecovery: async ()");
+    expect(extension).toContain("discardRecovery: ()");
+    expect(health).toContain('title: "Durable recovery copy available"');
+    expect(health).toContain('label: "Restore recovery copy"');
+    expect(health).toContain('label: "Export recovery copy"');
+    expect(health).toContain('label: "Dismiss"');
+  });
+
   it("lets duplicate companion loads converge on one ready runtime", () => {
     const extension = readFileSync(
       resolve(import.meta.dirname, "../src/extensions/librespot-engine.ts"),

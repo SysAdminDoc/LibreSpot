@@ -154,6 +154,15 @@ export type LibreSpotRuntimeSnapshot = {
   availableSidebarItems: ArrangementItem[];
   /** Set when the last load found a saved state it could not read. */
   quarantine: { quarantinedAt: string; reason: string } | null;
+  /** A bounded cross-store recovery copy kept outside Marketplace storage. */
+  recovery:
+    | {
+        kind: "restore" | "marketplace-reset";
+        createdAt: string;
+        message: string;
+        incomplete: string[];
+      }
+    | null;
 };
 
 export type LibreSpotRuntimeApi = {
@@ -171,6 +180,9 @@ export type LibreSpotRuntimeApi = {
   copyDiagnostics(): Promise<void>;
   backupState(): Promise<void>;
   restoreState(source: string): Promise<void>;
+  restoreRecovery(): Promise<void>;
+  exportRecovery(): Promise<void>;
+  discardRecovery(): void;
   exportQuarantine(): Promise<void>;
   discardQuarantine(): void;
   resetMarketplaceStorage(): Promise<void>;

@@ -10,6 +10,7 @@ import {
   indexedDbMarketplaceStore,
   parseRestoreSource,
   parseProfile,
+  RECOVERY_RECORD_SCHEMA_VERSION,
   restoreBackupTransaction,
   serializeBackup,
   runSelfTest,
@@ -18,6 +19,7 @@ import {
   type ArrangementItem,
   type FeatureOverrideRuntime,
   type HealthReport,
+  type RecoveryRecord,
   type RouteState,
   type StorageAdapter,
 } from "../core/index.ts";
@@ -390,6 +392,7 @@ async function bootstrap(): Promise<void> {
     const stored = store.load();
     // Read after load(), which is what puts an unreadable state into quarantine.
     let quarantined = store.readQuarantine();
+    let recovery = store.readRecovery();
     let initial = applyDesktopBootstrap(store) ?? stored;
     if (Object.keys(initial.schemes).length === 0) {
       initial = store.save(defaultEngineState());
@@ -495,6 +498,15 @@ async function bootstrap(): Promise<void> {
                 quarantinedAt: quarantined.quarantinedAt,
                 reason: quarantined.reason,
               },
+        recovery:
+          recovery === null
+            ? null
+            : {
+                kind: recovery.kind,
+                createdAt: recovery.createdAt,
+                message: recovery.message,
+                incomplete: [...recovery.incomplete],
+              },
       };
     }
 
@@ -530,6 +542,110 @@ async function bootstrap(): Promise<void> {
     }
 
     const marketplaceStore = indexedDbMarketplaceStore(window.indexedDB);
+
+    function syncRecovery(): void {
+      recovery = store.readRecovery();
+    }
+
+    async function restoreSource(source: string): Promise<void> {
+      try {
+        const restored = parseRestoreSource(source);
+        const result = await restoreBackupTransaction(restored, {
+          engine,
+          marketplaceStore,
+          retainRecovery: (record) => store.writeRecovery(record),
+          clearRecovery: () => store.discardRecovery(),
+        });
+        const { marketplaceCount: count, flagsChanged, flagResult } = result;
+        syncRecovery();
+        refreshArrangements();
+        health = runHealth();
+        emit();
+
+        const message =
+          count > 0
+            ? `Restored this profile and ${count} Marketplace settings. Reload Spotify to see Marketplace pick them up.`
+            : "Restored this profile.";
+        notify(
+          flagsChanged && flagResult === "unavailable"
+            ? `${message} Spotify's live feature API is unavailable, so feature changes will apply after a reload.`
+            : message,
+          flagsChanged && flagResult === "unavailable",
+        );
+      } catch (error) {
+        syncRecovery();
+        emit();
+        const message =
+          error instanceof Error ? error.message : "Restore failed.";
+        notify(message, true);
+      }
+    }
+
+    async function resetMarketplace(): Promise<void> {
+      // Stale records from an older install survive a full Spicetify
+      // reinstall and can put back themes the user removed. Upstream closed
+      // that report as not planned, so the reset lives here.
+      try {
+        const marketplace = await marketplaceStore.readAll();
+        if (!marketplace.available) {
+          notify(
+            "Marketplace's settings could not be read, so nothing was reset. Close any other Spotify window and try again.",
+            true,
+          );
+          return;
+        }
+
+        const createdAt = new Date();
+        const file = serializeBackup(
+          createBackup(engine.state, marketplace.entries, createdAt),
+        );
+        const pending: RecoveryRecord = {
+          schemaVersion: RECOVERY_RECORD_SCHEMA_VERSION,
+          kind: "marketplace-reset",
+          createdAt: createdAt.toISOString(),
+          message: "Marketplace reset recovery copy is pending.",
+          incomplete: ["marketplace"],
+          raw: file,
+        };
+
+        // The owned copy must be verified before clipboard access or deletion.
+        // The Clipboard API is user-controlled and can be replaced immediately.
+        store.writeRecovery(pending);
+        syncRecovery();
+        emit();
+        await copyThroughPlatform(file);
+        await marketplaceStore.deleteAll();
+
+        const count = Object.keys(marketplace.entries).length;
+        const completed: RecoveryRecord = {
+          ...pending,
+          message:
+            "Marketplace storage was reset. Restore or export this copy from Health when you need it.",
+          incomplete: [],
+        };
+        let statusUpdated = true;
+        try {
+          store.writeRecovery(completed);
+        } catch {
+          // The verified pending copy remains usable when storage refuses the
+          // status update after deletion.
+          statusUpdated = false;
+        }
+        syncRecovery();
+        emit();
+        notify(
+          statusUpdated
+            ? `Marketplace storage reset. A durable recovery copy and a clipboard backup hold this profile and ${count} Marketplace settings. Health can restore or export the durable copy.`
+            : `Marketplace storage reset. Health retained the recovery copy, but could not update its status. It can still restore or export ${count} Marketplace settings.`,
+        );
+      } catch (error) {
+        syncRecovery();
+        emit();
+        const message =
+          error instanceof Error ? error.message : "Marketplace reset failed.";
+        notify(message, true);
+      }
+    }
 
     const runtime: LibreSpotRuntimeApi = {
       getSnapshot: snapshot,
@@ -653,37 +769,39 @@ async function bootstrap(): Promise<void> {
           notify(message, true);
         }
       },
-      resetMarketplaceStorage: async () => {
-        // Stale records from an older install survive a full Spicetify
-        // reinstall and can put back themes the user removed. Upstream closed
-        // that report as not planned, so the reset lives here.
+      resetMarketplaceStorage: resetMarketplace,
+      restoreRecovery: async () => {
+        syncRecovery();
+        const retained = recovery;
+        if (retained === null) {
+          notify("There is no durable recovery copy to restore.", true);
+          return;
+        }
+        await restoreSource(retained.raw);
+      },
+      exportRecovery: async () => {
+        syncRecovery();
+        const retained = recovery;
+        if (retained === null) {
+          notify("There is no durable recovery copy to export.", true);
+          return;
+        }
         try {
-          // The backup goes first and a failure stops the reset: wiping the
-          // database with nothing saved is the one outcome nobody wants.
-          const marketplace = await marketplaceStore.readAll();
-          if (!marketplace.available) {
-            notify(
-              "Marketplace's settings could not be read, so nothing was reset. Close any other Spotify window and try again.",
-              true,
-            );
-            return;
-          }
-
-          const file = serializeBackup(
-            createBackup(engine.state, marketplace.entries, new Date()),
-          );
-          await copyThroughPlatform(file);
-
-          await marketplaceStore.deleteAll();
-          const count = Object.keys(marketplace.entries).length;
+          await copyThroughPlatform(retained.raw);
           notify(
-            `Marketplace storage reset. A backup of this profile and ${count} Marketplace settings is on the clipboard; paste it into a file before reloading Spotify.`,
+            "Recovery copy copied. Save it as a LibreSpot backup file; Health will keep its own copy until you restore or dismiss it.",
           );
         } catch (error) {
           const message =
-            error instanceof Error ? error.message : "Marketplace reset failed.";
+            error instanceof Error ? error.message : "Recovery export failed.";
           notify(message, true);
         }
+      },
+      discardRecovery: () => {
+        store.discardRecovery();
+        recovery = null;
+        emit();
+        notify("Recovery copy dismissed.");
       },
       exportQuarantine: async () => {
         const kept = store.readQuarantine();
@@ -708,36 +826,7 @@ async function bootstrap(): Promise<void> {
         emit();
         notify("Recovered state discarded.");
       },
-      restoreState: async (source) => {
-        try {
-          const restored = parseRestoreSource(source);
-          const result = await restoreBackupTransaction(restored, {
-            engine,
-            marketplaceStore,
-            retainRecovery: (record) => store.writeRecovery(record),
-            clearRecovery: () => store.discardRecovery(),
-          });
-          const { marketplaceCount: count, flagsChanged, flagResult } = result;
-          refreshArrangements();
-          health = runHealth();
-          emit();
-
-          const message =
-            count > 0
-              ? `Restored this profile and ${count} Marketplace settings. Reload Spotify to see Marketplace pick them up.`
-              : "Restored this profile.";
-          notify(
-            flagsChanged && flagResult === "unavailable"
-              ? `${message} Spotify's live feature API is unavailable, so feature changes will apply after a reload.`
-              : message,
-            flagsChanged && flagResult === "unavailable",
-          );
-        } catch (error) {
-          const message =
-            error instanceof Error ? error.message : "Restore failed.";
-          notify(message, true);
-        }
-      },
+      restoreState: restoreSource,
       reportError: (message) => {
         notify(message, true);
       },

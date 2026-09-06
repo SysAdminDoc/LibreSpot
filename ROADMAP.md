@@ -6,13 +6,6 @@ Incomplete, implementer-actionable work only. Operator-dependent decisions remai
 
 ### P1: Now
 
-- [ ] P1: RD-229. Retain a durable recovery record before resetting Marketplace
-  Why: Impact 5/5. Reset deletes data after a clipboard copy, but replacing the clipboard removes the only reset recovery artifact.
-  Evidence: RESEARCH.md; src/LibreSpot.App/src/extensions/librespot-engine.ts resetMarketplaceStorage; Syncify's retained-backup precedent.
-  Touches: Component core/backup.ts and store.ts; resetMarketplaceStorage; Health recovery controls; backup and surface tests.
-  Acceptance: Persist and read back an owned recovery record outside the namespace being reset before deletion. Failure to retain it stops reset. After reset, replace the clipboard and recreate the runtime; Health must still restore or export the record. Bound retained copies and retain them until successful replacement or explicit dismissal. Integrate both Marketplace backends when RD-235 lands.
-  Complexity: M
-
 - [ ] P1: RD-230. Serialize mutating operations across all LibreSpot hosts
   Why: Impact 5/5. Desktop, CLI and watcher can modify the same per-user installation concurrently; task IgnoreNew only excludes another instance of that task.
   Evidence: RESEARCH.md; src/powershell/backend/lane-functions.ps1 watcher; existing locks cover narrower profile/undo/in-process boundaries.

@@ -15,6 +15,7 @@ import {
 import {
   ENGINE_STORAGE_KEY,
   EngineStore,
+  MAX_RECOVERY_RECORD_BYTES,
   type RecoveryRecord,
   type StorageAdapter,
 } from "../src/core/store.ts";
@@ -472,6 +473,54 @@ describe("backup", () => {
     expect(parseRestoreSource(recovery?.raw ?? "").engine).toEqual(before);
     expect(new EngineStore(storage).load()).toEqual(before);
     expect(entries).toEqual({ existing: "before", introduced: true });
+  });
+
+  it("keeps a bounded recovery record outside the engine and Marketplace stores", () => {
+    const storage = memoryStorage();
+    const before = stateFixture(new Date("2026-09-03T10:00:00.000Z"));
+    storage.set(ENGINE_STORAGE_KEY, JSON.stringify(before));
+    const raw = serializeBackup(
+      createBackup(before, { "marketplace:active-tab": "Themes" }, new Date("2026-09-03T11:00:00.000Z")),
+    );
+    const record: RecoveryRecord = {
+      schemaVersion: 1,
+      kind: "marketplace-reset",
+      createdAt: "2026-09-03T11:00:00.000Z",
+      message: "Marketplace storage was reset.",
+      incomplete: [],
+      raw,
+    };
+    const store = new EngineStore(storage);
+
+    store.writeRecovery(record);
+    expect(new EngineStore(storage).readRecovery()).toEqual(record);
+    expect(new EngineStore(storage).load()).toEqual(before);
+
+    store.discardRecovery();
+    expect(new EngineStore(storage).readRecovery()).toBeNull();
+    expect(new EngineStore(storage).load()).toEqual(before);
+  });
+
+  it("refuses an oversized recovery record without replacing the retained copy", () => {
+    const storage = memoryStorage();
+    const store = new EngineStore(storage);
+    const retained: RecoveryRecord = {
+      schemaVersion: 1,
+      kind: "marketplace-reset",
+      createdAt: "2026-09-03T11:00:00.000Z",
+      message: "Retained copy.",
+      incomplete: [],
+      raw: "{}",
+    };
+    store.writeRecovery(retained);
+
+    expect(() =>
+      store.writeRecovery({
+        ...retained,
+        raw: "x".repeat(MAX_RECOVERY_RECORD_BYTES),
+      }),
+    ).toThrow(/exceeds/);
+    expect(new EngineStore(storage).readRecovery()).toEqual(retained);
   });
 });
 

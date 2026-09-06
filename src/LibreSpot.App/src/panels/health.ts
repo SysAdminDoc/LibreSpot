@@ -240,6 +240,47 @@ export function HealthPanel(properties: PanelProperties): UiNode {
           ),
         })
       : null,
+    properties.snapshot.recovery
+      ? Section({
+          title: "Durable recovery copy available",
+          description: `${properties.snapshot.recovery.kind === "marketplace-reset" ? "Marketplace reset" : "Restore"} recovery was saved on ${new Date(properties.snapshot.recovery.createdAt).toLocaleString()}. ${properties.snapshot.recovery.message}`,
+          children: h(
+            "div",
+            { className: "librespot-repair-callout" },
+            h(
+              "p",
+              null,
+              properties.snapshot.recovery.incomplete.length > 0
+                ? `The last operation is incomplete for ${properties.snapshot.recovery.incomplete.join(" and ")}. This copy is stored with LibreSpot, so it survives a replaced clipboard and a fresh Spotify runtime.`
+                : "This copy is stored with LibreSpot, so it survives a replaced clipboard and a fresh Spotify runtime. Keep it until you restore it or dismiss it.",
+            ),
+            h(
+              "div",
+              { className: "librespot-health-actions" },
+              ActionButton({
+                label: "Restore recovery copy",
+                onClick: () => {
+                  void properties.runtime.restoreRecovery();
+                },
+              }),
+              ActionButton({
+                label: "Export recovery copy",
+                secondary: true,
+                onClick: () => {
+                  void properties.runtime.exportRecovery();
+                },
+              }),
+              ActionButton({
+                label: "Dismiss",
+                secondary: true,
+                onClick: () => {
+                  properties.runtime.discardRecovery();
+                },
+              }),
+            ),
+          ),
+        })
+      : null,
     Section({
       title: "Back up and restore",
       description:
@@ -255,7 +296,7 @@ export function HealthPanel(properties: PanelProperties): UiNode {
         h(
           "p",
           null,
-          "Reset Marketplace storage takes that same backup first, then clears Marketplace's own database. Use it when a theme you removed keeps coming back, or when Marketplace refuses to uninstall one.",
+          "Reset Marketplace storage saves a durable copy before clearing Marketplace's own database. Use it when a theme you removed keeps coming back, or when Marketplace refuses to uninstall one. The copy stays in Health even if the clipboard changes.",
         ),
         h(
           "div",
