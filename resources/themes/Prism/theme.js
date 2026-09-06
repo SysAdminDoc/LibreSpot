@@ -18,8 +18,6 @@
     Spicetify.Platform &&
     Spicetify.LocalStorage &&
     Spicetify.colorExtractor &&
-    Spicetify.React &&
-    Spicetify.ReactDOM &&
     Spicetify.Menu &&
     Spicetify.PopupModal &&
     document.querySelector(".Root__main-view");

@@ -1591,7 +1591,7 @@ $global:BundledThemes = [ordered]@{
         Description = 'The LibreSpot house theme. Scheduled light and dark, an accent taken from the album art, and effects that step down on slow machines.'
         Files       = [ordered]@{
             'color.ini' = 'bacd6b54c170600488b79f310dd4f41a349db81c3cfdccd43c38be2d898b17bc'
-            'theme.js'  = 'ce3f68817a0b7ed542960089d3bcecfd0f5108df3dd32ad55d66c97b25aab7eb'
+            'theme.js'  = '9355ada53465cbcaed8894a35bef95db19b759330527e8d909ea7394ce154293'
             'user.css'  = '05dce4408a12742388d9a20c3d8c1b7b36629c584a9e96774d3f6ded16700025'
         }
     }
