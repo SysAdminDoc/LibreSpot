@@ -2220,6 +2220,229 @@ function Enter-LibreSpotProfileActivationLock {
     }
 }
 
+function Enter-LibreSpotMutationLease {
+    [CmdletBinding()]
+    param(
+        [string]$Label = 'LibreSpot mutation',
+        [ValidateRange(1, 3600)][int]$TimeoutSeconds = 30,
+        [ValidateRange(10, 5000)][int]$RetryMilliseconds = 100
+    )
+
+    $targetValues = @(
+        [string]$global:SPOTIFY_EXE_PATH
+        [string]$global:SPICETIFY_DIR
+        [string]$global:SPICETIFY_CONFIG_DIR
+    )
+    if ($targetValues.Count -ne 3 -or @($targetValues | Where-Object { [string]::IsNullOrWhiteSpace($_) }).Count -ne 0) {
+        throw 'LibreSpot could not resolve the canonical Spotify and Spicetify mutation targets.'
+    }
+
+    $canonicalTargets = @($targetValues | ForEach-Object {
+        $expanded = [Environment]::ExpandEnvironmentVariables($_.Trim())
+        try {
+            [System.IO.Path]::GetFullPath($expanded).TrimEnd([char[]]@('\', '/')).ToUpperInvariant()
+        } catch {
+            throw "LibreSpot could not canonicalize a mutation target: $expanded"
+        }
+    } | Sort-Object -Unique)
+    $userIdentity = $null
+    try { $userIdentity = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value } catch {}
+    if ([string]::IsNullOrWhiteSpace($userIdentity)) {
+        $userIdentity = if ($env:USERDOMAIN -and $env:USERDOMAIN -ne $env:COMPUTERNAME) {
+            "$env:USERDOMAIN\$env:USERNAME"
+        } else { $env:USERNAME }
+    }
+    $targetIdentity = "LibreSpotMutationLease/v1|user=$userIdentity|targets=$($canonicalTargets -join '|')"
+
+    $hash = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $digest = $hash.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($targetIdentity))
+    } finally {
+        $hash.Dispose()
+    }
+    $fileName = ([System.BitConverter]::ToString($digest)).Replace('-', '').ToLowerInvariant() + '.lock'
+    $leaseRoot = Join-Path $env:LOCALAPPDATA 'LibreSpot\mutation-leases'
+    if (-not (Test-Path -LiteralPath $leaseRoot -PathType Container)) {
+        New-Item -Path $leaseRoot -ItemType Directory -Force -ErrorAction Stop | Out-Null
+    }
+    $leasePath = Join-Path $leaseRoot $fileName
+
+    if ($null -eq $global:LibreSpotMutationLeases) {
+        $global:LibreSpotMutationLeases = @{}
+    }
+    $existing = $global:LibreSpotMutationLeases[$leasePath]
+    if ($null -ne $existing) {
+        $existing.Depth = [int]$existing.Depth + 1
+        return [pscustomobject]@{ Key = $leasePath; Reentrant = $true; Label = $Label }
+    }
+
+    $readOwner = {
+        param([string]$Path)
+        try {
+            if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return $null }
+            $raw = [System.IO.File]::ReadAllText($Path)
+            if ([string]::IsNullOrWhiteSpace($raw)) { return $null }
+            return ($raw | ConvertFrom-Json -ErrorAction Stop)
+        } catch {
+            return $null
+        }
+    }
+    $hasLiveDescendant = {
+        param([int]$RootPid)
+        try {
+            $processes = @(Get-CimInstance -ClassName Win32_Process -ErrorAction Stop | Select-Object ProcessId, ParentProcessId)
+        } catch {
+            return $false
+        }
+        $pending = New-Object 'System.Collections.Generic.Queue[int]'
+        $seen = New-Object 'System.Collections.Generic.HashSet[int]'
+        $pending.Enqueue($RootPid)
+        $null = $seen.Add($RootPid)
+        while ($pending.Count -gt 0) {
+            $parent = $pending.Dequeue()
+            foreach ($candidate in $processes) {
+                if ([int]$candidate.ParentProcessId -eq $parent -and $seen.Add([int]$candidate.ProcessId)) {
+                    return $true
+                }
+            }
+        }
+        return $false
+    }
+
+    $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
+    $stream = $null
+    while ($null -eq $stream) {
+        $owner = & $readOwner $leasePath
+        $ownerPid = 0
+        [DateTime]$ownerStart = [DateTime]::MinValue
+        $ownerTimestampValid = $false
+        try {
+            $ownerStart = [DateTime]::Parse([string]$owner.startedAtUtc, [System.Globalization.CultureInfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::RoundtripKind)
+            $ownerTimestampValid = $true
+        } catch {}
+        if ($owner -and [int]::TryParse([string]$owner.pid, [ref]$ownerPid) -and $ownerTimestampValid) {
+            $ownerMatches = $false
+            $ownerAlive = $false
+            try {
+                $ownerProcess = Get-Process -Id $ownerPid -ErrorAction Stop
+                $ownerMatches = [Math]::Abs(($ownerProcess.StartTime.ToUniversalTime() - $ownerStart.ToUniversalTime()).TotalSeconds) -le 5
+                $ownerAlive = $ownerMatches
+            } catch {
+                $ownerMatches = $true
+            }
+            if ($ownerMatches -and -not $ownerAlive -and (& $hasLiveDescendant $ownerPid)) {
+                if ([DateTime]::UtcNow -ge $deadline) {
+                    throw "LIBRESPOT_MUTATION_BUSY: Another LibreSpot operation left installer descendants running for '$Label'. The operation was deferred without changing Spotify or Spicetify."
+                }
+                Start-Sleep -Milliseconds $RetryMilliseconds
+                continue
+            }
+        }
+
+        try {
+            $stream = [System.IO.File]::Open(
+                $leasePath,
+                [System.IO.FileMode]::OpenOrCreate,
+                [System.IO.FileAccess]::ReadWrite,
+                [System.IO.FileShare]::None)
+        } catch [System.IO.IOException] {
+            if ([DateTime]::UtcNow -ge $deadline) {
+                throw "LIBRESPOT_MUTATION_BUSY: Another LibreSpot operation is using the canonical Spotify and Spicetify installation. '$Label' was deferred without changing Spotify or Spicetify."
+            }
+            Start-Sleep -Milliseconds $RetryMilliseconds
+        } catch {
+            throw "LibreSpot could not open its per-user mutation lease: $($_.Exception.Message)"
+        }
+
+        # The owner can terminate after the pre-open check and before the OS
+        # releases its handle. Re-read the marker through our exclusive handle
+        # so an installer child still writing for that owner cannot be bypassed.
+        if ($stream) {
+            $postOpenOwner = $null
+            try {
+                $stream.Position = 0
+                $reader = [System.IO.StreamReader]::new($stream, [System.Text.Encoding]::UTF8, $true, 1024, $true)
+                try {
+                    $postOpenRaw = $reader.ReadToEnd()
+                } finally {
+                    $reader.Dispose()
+                }
+                if (-not [string]::IsNullOrWhiteSpace($postOpenRaw)) {
+                    $postOpenOwner = $postOpenRaw | ConvertFrom-Json -ErrorAction Stop
+                }
+            } catch {
+                $postOpenOwner = $null
+            }
+            $postOpenPid = 0
+            [DateTime]$postOpenStart = [DateTime]::MinValue
+            $postOpenTimestampValid = $false
+            try {
+                $postOpenStart = [DateTime]::Parse([string]$postOpenOwner.startedAtUtc, [System.Globalization.CultureInfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::RoundtripKind)
+                $postOpenTimestampValid = $true
+            } catch {}
+            if ($postOpenOwner -and [int]::TryParse([string]$postOpenOwner.pid, [ref]$postOpenPid) -and $postOpenTimestampValid) {
+                $postOpenMatches = $false
+                $postOpenAlive = $false
+                try {
+                    $postOpenProcess = Get-Process -Id $postOpenPid -ErrorAction Stop
+                    $postOpenMatches = [Math]::Abs(($postOpenProcess.StartTime.ToUniversalTime() - $postOpenStart.ToUniversalTime()).TotalSeconds) -le 5
+                    $postOpenAlive = $postOpenMatches
+                } catch {
+                    $postOpenMatches = $true
+                }
+                if ($postOpenMatches -and -not $postOpenAlive -and (& $hasLiveDescendant $postOpenPid)) {
+                    $stream.Dispose()
+                    $stream = $null
+                    if ([DateTime]::UtcNow -ge $deadline) {
+                        throw "LIBRESPOT_MUTATION_BUSY: Another LibreSpot operation left installer descendants running for '$Label'. The operation was deferred without changing Spotify or Spicetify."
+                    }
+                    Start-Sleep -Milliseconds $RetryMilliseconds
+                }
+            }
+        }
+    }
+
+    try {
+        $ownerRecord = [ordered]@{
+            schemaVersion = 1
+            pid = [int]$PID
+            startedAtUtc = (Get-Process -Id $PID -ErrorAction Stop).StartTime.ToUniversalTime().ToString('o')
+            targetIdentity = $targetIdentity
+            label = [string]$Label
+        }
+        $ownerBytes = [System.Text.Encoding]::UTF8.GetBytes(($ownerRecord | ConvertTo-Json -Compress))
+        $stream.SetLength(0)
+        $stream.Position = 0
+        $stream.Write($ownerBytes, 0, $ownerBytes.Length)
+        $stream.Flush()
+    } catch {
+        try { $stream.Dispose() } catch {}
+        throw "LibreSpot could not publish its mutation lease owner record: $($_.Exception.Message)"
+    }
+
+    $global:LibreSpotMutationLeases[$leasePath] = [pscustomobject]@{ Stream = $stream; Depth = 1 }
+    return [pscustomobject]@{ Key = $leasePath; Reentrant = $false; Label = $Label }
+}
+
+function Exit-LibreSpotMutationLease {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)]$Lease)
+
+    if ($null -eq $global:LibreSpotMutationLeases -or $null -eq $Lease -or [string]::IsNullOrWhiteSpace([string]$Lease.Key)) {
+        return
+    }
+    $state = $global:LibreSpotMutationLeases[[string]$Lease.Key]
+    if ($null -eq $state) {
+        return
+    }
+    $state.Depth = [int]$state.Depth - 1
+    if ($state.Depth -gt 0) {
+        return
+    }
+    $global:LibreSpotMutationLeases.Remove([string]$Lease.Key)
+    try { $state.Stream.Dispose() } catch {}
+}
+
 function Write-LibreSpotFileDurable {
     param([Parameter(Mandatory)][string]$Path, [AllowEmptyString()][string]$Content)
 
@@ -12147,6 +12370,8 @@ $installBlock = { param($sh,$cfg)
     $script:syncHash = $sh
     $ErrorActionPreference = 'Stop'
     try {
+        $mutationLease = Enter-LibreSpotMutationLease -Label 'standalone install'
+        try {
         $v3Conflict = Get-SpicetifyV3Conflict
         if ($v3Conflict.IsConflict) {
             throw $v3Conflict.Message
@@ -12250,9 +12475,15 @@ $installBlock = { param($sh,$cfg)
             'LibreSpot finished applying your selected setup. You can close the window or copy the detailed log for reference.'
         }
         $sh.Dispatcher.Invoke([Action]{ $sh.ProgressBar.Value=100; $sh.StatusLabel.Text=$installDoneTitle; $sh.StepLabel.Text=$finalStep; $sh.InstallTitle.Text=$installDoneTitle; $sh.InstallContext.Text=$installDoneContext; $sh.CloseBtn.Visibility="Visible"; $sh.BackBtn.Visibility="Visible"; $sh.CopyLogBtn.Tag="Copy full log"; $sh.CopyLogBtn.Content="Copy full log"; $sh.CopyLogBtn.Visibility="Visible"; if($sh.TitleCloseBtn){$sh.TitleCloseBtn.ToolTip="Close LibreSpot"}; if($sh.MinimizeBtn){$sh.MinimizeBtn.ToolTip="Minimize"}; if($sh.Timer){$sh.Timer.Stop()}; $sh.Window.Topmost=$false; $sh.Window.Activate(); try{[Win32]::FlashTaskbar($sh.WindowHandle)}catch{} })
+        } finally {
+            Exit-LibreSpotMutationLease -Lease $mutationLease
+        }
     } catch { $sh.IsRunning=$false; $em=$_.Exception.Message; $st=$_.ScriptStackTrace
-        try { Complete-OperationJournalRun -Result 'Failed' -Message $em } catch {}
-        try { Write-Log "[FATAL] $em`n$st" -Level 'ERROR' } catch {}
+        $isMutationBusy = $em -like 'LIBRESPOT_MUTATION_BUSY:*'
+        if (-not $isMutationBusy) {
+            try { Complete-OperationJournalRun -Result 'Failed' -Message $em } catch {}
+            try { Write-Log "[FATAL] $em`n$st" -Level 'ERROR' } catch {}
+        }
         $sh.Dispatcher.Invoke([Action]{ if($sh.Timer){$sh.Timer.Stop()}; $sh.LogBlock.Text+="`n[FATAL] $em`n$st"; $sh.StatusLabel.Text="Setup stopped"
             $sh.StepLabel.Text="Needs attention"; $sh.InstallTitle.Text='Setup needs attention'; $sh.InstallContext.Text='LibreSpot stopped before the install finished. Review the log below, then go back to setup or copy the details if you want to troubleshoot.'; $sh.ProgressBar.Foreground=$global:BrushError; $sh.ProgressBar.Value=100; $sh.CloseBtn.Visibility="Visible"; $sh.BackBtn.Visibility="Visible"; $sh.CopyLogBtn.Tag="Copy full log"; $sh.CopyLogBtn.Content="Copy full log"; $sh.CopyLogBtn.Visibility="Visible"; if($sh.TitleCloseBtn){$sh.TitleCloseBtn.ToolTip="Close LibreSpot"}; if($sh.MinimizeBtn){$sh.MinimizeBtn.ToolTip="Minimize"}; $sh.Window.Topmost=$false; $sh.Window.Activate(); try{[Win32]::FlashTaskbar($sh.WindowHandle)}catch{} })
     }
@@ -12262,6 +12493,10 @@ $maintBlock = { param($sh,$action)
     $script:syncHash = $sh
     $ErrorActionPreference = 'Stop'
     try {
+        $mutationLease = if ($action -notin @('CheckUpdates', 'OpenMarketplace')) {
+            Enter-LibreSpotMutationLease -Label "standalone maintenance: $action"
+        } else { $null }
+        try {
         if ($action -in @('Reapply', 'RepairMarketplace', 'RestoreMarketplaceState', 'RestoreBackup', 'CreateBackup')) {
             $v3Conflict = Get-SpicetifyV3Conflict
             if ($v3Conflict.IsConflict) {
@@ -12409,9 +12644,15 @@ $maintBlock = { param($sh,$action)
         }
         $sh.Dispatcher.Invoke([Action]{ $sh.ProgressBar.Value=100; $sh.StatusLabel.Text=$doneStatus; $sh.StepLabel.Text=$doneStep; $sh.InstallTitle.Text=$doneStatus; $sh.InstallContext.Text=$doneContext
             $sh.CloseBtn.Visibility="Visible"; $sh.BackBtn.Visibility="Visible"; $sh.CopyLogBtn.Tag="Copy full log"; $sh.CopyLogBtn.Content="Copy full log"; $sh.CopyLogBtn.Visibility="Visible"; if($sh.TitleCloseBtn){$sh.TitleCloseBtn.ToolTip="Close LibreSpot"}; if($sh.MinimizeBtn){$sh.MinimizeBtn.ToolTip="Minimize"}; if($sh.Timer){$sh.Timer.Stop()}; $sh.Window.Topmost=$false; $sh.Window.Activate(); try{[Win32]::FlashTaskbar($sh.WindowHandle)}catch{} })
+        } finally {
+            if ($mutationLease) { Exit-LibreSpotMutationLease -Lease $mutationLease }
+        }
     } catch { $sh.IsRunning=$false; $em=$_.Exception.Message; $st=$_.ScriptStackTrace
-        try { Complete-OperationJournalRun -Result 'Failed' -Message $em } catch {}
-        try { Write-Log "[FATAL] $em`n$st" -Level 'ERROR' } catch {}
+        $isMutationBusy = $em -like 'LIBRESPOT_MUTATION_BUSY:*'
+        if (-not $isMutationBusy) {
+            try { Complete-OperationJournalRun -Result 'Failed' -Message $em } catch {}
+            try { Write-Log "[FATAL] $em`n$st" -Level 'ERROR' } catch {}
+        }
         $sh.Dispatcher.Invoke([Action]{ if($sh.Timer){$sh.Timer.Stop()}; $sh.LogBlock.Text+="`n[FATAL] $em`n$st"; $sh.StatusLabel.Text="Maintenance stopped"; $sh.StepLabel.Text="Needs attention"; $sh.InstallTitle.Text='Maintenance needs attention'; $sh.InstallContext.Text='LibreSpot stopped before the maintenance action finished. Review the live log below, then go back when you are ready to try again.'
             $sh.ProgressBar.Foreground=$global:BrushError; $sh.ProgressBar.Value=100; $sh.CloseBtn.Visibility="Visible"; $sh.BackBtn.Visibility="Visible"; $sh.CopyLogBtn.Tag="Copy full log"; $sh.CopyLogBtn.Content="Copy full log"; $sh.CopyLogBtn.Visibility="Visible"; if($sh.TitleCloseBtn){$sh.TitleCloseBtn.ToolTip="Close LibreSpot"}; if($sh.MinimizeBtn){$sh.MinimizeBtn.ToolTip="Minimize"}; $sh.Window.Topmost=$false; $sh.Window.Activate(); try{[Win32]::FlashTaskbar($sh.WindowHandle)}catch{} })
     }
@@ -12424,7 +12665,7 @@ $functionNamesForWorker = @(
     'ConvertTo-PlainHashtable','ConvertTo-ConfigBoolean','ConvertTo-ConfigInt','Get-LibreSpotConfigSchemaVersion','Assert-LibreSpotConfigSchemaSupported','Normalize-LibreSpotConfig','Move-ConfigFileToQuarantine',
     'Get-LibreSpotTempRoot','New-LibreSpotTempFile','New-SpotXCustomPatchesFile','New-LibreSpotTempDirectory',
     'Update-UI','Write-Log','Write-OperationJournalEntry','Start-OperationJournalRun','Complete-OperationJournalRun','Download-FileSafe','Get-DownloadFailureHint','Get-NetworkDiagnosticCode','Get-NetworkPreflightStatus','Get-DownloaderCveExposure','Write-DownloaderCveWarningIfNeeded','Get-PowerShell7SecurityFloorStatus','Write-PowerShell7SecurityFloorWarningIfNeeded','Get-PowerShellSecurityContext','Write-PowerShellSecurityContext','Test-IsLanguageModeOrAppControlError','Get-QuarantineGuidance','Assert-LibreSpotExternalScriptDefenderPolicy','Open-VerifiedScriptForExecution','Get-FileSha256Lower','Confirm-FileHash','Update-AssetCacheIndexEntry','Save-ToAssetCache','Get-FromAssetCache','Clear-LibreSpotCache','Expand-ArchiveSafely','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Read-ProcessOutputDelta','Test-NetworkReady','Invoke-GitHubApiSafe','Check-ForUpdates','Compare-LibreSpotVersions','Get-LibreSpotCurrentSpotifyTarget','Get-LibreSpotCompatibilityWarnings','Write-LibreSpotCompatibilityMatrix',
-    'Get-SpotXChildFailureClassification','Get-SpotXDownloadRetryPlan','Stop-SpotifyProcesses','Unlock-SpotifyUpdateFolder','Get-DesktopPath','Test-SafeRemovalTarget','Clear-DirectoryContentsSafely','Remove-PathSafely',
+    'Get-SpotXChildFailureClassification','Get-SpotXDownloadRetryPlan','Stop-SpotifyProcesses','Unlock-SpotifyUpdateFolder','Get-DesktopPath','Test-SafeRemovalTarget','Clear-DirectoryContentsSafely','Remove-PathSafely','Enter-LibreSpotMutationLease','Exit-LibreSpotMutationLease',
     'Get-SpicetifyIntegrationContext','Get-SpicetifyV3Conflict','Get-SpicetifyConfigEntries','Get-SpicetifyConfigListValue','Get-SpicetifyApplyPlan','Get-MarketplaceHealth','ConvertTo-NativeArgumentString','Remove-ConsoleEscapeSequences','Update-SpicetifyCliProgress','Write-SpicetifyCliOutputLine','Invoke-SpicetifyCli','Sync-SpicetifyListSetting','Copy-DirectorySnapshotSafely',
     'Test-SpicetifyCliInstalled','Restore-SpotifyIfSpicetifyPresent','Get-SpicetifyDiagnosticSnapshot','Reapply-SavedSpicetifySetup',
     'Get-SpicetifyAttestationVerdict','Test-SpicetifyCliAttestation',
@@ -12584,8 +12825,23 @@ if ($script:CliClean) {
 # (the self-elevation gate skips -watch) and exits before ShowDialog.
 if ($script:CliWatch) {
     $code = 0
+    $runWatcherTick = {
+        $lease = $null
+        try {
+            $lease = Enter-LibreSpotMutationLease -Label 'standalone watcher reapply'
+            return (Invoke-AutoReapplyWatcher)
+        } finally {
+            if ($lease) { Exit-LibreSpotMutationLease -Lease $lease }
+        }
+    }
     try {
-        $code = Invoke-AutoReapplyWatcher
+        try { $code = & $runWatcherTick }
+        catch {
+            if ($_.Exception.Message -like 'LIBRESPOT_MUTATION_BUSY:*') {
+                Write-WatcherLog 'Mutation lease busy; watcher reapply was deferred until the other operation finishes.' -Level 'WARN'
+                $code = 0
+            } else { throw }
+        }
         # The scheduled repeat is every 30 minutes. Rather than sleep through it,
         # stay and watch Spotify's own folders so an update that lands a minute
         # after this tick is reapplied in about a minute instead of half an hour.
@@ -12595,8 +12851,16 @@ if ($script:CliWatch) {
             $remaining = [int]([Math]::Max(0, ($watchDeadline - (Get-Date)).TotalSeconds))
             if ($remaining -le 0) { break }
             if (-not (Wait-SpotifyChangeSignal -TimeoutSeconds $remaining)) { break }
-            try { $code = Invoke-AutoReapplyWatcher }
-            catch { Write-WatcherLog "Fatal: $($_.Exception.Message)" -Level 'ERROR'; $code = 1 }
+            try { $code = & $runWatcherTick }
+            catch {
+                if ($_.Exception.Message -like 'LIBRESPOT_MUTATION_BUSY:*') {
+                    Write-WatcherLog 'Mutation lease busy; watcher reapply was deferred until the other operation finishes.' -Level 'WARN'
+                    $code = 0
+                } else {
+                    Write-WatcherLog "Fatal: $($_.Exception.Message)" -Level 'ERROR'
+                    $code = 1
+                }
+            }
         }
     }
     catch { Write-WatcherLog "Fatal: $($_.Exception.Message)" -Level 'ERROR'; $code = 1 }

@@ -67,6 +67,8 @@ BeforeAll {
         'Copy-DirectorySnapshotSafely'
         'Merge-DirectorySnapshotMissingFiles'
         'Get-LibreSpotTempRoot'
+        'Enter-LibreSpotMutationLease'
+        'Exit-LibreSpotMutationLease'
         'Expand-ArchiveSafely'
         'Export-MarketplaceState'
         'Restore-MarketplaceState'
@@ -3943,5 +3945,182 @@ Describe 'Check-ForUpdates when GitHub cannot be reached' {
         $success = @($script:updLog | Where-Object { $_.Level -eq 'SUCCESS' })
         $success.Count | Should -Be 1
         $success[0].Message | Should -Match 'All dependencies and compatibility baselines are up to date'
+    }
+}
+
+# =============================================================================
+# Shared mutation lease
+# =============================================================================
+Describe 'Shared mutation lease' {
+    BeforeAll {
+        $script:leaseSource = Get-Content -Path $mainScript -Raw
+        $script:leaseEnter = Extract-FunctionBlock $script:leaseSource 'Enter-LibreSpotMutationLease'
+        $script:leaseExit = Extract-FunctionBlock $script:leaseSource 'Exit-LibreSpotMutationLease'
+    }
+
+    It 'is reentrant within one PowerShell runspace' {
+        $global:SPOTIFY_EXE_PATH = Join-Path $TestDrive 'Spotify\Spotify.exe'
+        $global:SPICETIFY_DIR = Join-Path $TestDrive 'Local\spicetify'
+        $global:SPICETIFY_CONFIG_DIR = Join-Path $TestDrive 'Roaming\spicetify'
+        $global:LibreSpotMutationLeases = $null
+
+        $outer = Enter-LibreSpotMutationLease -Label 'outer' -TimeoutSeconds 2
+        try {
+            $inner = Enter-LibreSpotMutationLease -Label 'inner' -TimeoutSeconds 2
+            try {
+                $inner.Reentrant | Should -BeTrue
+                $global:LibreSpotMutationLeases[$outer.Key].Depth | Should -Be 2
+            } finally {
+                Exit-LibreSpotMutationLease -Lease $inner
+            }
+            $global:LibreSpotMutationLeases[$outer.Key].Depth | Should -Be 1
+        } finally {
+            Exit-LibreSpotMutationLease -Lease $outer
+        }
+        $global:LibreSpotMutationLeases.Count | Should -Be 0
+    }
+
+    It 'reports busy to a second host without allowing its operation to run' {
+        $root = Join-Path $TestDrive 'cross-host'
+        $targetSpotify = Join-Path $root 'Spotify\Spotify.exe'
+        $targetSpicetify = Join-Path $root 'Local\spicetify'
+        $targetConfig = Join-Path $root 'Roaming\spicetify'
+        $signal = Join-Path $root 'owner.acquired'
+        $contenderResult = Join-Path $root 'contender.result'
+        $separateRoot = Join-Path $TestDrive 'separate-installation'
+        $separateResult = Join-Path $separateRoot 'separate.result'
+        New-Item -Path $root -ItemType Directory -Force | Out-Null
+        New-Item -Path $separateRoot -ItemType Directory -Force | Out-Null
+
+        $quote = { param([string]$Text) $Text.Replace("'", "''") }
+        $ownerScript = Join-Path $root 'owner.ps1'
+        $ownerBody = @"
+$script:leaseEnter
+$script:leaseExit
+`$global:SPOTIFY_EXE_PATH = '$(& $quote $targetSpotify)'
+`$global:SPICETIFY_DIR = '$(& $quote $targetSpicetify)'
+`$global:SPICETIFY_CONFIG_DIR = '$(& $quote $targetConfig)'
+`$lease = Enter-LibreSpotMutationLease -Label 'owner' -TimeoutSeconds 5
+try {
+    [System.IO.File]::WriteAllText('$(& $quote $signal)', 'owner')
+    Start-Sleep -Milliseconds 1800
+} finally {
+    Exit-LibreSpotMutationLease -Lease `$lease
+}
+"@
+        Set-Content -LiteralPath $ownerScript -Value $ownerBody -Encoding UTF8
+
+        $contenderScript = Join-Path $root 'contender.ps1'
+        $contenderBody = @"
+$script:leaseEnter
+$script:leaseExit
+`$global:SPOTIFY_EXE_PATH = '$(& $quote $targetSpotify)'
+`$global:SPICETIFY_DIR = '$(& $quote $targetSpicetify)'
+`$global:SPICETIFY_CONFIG_DIR = '$(& $quote $targetConfig)'
+try {
+    `$lease = Enter-LibreSpotMutationLease -Label 'contender' -TimeoutSeconds 1 -RetryMilliseconds 50
+    [System.IO.File]::WriteAllText('$(& $quote $contenderResult)', 'acquired')
+    Exit-LibreSpotMutationLease -Lease `$lease
+} catch {
+    [System.IO.File]::WriteAllText('$(& $quote $contenderResult)', `$_.Exception.Message)
+}
+"@
+        Set-Content -LiteralPath $contenderScript -Value $contenderBody -Encoding UTF8
+
+        $separateScript = Join-Path $root 'separate.ps1'
+        $separateBody = @"
+$script:leaseEnter
+$script:leaseExit
+`$global:SPOTIFY_EXE_PATH = '$(& $quote (Join-Path $separateRoot 'Spotify\Spotify.exe'))'
+`$global:SPICETIFY_DIR = '$(& $quote (Join-Path $separateRoot 'Local\spicetify'))'
+`$global:SPICETIFY_CONFIG_DIR = '$(& $quote (Join-Path $separateRoot 'Roaming\spicetify'))'
+try {
+    `$lease = Enter-LibreSpotMutationLease -Label 'separate' -TimeoutSeconds 1 -RetryMilliseconds 50
+    [System.IO.File]::WriteAllText('$(& $quote $separateResult)', 'acquired')
+    Exit-LibreSpotMutationLease -Lease `$lease
+} catch {
+    [System.IO.File]::WriteAllText('$(& $quote $separateResult)', `$_.Exception.Message)
+}
+"@
+        Set-Content -LiteralPath $separateScript -Value $separateBody -Encoding UTF8
+
+        $owner = Start-Process -FilePath 'powershell.exe' -ArgumentList "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$ownerScript`"" -PassThru -WindowStyle Hidden
+        try {
+            $deadline = (Get-Date).AddSeconds(5)
+            while (-not (Test-Path -LiteralPath $signal) -and (Get-Date) -lt $deadline) {
+                Start-Sleep -Milliseconds 25
+            }
+            Test-Path -LiteralPath $signal | Should -BeTrue
+
+            $contender = Start-Process -FilePath 'powershell.exe' -ArgumentList "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$contenderScript`"" -PassThru -WindowStyle Hidden
+            try { $contender.WaitForExit(5000) | Should -BeTrue } finally { $contender.Dispose() }
+
+            $separate = Start-Process -FilePath 'powershell.exe' -ArgumentList "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$separateScript`"" -PassThru -WindowStyle Hidden
+            try { $separate.WaitForExit(5000) | Should -BeTrue } finally { $separate.Dispose() }
+
+            (Get-Content -LiteralPath $contenderResult -Raw) | Should -Match 'LIBRESPOT_MUTATION_BUSY'
+            (Get-Content -LiteralPath $separateResult -Raw) | Should -Be 'acquired'
+        } finally {
+            $owner.WaitForExit(5000) | Should -BeTrue
+            $owner.Dispose()
+        }
+    }
+
+    It 'releases the lease when an owner host terminates' {
+        $root = Join-Path $TestDrive 'dead-owner'
+        $targetSpotify = Join-Path $root 'Spotify\Spotify.exe'
+        $targetSpicetify = Join-Path $root 'Local\spicetify'
+        $targetConfig = Join-Path $root 'Roaming\spicetify'
+        $signal = Join-Path $root 'owner.acquired'
+        $contenderResult = Join-Path $root 'contender.result'
+        New-Item -Path $root -ItemType Directory -Force | Out-Null
+
+        $quote = { param([string]$Text) $Text.Replace("'", "''") }
+        $ownerScript = Join-Path $root 'owner.ps1'
+        $ownerBody = @"
+$script:leaseEnter
+$script:leaseExit
+`$global:SPOTIFY_EXE_PATH = '$(& $quote $targetSpotify)'
+`$global:SPICETIFY_DIR = '$(& $quote $targetSpicetify)'
+`$global:SPICETIFY_CONFIG_DIR = '$(& $quote $targetConfig)'
+`$lease = Enter-LibreSpotMutationLease -Label 'owner' -TimeoutSeconds 5
+[System.IO.File]::WriteAllText('$(& $quote $signal)', `$PID.ToString())
+exit 0
+"@
+        Set-Content -LiteralPath $ownerScript -Value $ownerBody -Encoding UTF8
+
+        $contenderScript = Join-Path $root 'contender.ps1'
+        $contenderBody = @"
+$script:leaseEnter
+$script:leaseExit
+`$global:SPOTIFY_EXE_PATH = '$(& $quote $targetSpotify)'
+`$global:SPICETIFY_DIR = '$(& $quote $targetSpicetify)'
+`$global:SPICETIFY_CONFIG_DIR = '$(& $quote $targetConfig)'
+try {
+    `$lease = Enter-LibreSpotMutationLease -Label 'contender' -TimeoutSeconds 1 -RetryMilliseconds 50
+    [System.IO.File]::WriteAllText('$(& $quote $contenderResult)', 'acquired')
+    Exit-LibreSpotMutationLease -Lease `$lease
+} catch {
+    [System.IO.File]::WriteAllText('$(& $quote $contenderResult)', `$_.Exception.Message)
+}
+"@
+        Set-Content -LiteralPath $contenderScript -Value $contenderBody -Encoding UTF8
+
+        $owner = Start-Process -FilePath 'powershell.exe' -ArgumentList "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$ownerScript`"" -PassThru -WindowStyle Hidden
+        try {
+            $deadline = (Get-Date).AddSeconds(5)
+            while (-not (Test-Path -LiteralPath $signal) -and (Get-Date) -lt $deadline) {
+                Start-Sleep -Milliseconds 25
+            }
+            Test-Path -LiteralPath $signal | Should -BeTrue
+            $owner.WaitForExit(5000) | Should -BeTrue
+
+            $contender = Start-Process -FilePath 'powershell.exe' -ArgumentList "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$contenderScript`"" -PassThru -WindowStyle Hidden
+            try { $contender.WaitForExit(5000) | Should -BeTrue } finally { $contender.Dispose() }
+
+            (Get-Content -LiteralPath $contenderResult -Raw) | Should -Be 'acquired'
+        } finally {
+            $owner.Dispose()
+        }
     }
 }

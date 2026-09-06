@@ -53,6 +53,8 @@ public sealed class BackendScriptService
         };
     /// <summary>Backend exit code for a run that finished with a selected asset not installed.</summary>
     public const int AssetsNotInstalledExitCode = 13;
+    /// <summary>Marker emitted when another host already owns the installation lease.</summary>
+    public const string MutationBusyErrorCode = "MutationBusy";
     private const string Prefix = "@@LS@@|";
     private static readonly SemaphoreSlim RuntimeScriptLock = new(1, 1);
 
@@ -262,6 +264,7 @@ public sealed class BackendScriptService
         Exception? messageDeliveryException = null;
         var messageDeliveryLock = new object();
         string? assetWarning = null;
+        string? mutationBusyMessage = null;
 
         void Notify(BackendMessage message)
         {
@@ -271,6 +274,15 @@ public sealed class BackendScriptService
                     string.Equals(message.Level, "WARN", StringComparison.OrdinalIgnoreCase))
                 {
                     assetWarning = message.Payload;
+                }
+                if (string.Equals(message.Kind, "result", StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(message.Level, "ERROR", StringComparison.OrdinalIgnoreCase) &&
+                    message.Payload.StartsWith("LIBRESPOT_MUTATION_BUSY:", StringComparison.OrdinalIgnoreCase))
+                {
+                    lock (messageDeliveryLock)
+                    {
+                        mutationBusyMessage ??= message.Payload;
+                    }
                 }
 
                 if (message.OperationId is { } reportedOperationId && reportedOperationId != operationId)
@@ -461,6 +473,15 @@ public sealed class BackendScriptService
 
         executionCopyGuard?.Dispose();
         TryDeleteExecutionCopy(executionCopy);
+
+        if (mutationBusyMessage is not null)
+        {
+            return new BackendRunResult(
+                false,
+                mutationBusyMessage,
+                ErrorCode: MutationBusyErrorCode,
+                ExitCode: process.ExitCode);
+        }
 
         if (watchdogState.KilledForStall)
         {

@@ -120,6 +120,8 @@ Local crash dumps are opt-in and limited to the next LibreSpot process. Support 
 
 The Home update notice can show GitHub's SHA256 for `LibreSpot-Desktop.exe` and copy the exact verification command. Default-install and release-response tests now exercise the real behavior, while the catalog generator is checked across both supported PowerShell editions. The live engine also starts after a Spotify reload when Spicetify omits its optional `ReactDOM` global.
 
+Desktop setup, the standalone script, and the auto-reapply watcher now coordinate changes to one Spotify and Spicetify installation through a shared per-user lease. A second operation reports that the installation is busy before it takes a snapshot or stops Spotify, while separate installations can run at the same time.
+
 ## What's New in v4.4.0
 
 The settings workspace inside Spotify has been rebuilt around six focused pages. A compact LibreSpot rail keeps Store, Look, Tweaks, Features, Presets, and Health easy to reach without competing with Spotify's own navigation. The settings cog in Spotify's top bar opens Look directly.

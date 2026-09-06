@@ -79,7 +79,9 @@ Community [lost-setup](https://www.reddit.com/r/spicetify/comments/1uci5ou/spice
 
 ### Install and cache lifecycle
 
-**Verified source gaps; failure consequences Likely:** `Invoke-ExternalScriptIsolated.ps1` kills only its direct process on timeout. CLI, theme and custom-app installers remove working files before replacement completes. No shared mutation lease covers desktop, CLI and watcher together; the scheduled task's IgnoreNew policy covers only that task (RD-230 through RD-232). Sources: those shared modules, `src/powershell/backend/lane-functions.ps1`, `src/LibreSpot.Core/BackendScriptService.cs`.
+**Verified source gaps; failure consequences Likely:** `Invoke-ExternalScriptIsolated.ps1` kills only its direct process on timeout. CLI, theme and custom-app installers remove working files before replacement completes. The scheduled task's IgnoreNew policy covers only that task (RD-231 and RD-232). Sources: those shared modules, `src/powershell/backend/lane-functions.ps1`, `src/LibreSpot.Core/BackendScriptService.cs`.
+
+**Implemented and exercised:** RD-230 now gives the desktop backend, standalone CLI workers, and both watcher hosts one reentrant per-user lease. Its identity uses the current Windows user plus canonical Spotify and Spicetify targets, so a configurable LibreSpot data root cannot split ownership and separate installations do not contend. The lease is acquired before operation journals, snapshots, Spotify shutdown, and watcher reapply work. A second host gets a `LIBRESPOT_MUTATION_BUSY` result without entering its mutation body, and a terminated owner can be recovered. Installer-descendant recovery remains the next process-tree item (RD-231).
 
 `Save-ToAssetCache.ps1` overwrites final objects and `Update-AssetCacheIndexEntry.ps1` performs an unlocked whole-index rewrite. C# and PowerShell bundle import compensate rename failures with catch blocks, but have no durable recovery record for termination between the two directory renames. Existing “interruption” tests throw exceptions, which still execute compensation. Separate individual-write atomicity from restart recovery (RD-236, RD-237).
 

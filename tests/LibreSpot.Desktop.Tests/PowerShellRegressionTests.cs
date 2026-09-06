@@ -130,6 +130,54 @@ public sealed class PowerShellRegressionTests
         Assert.Equal(monolithVersion, backendVersion);
     }
 
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void MutationHosts_UseTheSharedInstallationLease(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+        var lease = ExtractFunction(script, "Enter-LibreSpotMutationLease");
+
+        Assert.Contains("function Enter-LibreSpotMutationLease", script);
+        Assert.Contains("function Exit-LibreSpotMutationLease", script);
+        Assert.Contains("LIBRESPOT_MUTATION_BUSY", script);
+        Assert.Contains("SPOTIFY_EXE_PATH", script);
+        Assert.Contains("SPICETIFY_DIR", script);
+        Assert.Contains("SPICETIFY_CONFIG_DIR", script);
+        Assert.DoesNotContain("$global:CONFIG_DIR", lease);
+    }
+
+    [Fact]
+    public void MutatingEntryPoints_AcquireLeaseBeforeTheirJournalOrWatcherWork()
+    {
+        var monolith = ReadFile("LibreSpot.ps1");
+        var backend = ReadFile("src", "LibreSpot.Desktop", "Backend", "LibreSpot.Backend.ps1");
+
+        var installStart = monolith.IndexOf("$installBlock =", StringComparison.Ordinal);
+        var installLease = monolith.IndexOf("$mutationLease = Enter-LibreSpotMutationLease", installStart, StringComparison.Ordinal);
+        var installJournal = monolith.IndexOf("Start-OperationJournalRun", installLease, StringComparison.Ordinal);
+        Assert.True(installStart >= 0 && installLease > installStart && installJournal > installLease);
+
+        var maintenanceStart = monolith.IndexOf("$maintBlock =", StringComparison.Ordinal);
+        var maintenanceLease = monolith.IndexOf("Enter-LibreSpotMutationLease", maintenanceStart, StringComparison.Ordinal);
+        var maintenanceJournal = monolith.IndexOf("Start-OperationJournalRun", maintenanceLease, StringComparison.Ordinal);
+        Assert.True(maintenanceStart >= 0 && maintenanceLease > maintenanceStart && maintenanceJournal > maintenanceLease);
+
+        var watcherStart = monolith.IndexOf("$runWatcherTick = {", StringComparison.Ordinal);
+        var watcherLease = monolith.IndexOf("Enter-LibreSpotMutationLease", watcherStart, StringComparison.Ordinal);
+        var watcherInvoke = monolith.IndexOf("Invoke-AutoReapplyWatcher", watcherLease, StringComparison.Ordinal);
+        Assert.True(watcherStart >= 0 && watcherLease > watcherStart && watcherInvoke > watcherLease);
+
+        var backendWatcherStart = backend.IndexOf("$runWatcherTick = {", StringComparison.Ordinal);
+        var backendWatcherLease = backend.IndexOf("Enter-LibreSpotMutationLease", backendWatcherStart, StringComparison.Ordinal);
+        var backendWatcherInvoke = backend.IndexOf("Invoke-AutoReapplyWatcher", backendWatcherLease, StringComparison.Ordinal);
+        Assert.True(backendWatcherStart >= 0 && backendWatcherLease > backendWatcherStart && backendWatcherInvoke > backendWatcherLease);
+
+        var backendLease = backend.IndexOf("$mutationLease = Enter-LibreSpotMutationLease", StringComparison.Ordinal);
+        var backendJournal = backend.IndexOf("Start-OperationJournalRun", backendLease, StringComparison.Ordinal);
+        Assert.True(backendLease >= 0 && backendJournal > backendLease);
+    }
+
     // ---------------------------------------------------------------------
     // Version compare helper — locks in the semver-aware semantics introduced
     // alongside Check-ForUpdates to kill the 2.43.9 vs 2.43.10 lexical bug.

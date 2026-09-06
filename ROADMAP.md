@@ -6,13 +6,6 @@ Incomplete, implementer-actionable work only. Operator-dependent decisions remai
 
 ### P1: Now
 
-- [ ] P1: RD-230. Serialize mutating operations across all LibreSpot hosts
-  Why: Impact 5/5. Desktop, CLI and watcher can modify the same per-user installation concurrently; task IgnoreNew only excludes another instance of that task.
-  Evidence: RESEARCH.md; src/powershell/backend/lane-functions.ps1 watcher; existing locks cover narrower profile/undo/in-process boundaries.
-  Touches: Shared PowerShell operation entry points; GUI/backend lane functions; src/LibreSpot.Core/BackendScriptService.cs; CLI mutation dispatch; cross-process tests.
-  Acceptance: Key a shared lease to the Windows user and canonical Spotify/Spicetify mutation targets, not the configurable LibreSpot data root. Acquire it before snapshots or Spotify shutdown. Different data roots pointing to the same installation must contend; genuinely separate target installations may proceed independently. Test desktop-backend versus CLI versus watcher contenders, owner termination and nested calls. Contenders defer or report busy without mutation. A successor must not start while a dead launcher's installer descendants still write; coordinate ownership recovery with RD-231 and lock ordering with RD-236.
-  Complexity: M
-
 - [ ] P1: RD-231. Own and terminate external installer process trees
   Why: Impact 5/5. Killing only the immediate PowerShell process can leave descendants writing while the operation reports failure and begins recovery.
   Evidence: RESEARCH.md; Invoke-ExternalScriptIsolated.ps1 timeout; BackendScriptService.TryKillTree only covers cancellation/watchdog; Windows Job Object documentation.

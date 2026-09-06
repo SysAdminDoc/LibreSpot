@@ -370,6 +370,47 @@ public sealed class BackendScriptServiceTests
     }
 
     [Fact]
+    public async Task RunAsync_ReportsMutationBusyWithoutTreatingContenderAsSuccess()
+    {
+        var tempRoot = Path.Combine(Path.GetTempPath(), "LibreSpot.Tests", Guid.NewGuid().ToString("N"));
+        var runtimeDirectory = Path.Combine(tempRoot, "Runtime");
+        var scriptPath = Path.Combine(tempRoot, "busy-backend.ps1");
+        var messages = new List<BackendMessage>();
+        Directory.CreateDirectory(tempRoot);
+        await File.WriteAllTextAsync(
+            scriptPath,
+            "Write-Output '@@LS@@|result|ERROR|LIBRESPOT_MUTATION_BUSY: another host owns the canonical installation'\r\n" +
+            "exit 1\r\n");
+
+        try
+        {
+            var service = new BackendScriptService(
+                runtimeDirectory,
+                noBackendMode: false,
+                BackendWatchdogOptions.Default,
+                backendScriptPathOverride: scriptPath);
+
+            var result = await service.RunAsync(
+                "Install",
+                Path.Combine(tempRoot, "config.json"),
+                messages.Add);
+
+            Assert.False(result.Success);
+            Assert.Equal(BackendScriptService.MutationBusyErrorCode, result.ErrorCode);
+            Assert.Contains("LIBRESPOT_MUTATION_BUSY", result.ErrorMessage);
+            Assert.Contains(messages, message =>
+                message.Kind == "result" &&
+                message.Level == "ERROR" &&
+                message.Payload.StartsWith("LIBRESPOT_MUTATION_BUSY:", StringComparison.Ordinal));
+            Assert.False(File.Exists(Path.Combine(tempRoot, "mutation-ran")));
+        }
+        finally
+        {
+            try { Directory.Delete(tempRoot, recursive: true); } catch { }
+        }
+    }
+
+    [Fact]
     public async Task RunAsync_ReturnsFailureWhenRuntimeDirectoryCannotBeCreated()
     {
         var tempRoot = Path.Combine(Path.GetTempPath(), "LibreSpot.Tests", Guid.NewGuid().ToString("N"));
