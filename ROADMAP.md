@@ -6,13 +6,6 @@ Incomplete, implementer-actionable work only. Operator-dependent decisions remai
 
 ### P1: Now
 
-- [ ] P1: RD-222. Preserve the only unreadable profile until recovery is durable
-  Why: Impact 5/5. A normal save can destroy the only recovery copy while quarantine writes still fail.
-  Evidence: RESEARCH.md, Profile and backup safety; exercised EngineStore with continued quarantine refusal and successful smaller active-state write.
-  Touches: src/LibreSpot.App/src/core/store.ts; tests/store-quarantine.test.ts in that component.
-  Acceptance: Keep the original active bytes unchanged until a quarantine record and pointer are successfully stored, or the user explicitly discards recovery. Keep refusal enabled during save, reconstruct EngineStore, and prove the raw bytes remain exportable. Surface the refused save without claiming persistence.
-  Complexity: M
-
 - [ ] P1: RD-223. Validate complete imported state and safely serialize theme exports
   Why: Impact 5/5. Malformed nested values reach the engine, and repaired raw recovery cannot use its advertised restore path.
   Evidence: RESEARCH.md, Profile and backup safety; parseProfile accepts null snippets/object presets; a harmless core-export canary executed through interpolated appearance data.

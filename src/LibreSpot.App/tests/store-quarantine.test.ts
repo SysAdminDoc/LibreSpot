@@ -158,6 +158,27 @@ describe("engine state quarantine", () => {
     expect(map.get(ENGINE_STORAGE_KEY)).not.toBe("{ broken");
   });
 
+  it("refuses to overwrite the unreadable state while recovery is still refused", () => {
+    const map = new Map<string, string>();
+    map.set(ENGINE_STORAGE_KEY, "{ broken");
+    const storage: StorageAdapter = {
+      get: (key) => map.get(key) ?? null,
+      set: () => {
+        throw new Error("QuotaExceededError");
+      },
+      remove: (key) => {
+        map.delete(key);
+      },
+    };
+
+    const store = storeAt(storage);
+    const state = store.load();
+
+    expect(() => store.save(state)).toThrow(/No changes were saved/);
+    expect(map.get(ENGINE_STORAGE_KEY)).toBe("{ broken");
+    expect(store.readQuarantine()?.raw).toBe("{ broken");
+  });
+
   it("stops offering a refused copy once it is discarded", () => {
     const map = new Map<string, string>();
     map.set(ENGINE_STORAGE_KEY, "{ broken");

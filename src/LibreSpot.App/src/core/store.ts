@@ -194,7 +194,12 @@ export class EngineStore {
     // A save is what would overwrite an unreadable original that storage
     // refused to copy. Try the copy once more first, so the recovery survives
     // if whatever filled the profile has since been freed.
-    if (this.unrecovered !== null && this.writeQuarantine(this.unrecovered)) {
+    if (this.unrecovered !== null) {
+      if (!this.writeQuarantine(this.unrecovered)) {
+        throw new Error(
+          "The saved profile is unreadable and its recovery copy could not be stored. No changes were saved.",
+        );
+      }
       this.unrecovered = null;
     }
 
