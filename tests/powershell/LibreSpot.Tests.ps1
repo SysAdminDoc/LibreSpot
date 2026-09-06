@@ -67,6 +67,7 @@ BeforeAll {
         'Copy-DirectorySnapshotSafely'
         'Merge-DirectorySnapshotMissingFiles'
         'Get-LibreSpotTempRoot'
+        'Start-LibreSpotOwnedProcess'
         'Enter-LibreSpotMutationLease'
         'Exit-LibreSpotMutationLease'
         'Expand-ArchiveSafely'
@@ -90,7 +91,11 @@ BeforeAll {
         'Get-QuarantineGuidance'
     )
     $blocks = foreach ($fn in $functionsToLoad) {
-        $block = Extract-FunctionBlock $scriptContent $fn
+        if ($fn -eq 'Start-LibreSpotOwnedProcess') {
+            $block = Get-Content -Path (Join-Path $PSScriptRoot '..\..\src\powershell\shared\Start-LibreSpotOwnedProcess.ps1') -Raw
+        } else {
+            $block = Extract-FunctionBlock $scriptContent $fn
+        }
         $block = $block -replace '\[int\]::MaxValue', [string][int]::MaxValue
         $block = $block -replace '\[int\]::MinValue', [string][int]::MinValue
         $block
@@ -3945,6 +3950,162 @@ Describe 'Check-ForUpdates when GitHub cannot be reached' {
         $success = @($script:updLog | Where-Object { $_.Level -eq 'SUCCESS' })
         $success.Count | Should -Be 1
         $success[0].Message | Should -Match 'All dependencies and compatibility baselines are up to date'
+    }
+}
+
+# =============================================================================
+# Owned external process trees
+# =============================================================================
+Describe 'Owned external process trees' {
+    BeforeAll {
+        $script:ownedProcessStart = Get-Content -Path (Join-Path $PSScriptRoot '..\..\src\powershell\shared\Start-LibreSpotOwnedProcess.ps1') -Raw
+        $script:isolatedProcessRunner = Get-Content -Path (Join-Path $PSScriptRoot '..\..\src\powershell\shared\Invoke-ExternalScriptIsolated.ps1') -Raw
+    }
+
+    It 'terminates a harmless child and grandchild as one owned tree' {
+        $root = Join-Path $TestDrive 'owned-tree'
+        $childScript = Join-Path $root 'child.ps1'
+        $childPidPath = Join-Path $root 'child.pid'
+        $grandchildPidPath = Join-Path $root 'grandchild.pid'
+        New-Item -Path $root -ItemType Directory -Force | Out-Null
+        $childBody = @"
+`$grandchild = Start-Process -FilePath 'powershell.exe' -ArgumentList '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "Start-Sleep -Seconds 30"' -PassThru -WindowStyle Hidden
+[System.IO.File]::WriteAllText('$childPidPath', `$PID.ToString())
+[System.IO.File]::WriteAllText('$grandchildPidPath', `$grandchild.Id.ToString())
+while (`$true) { Start-Sleep -Milliseconds 100 }
+"@
+        Set-Content -LiteralPath $childScript -Value $childBody -Encoding UTF8
+
+        $owned = $null
+        try {
+            $arguments = "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$childScript`""
+            $owned = Start-LibreSpotOwnedProcess -FilePath 'powershell.exe' -ArgumentList $arguments -WindowStyle Hidden
+            $deadline = (Get-Date).AddSeconds(5)
+            while ((-not (Test-Path -LiteralPath $childPidPath) -or -not (Test-Path -LiteralPath $grandchildPidPath)) -and (Get-Date) -lt $deadline) {
+                Start-Sleep -Milliseconds 25
+            }
+            Test-Path -LiteralPath $childPidPath | Should -BeTrue
+            Test-Path -LiteralPath $grandchildPidPath | Should -BeTrue
+            $childPid = [int](Get-Content -LiteralPath $childPidPath -Raw)
+            $grandchildPid = [int](Get-Content -LiteralPath $grandchildPidPath -Raw)
+            Get-Process -Id $childPid -ErrorAction Stop | Should -Not -BeNullOrEmpty
+            Get-Process -Id $grandchildPid -ErrorAction Stop | Should -Not -BeNullOrEmpty
+
+            $owned.Job.Terminate()
+            $owned.Process.WaitForExit(5000) | Should -BeTrue
+            $deadline = (Get-Date).AddSeconds(5)
+            do {
+                $childAlive = $null -ne (Get-Process -Id $childPid -ErrorAction SilentlyContinue)
+                $grandchildAlive = $null -ne (Get-Process -Id $grandchildPid -ErrorAction SilentlyContinue)
+                if ($childAlive -or $grandchildAlive) { Start-Sleep -Milliseconds 50 }
+            } while (($childAlive -or $grandchildAlive) -and (Get-Date) -lt $deadline)
+            $childAlive | Should -BeFalse
+            $grandchildAlive | Should -BeFalse
+        } finally {
+            if ($owned) {
+                try { $owned.Job.Terminate() } catch {}
+                try { $owned.Process.WaitForExit(5000) } catch {}
+                try { $owned.Job.Dispose() } catch {}
+                try { $owned.Process.Dispose() } catch {}
+            }
+        }
+    }
+
+    It 'kills an owned child when the launcher exits without cleanup' {
+        $root = Join-Path $TestDrive 'owned-launcher-exit'
+        $childScript = Join-Path $root 'child.ps1'
+        $childPidPath = Join-Path $root 'child.pid'
+        $launcherScript = Join-Path $root 'launcher.ps1'
+        New-Item -Path $root -ItemType Directory -Force | Out-Null
+        Set-Content -LiteralPath $childScript -Value 'Start-Sleep -Seconds 30' -Encoding UTF8
+        $launcherBody = @"
+$script:ownedProcessStart
+`$arguments = '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "$childScript"'
+`$owned = Start-LibreSpotOwnedProcess -FilePath 'powershell.exe' -ArgumentList `$arguments -WindowStyle Hidden
+[System.IO.File]::WriteAllText('$childPidPath', `$owned.Process.Id.ToString())
+exit 0
+"@
+        Set-Content -LiteralPath $launcherScript -Value $launcherBody -Encoding UTF8
+
+        $launcher = Start-Process -FilePath 'powershell.exe' -ArgumentList "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$launcherScript`"" -PassThru -WindowStyle Hidden
+        try {
+            $deadline = (Get-Date).AddSeconds(5)
+            while (-not (Test-Path -LiteralPath $childPidPath) -and (Get-Date) -lt $deadline) {
+                Start-Sleep -Milliseconds 25
+            }
+            Test-Path -LiteralPath $childPidPath | Should -BeTrue
+            $childPid = [int](Get-Content -LiteralPath $childPidPath -Raw)
+            $launcher.WaitForExit(5000) | Should -BeTrue
+            $deadline = (Get-Date).AddSeconds(5)
+            do {
+                $childAlive = $null -ne (Get-Process -Id $childPid -ErrorAction SilentlyContinue)
+                if ($childAlive) { Start-Sleep -Milliseconds 50 }
+            } while ($childAlive -and (Get-Date) -lt $deadline)
+            $childAlive | Should -BeFalse
+        } finally {
+            try { $launcher.Kill() } catch {}
+            try { $launcher.WaitForExit(5000) } catch {}
+            $launcher.Dispose()
+        }
+    }
+
+    It 'terminates the complete owned tree on isolated-script timeout' {
+        $root = Join-Path $TestDrive 'owned-timeout'
+        $childScript = Join-Path $root 'child.ps1'
+        $childPidPath = Join-Path $root 'child.pid'
+        $grandchildPidPath = Join-Path $root 'grandchild.pid'
+        New-Item -Path $root -ItemType Directory -Force | Out-Null
+        $childBody = @"
+`$grandchild = Start-Process -FilePath 'powershell.exe' -ArgumentList '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "Start-Sleep -Seconds 30"' -PassThru -WindowStyle Hidden
+[System.IO.File]::WriteAllText('$childPidPath', `$PID.ToString())
+[System.IO.File]::WriteAllText('$grandchildPidPath', `$grandchild.Id.ToString())
+while (`$true) { Start-Sleep -Milliseconds 100 }
+"@
+        Set-Content -LiteralPath $childScript -Value $childBody -Encoding UTF8
+
+        $previousTempDirectory = $global:TEMP_DIR
+        $global:TEMP_DIR = $root
+        function Write-Log { param([string]$Message, [string]$Level = 'INFO') }
+        function Write-PowerShellSecurityContext {}
+        function Open-VerifiedScriptForExecution {
+            param([string]$FilePath, [string]$ExpectedHash, [string]$Label, [string]$Arguments)
+            $guard = [pscustomobject]@{}
+            $guard | Add-Member -MemberType ScriptMethod -Name Dispose -Value { }
+            return $guard
+        }
+        function Read-ProcessOutputDelta {
+            param([string]$Path, [long]$Offset, [string]$Remainder)
+            [pscustomobject]@{ Offset = $Offset; Remainder = $Remainder; Lines = @() }
+        }
+        function Get-SpotXChildFailureClassification { param([string]$Line) return $null }
+        function Test-IsLanguageModeOrAppControlError { param([string]$Message) return $false }
+        function Write-OperationJournalEntry { param($Phase, $Target, $SafetyDecision, $Result, $WouldChange, $Reversible, $RollbackHint, $Data) }
+
+        try {
+            Invoke-Expression $script:isolatedProcessRunner
+            $timeoutError = $null
+            try { Invoke-ExternalScriptIsolated -FilePath $childScript -Arguments '' -TimeoutSeconds 3 -Label 'owned timeout fixture' } catch { $timeoutError = $_.Exception }
+            $timeoutError | Should -Not -BeNullOrEmpty
+            $timeoutError.Message | Should -Match 'timed out'
+            $deadline = (Get-Date).AddSeconds(5)
+            while ((-not (Test-Path -LiteralPath $childPidPath) -or -not (Test-Path -LiteralPath $grandchildPidPath)) -and (Get-Date) -lt $deadline) {
+                Start-Sleep -Milliseconds 25
+            }
+            Test-Path -LiteralPath $childPidPath | Should -BeTrue
+            Test-Path -LiteralPath $grandchildPidPath | Should -BeTrue
+            $childPid = [int](Get-Content -LiteralPath $childPidPath -Raw)
+            $grandchildPid = [int](Get-Content -LiteralPath $grandchildPidPath -Raw)
+            $deadline = (Get-Date).AddSeconds(5)
+            do {
+                $childAlive = $null -ne (Get-Process -Id $childPid -ErrorAction SilentlyContinue)
+                $grandchildAlive = $null -ne (Get-Process -Id $grandchildPid -ErrorAction SilentlyContinue)
+                if ($childAlive -or $grandchildAlive) { Start-Sleep -Milliseconds 50 }
+            } while (($childAlive -or $grandchildAlive) -and (Get-Date) -lt $deadline)
+            $childAlive | Should -BeFalse
+            $grandchildAlive | Should -BeFalse
+        } finally {
+            $global:TEMP_DIR = $previousTempDirectory
+        }
     }
 }
 

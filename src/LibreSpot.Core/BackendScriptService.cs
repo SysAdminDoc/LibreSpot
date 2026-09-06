@@ -5,6 +5,7 @@ using System.Security.AccessControl;
 using System.Security.Cryptography;
 using System.Security.Principal;
 using System.Text;
+using LibreSpot.Core;
 
 namespace LibreSpot.Desktop.Services;
 
@@ -387,6 +388,20 @@ public sealed class BackendScriptService
         args.Add("-OperationId");
         args.Add(operationId.ToString());
 
+        OwnedProcessTree processTree;
+        try
+        {
+            processTree = OwnedProcessTree.Create();
+        }
+        catch (Exception ex)
+        {
+            executionCopyGuard?.Dispose();
+            TryDeleteExecutionCopy(executionCopy);
+            return new BackendRunResult(false, $"LibreSpot could not establish backend process containment: {ex.Message}", ErrorCode: "ProcessContainmentFailed");
+        }
+
+        using var ownedProcessTree = processTree;
+
         var watchdogState = new BackendWatchdogRunState();
         var lastBackendActivityTicks = Stopwatch.GetTimestamp();
 
@@ -414,20 +429,22 @@ public sealed class BackendScriptService
             }
         };
 
-        using var registration = cancellationToken.Register(() => TryKillTree(process));
+        using var registration = cancellationToken.Register(() => TryKillTree(process, ownedProcessTree));
         using var watchdogStopCts = new CancellationTokenSource();
         using var watchdogCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, watchdogStopCts.Token);
 
         try
         {
             process.Start();
+            ownedProcessTree.Assign(process);
             MarkBackendActivity();
         }
         catch (Exception ex)
         {
+            TryKillTree(process, ownedProcessTree, waitForExit: true);
             executionCopyGuard?.Dispose();
             TryDeleteExecutionCopy(executionCopy);
-            return new BackendRunResult(false, $"LibreSpot could not start the backend runtime: {ex.Message}");
+            return new BackendRunResult(false, $"LibreSpot could not start and contain the backend runtime: {ex.Message}", ErrorCode: "ProcessContainmentFailed");
         }
 
         process.BeginOutputReadLine();
@@ -438,6 +455,7 @@ public sealed class BackendScriptService
             ReadLastBackendActivityTicks,
             _watchdogOptions,
             watchdogState,
+            ownedProcessTree,
             watchdogCts.Token);
 
         try
@@ -446,7 +464,7 @@ public sealed class BackendScriptService
         }
         catch (OperationCanceledException)
         {
-            TryKillTree(process, waitForExit: true);
+            TryKillTree(process, ownedProcessTree, waitForExit: true);
             try { await Task.Run(process.WaitForExit, CancellationToken.None); } catch { }
             executionCopyGuard?.Dispose();
             TryDeleteExecutionCopy(executionCopy);
@@ -531,6 +549,7 @@ public sealed class BackendScriptService
         Func<long> readLastBackendActivityTicks,
         BackendWatchdogOptions options,
         BackendWatchdogRunState state,
+        OwnedProcessTree processTree,
         CancellationToken cancellationToken)
     {
         while (!cancellationToken.IsCancellationRequested)
@@ -571,7 +590,7 @@ public sealed class BackendScriptService
                 "log",
                 "ERROR",
                 $"Backend host watchdog stopped the run after {FormatDuration(idleFor)} with no backend output."));
-            TryKillTree(process, waitForExit: true);
+            TryKillTree(process, processTree, waitForExit: true);
             return;
         }
     }
@@ -608,8 +627,9 @@ public sealed class BackendScriptService
         public TimeSpan IdleDurationAtKill { get; set; }
     }
 
-    private static void TryKillTree(Process process, bool waitForExit = false)
+    private static void TryKillTree(Process process, OwnedProcessTree? processTree = null, bool waitForExit = false)
     {
+        try { processTree?.Terminate(); } catch { }
         try
         {
             if (!process.HasExited)

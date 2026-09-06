@@ -182,6 +182,90 @@ public sealed class BackendScriptServiceTests
         }
     }
 
+    [Fact]
+    public async Task RunAsync_CancellationTerminatesOwnedBackendDescendantsAndPreservesUnrelatedProcess()
+    {
+        var tempRoot = Path.Combine(Path.GetTempPath(), "LibreSpot.Tests", Guid.NewGuid().ToString("N"));
+        var runtimeDirectory = Path.Combine(tempRoot, "Runtime");
+        var scriptPath = Path.Combine(tempRoot, "tree-backend.ps1");
+        var descendantPidPath = Path.Combine(tempRoot, "descendant.pid");
+        Directory.CreateDirectory(tempRoot);
+        await File.WriteAllTextAsync(
+            scriptPath,
+            $$"""
+            param([string]$ConfigPath)
+            $descendant = Start-Process -FilePath 'powershell.exe' -ArgumentList '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "Start-Sleep -Seconds 30"' -PassThru -WindowStyle Hidden
+            [System.IO.File]::WriteAllText($ConfigPath, $descendant.Id.ToString())
+            while ($true) { Start-Sleep -Milliseconds 100 }
+            """);
+
+        using var unrelated = Process.Start(new ProcessStartInfo
+        {
+            FileName = "powershell.exe",
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            WindowStyle = ProcessWindowStyle.Hidden,
+            Arguments = "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command \"Start-Sleep -Seconds 30\""
+        });
+        Assert.NotNull(unrelated);
+
+        Task<BackendRunResult>? runTask = null;
+        try
+        {
+            using var cancellation = new CancellationTokenSource();
+            var service = new BackendScriptService(
+                runtimeDirectory,
+                noBackendMode: false,
+                BackendWatchdogOptions.Default,
+                backendScriptPathOverride: scriptPath);
+            runTask = service.RunAsync("Install", descendantPidPath, _ => { }, cancellation.Token);
+
+            var deadline = DateTime.UtcNow.AddSeconds(10);
+            while (!File.Exists(descendantPidPath) && DateTime.UtcNow < deadline)
+            {
+                await Task.Delay(25);
+            }
+
+            Assert.True(File.Exists(descendantPidPath), "The backend did not publish its descendant PID.");
+            var descendantPid = int.Parse(await File.ReadAllTextAsync(descendantPidPath));
+            Assert.True(IsProcessAlive(descendantPid), "The backend descendant exited before cancellation.");
+            Assert.True(IsProcessAlive(unrelated!.Id), "The unrelated process exited before cancellation.");
+
+            cancellation.Cancel();
+            var result = await runTask;
+
+            Assert.False(result.Success);
+            Assert.True(result.Canceled);
+            deadline = DateTime.UtcNow.AddSeconds(10);
+            while (IsProcessAlive(descendantPid) && DateTime.UtcNow < deadline)
+            {
+                await Task.Delay(50);
+            }
+
+            Assert.False(IsProcessAlive(descendantPid), "Cancellation left an owned backend descendant alive.");
+            Assert.True(IsProcessAlive(unrelated.Id), "Cancellation terminated a process outside the owned backend tree.");
+        }
+        finally
+        {
+            if (runTask is not null)
+            {
+                try { await runTask.WaitAsync(TimeSpan.FromSeconds(10)); } catch { }
+            }
+
+            try
+            {
+                if (unrelated is { HasExited: false })
+                {
+                    unrelated.Kill(entireProcessTree: true);
+                    unrelated.WaitForExit(5000);
+                }
+            }
+            catch { }
+
+            try { Directory.Delete(tempRoot, recursive: true); } catch { }
+        }
+    }
+
     /// <summary>
     /// How long this machine takes, right now, to get a PowerShell host up and its
     /// first line back through the service. Runs with a watchdog that cannot fire
@@ -506,5 +590,18 @@ public sealed class BackendScriptServiceTests
 
         var root = dir?.FullName ?? throw new InvalidOperationException("Could not locate repo root.");
         return Path.Combine(new[] { root }.Concat(relativeParts).ToArray());
+    }
+
+    private static bool IsProcessAlive(int processId)
+    {
+        try
+        {
+            using var process = Process.GetProcessById(processId);
+            return !process.HasExited;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }

@@ -120,7 +120,7 @@ Local crash dumps are opt-in and limited to the next LibreSpot process. Support 
 
 The Home update notice can show GitHub's SHA256 for `LibreSpot-Desktop.exe` and copy the exact verification command. Default-install and release-response tests now exercise the real behavior, while the catalog generator is checked across both supported PowerShell editions. The live engine also starts after a Spotify reload when Spicetify omits its optional `ReactDOM` global.
 
-Desktop setup, the standalone script, and the auto-reapply watcher now coordinate changes to one Spotify and Spicetify installation through a shared per-user lease. A second operation reports that the installation is busy before it takes a snapshot or stops Spotify, while separate installations can run at the same time.
+Desktop setup, the standalone script, and the auto-reapply watcher now coordinate changes to one Spotify and Spicetify installation through a shared per-user lease. A second operation reports that the installation is busy before it takes a snapshot or stops Spotify, while separate installations can run at the same time. External PowerShell runs also own their complete process trees with a Windows Job Object, so timeout, cancellation, watchdog shutdown, and launcher exit terminate descendants before cleanup. Containment failures are reported explicitly and unrelated processes remain untouched.
 
 ## What's New in v4.4.0
 

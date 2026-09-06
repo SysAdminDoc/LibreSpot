@@ -6,13 +6,6 @@ Incomplete, implementer-actionable work only. Operator-dependent decisions remai
 
 ### P1: Now
 
-- [ ] P1: RD-231. Own and terminate external installer process trees
-  Why: Impact 5/5. Killing only the immediate PowerShell process can leave descendants writing while the operation reports failure and begins recovery.
-  Evidence: RESEARCH.md; Invoke-ExternalScriptIsolated.ps1 timeout; BackendScriptService.TryKillTree only covers cancellation/watchdog; Windows Job Object documentation.
-  Touches: src/powershell/shared/Invoke-ExternalScriptIsolated.ps1; backend process lifecycle; PowerShell/process fixture tests.
-  Acceptance: Use a PS5.1-compatible owned process-tree mechanism. A harmless hidden child/grandchild fixture must leave no owned process alive after timeout, cancellation or launcher exit, before rollback/cleanup proceeds. Exercise standalone and backend lanes. Preserve unrelated processes and fail explicitly if containment cannot be established.
-  Complexity: M
-
 - [ ] P1: RD-232. Stage and verify installed packages before replacing working copies
   Why: Impact 5/5. CLI, theme and custom-app installers remove working directories before extraction/copy/bootstrap has succeeded.
   Evidence: RESEARCH.md; Module-InstallSpicetifyCLI.ps1, Module-InstallThemes.ps1 and Module-InstallCustomApps.ps1; preservation snapshots do not restore exact CLI/theme bytes.

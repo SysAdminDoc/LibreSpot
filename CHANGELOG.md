@@ -7,6 +7,7 @@ All notable changes to LibreSpot will be documented in this file.
 ### Fixed
 
 - Desktop, standalone script, and auto-reapply watcher mutations now share a per-user lease keyed to the canonical Spotify and Spicetify installation. Calls against the same installation defer with a busy result before snapshots or shutdown, while separate installations can proceed independently and nested calls remain reentrant.
+- External PowerShell runs now own their complete process trees with a Windows Job Object. Timeout, cancellation, watchdog shutdown, and launcher exit terminate descendants before cleanup, containment failures are reported explicitly, and unrelated processes remain untouched.
 - Theme replacement now uses the junction-safe remover for bundled, community, and official themes, including temporary archive cleanup. A nested junction in an old theme tree cannot redirect deletion into another folder on either supported PowerShell host.
 - Marketplace reset now writes a bounded recovery copy in LibreSpot storage before clipboard access or database deletion. Health can restore that copy after the clipboard changes or Spotify starts a fresh runtime, recreating the known Marketplace settings store when needed, and reset stops when the owned copy cannot be retained.
 - Backup restore now snapshots the engine bytes and Marketplace settings before writing. A failed half restores the exact prior engine bytes and keys, removes keys introduced by the failed merge, and retains a bounded recovery copy that names any half it could not compensate.

@@ -952,10 +952,36 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("ExpectedHash", body);
         Assert.Contains("Open-VerifiedScriptForExecution", body);
         Assert.Contains("$scriptGuard.Dispose()", body);
+        var spawnIndex = body.IndexOf("Start-LibreSpotOwnedProcess", StringComparison.Ordinal);
+        Assert.True(spawnIndex >= 0, "The verified script must be started through the owned process-tree helper.");
+        Assert.Contains("$ownedProcess.Job", body);
         Assert.True(
-            body.IndexOf("Open-VerifiedScriptForExecution", StringComparison.Ordinal) <
-            body.IndexOf("Start-Process", StringComparison.Ordinal),
-            "The script file must be verified and locked before Start-Process receives its path.");
+            body.IndexOf("Open-VerifiedScriptForExecution", StringComparison.Ordinal) < spawnIndex,
+            "The script file must be verified and locked before the owned process helper receives its path.");
+    }
+
+    [Fact]
+    public void OwnedProcessHelper_UsesKillOnCloseJobObject()
+    {
+        var helper = ReadFile("src", "powershell", "shared", "Start-LibreSpotOwnedProcess.ps1");
+
+        Assert.Contains("CreateJobObject", helper);
+        Assert.Contains("JobObjectLimitKillOnJobClose", helper);
+        Assert.Contains("AssignProcessToJobObject", helper);
+        Assert.Contains("$job.Dispose()", helper);
+        Assert.Contains("could not contain external process", helper);
+    }
+
+    [Fact]
+    public void BackendService_UsesOwnedProcessTreeBeforeCancellationAndWatchdogCleanup()
+    {
+        var source = ReadFile("src", "LibreSpot.Core", "BackendScriptService.cs");
+
+        Assert.Contains("OwnedProcessTree.Create()", source);
+        Assert.Contains("ownedProcessTree.Assign(process)", source);
+        Assert.Contains("TryKillTree(process, ownedProcessTree", source);
+        Assert.Contains("processTree?.Terminate()", source);
+        Assert.Contains("ProcessContainmentFailed", source);
     }
 
     [Theory]

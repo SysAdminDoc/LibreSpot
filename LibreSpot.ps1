@@ -2220,6 +2220,196 @@ function Enter-LibreSpotProfileActivationLock {
     }
 }
 
+function Start-LibreSpotOwnedProcess {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$FilePath,
+        [string]$ArgumentList = '',
+        [string]$WorkingDirectory = '',
+        [string]$RedirectStandardOutput = '',
+        [string]$RedirectStandardError = '',
+        [ValidateSet('Normal', 'Hidden', 'Minimized', 'Maximized')][string]$WindowStyle = '',
+        [switch]$NoNewWindow
+    )
+
+    if (-not ('LibreSpotProcessJob' -as [type])) {
+        Add-Type -TypeDefinition @'
+using System;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+
+public sealed class LibreSpotProcessJob : IDisposable
+{
+    private const uint JobObjectExtendedLimitInformation = 9;
+    private const uint JobObjectLimitKillOnJobClose = 0x2000;
+    private IntPtr handle;
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct BasicLimitInformation
+    {
+        public long PerProcessUserTimeLimit;
+        public long PerJobUserTimeLimit;
+        public uint LimitFlags;
+        public UIntPtr MinimumWorkingSetSize;
+        public UIntPtr MaximumWorkingSetSize;
+        public uint ActiveProcessLimit;
+        public UIntPtr Affinity;
+        public uint PriorityClass;
+        public uint SchedulingClass;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct IoCounters
+    {
+        public ulong ReadOperationCount;
+        public ulong WriteOperationCount;
+        public ulong OtherOperationCount;
+        public ulong ReadTransferCount;
+        public ulong WriteTransferCount;
+        public ulong OtherTransferCount;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct ExtendedLimitInformation
+    {
+        public BasicLimitInformation BasicLimitInformation;
+        public IoCounters IoInfo;
+        public UIntPtr ProcessMemoryLimit;
+        public UIntPtr JobMemoryLimit;
+        public UIntPtr PeakProcessMemoryUsed;
+        public UIntPtr PeakJobMemoryUsed;
+    }
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern IntPtr CreateJobObject(IntPtr jobAttributes, string jobName);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool SetInformationJobObject(IntPtr job, uint informationClass, ref ExtendedLimitInformation information, uint informationLength);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool AssignProcessToJobObject(IntPtr job, IntPtr process);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool TerminateJobObject(IntPtr job, uint exitCode);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool CloseHandle(IntPtr handle);
+
+    private LibreSpotProcessJob(IntPtr job)
+    {
+        handle = job;
+    }
+
+    public static LibreSpotProcessJob Create()
+    {
+        var job = CreateJobObject(IntPtr.Zero, null);
+        if (job == IntPtr.Zero)
+        {
+            throw new Win32Exception(Marshal.GetLastWin32Error(), "CreateJobObject failed");
+        }
+
+        var information = new ExtendedLimitInformation();
+        information.BasicLimitInformation.LimitFlags = JobObjectLimitKillOnJobClose;
+        if (!SetInformationJobObject(
+            job,
+            JobObjectExtendedLimitInformation,
+            ref information,
+            (uint)Marshal.SizeOf(typeof(ExtendedLimitInformation))))
+        {
+            var error = new Win32Exception(Marshal.GetLastWin32Error(), "SetInformationJobObject failed");
+            CloseHandle(job);
+            throw error;
+        }
+
+        return new LibreSpotProcessJob(job);
+    }
+
+    public void Assign(Process process)
+    {
+        if (process == null)
+        {
+            throw new ArgumentNullException("process");
+        }
+        if (handle == IntPtr.Zero)
+        {
+            throw new ObjectDisposedException("LibreSpotProcessJob");
+        }
+        if (!AssignProcessToJobObject(handle, process.Handle))
+        {
+            throw new Win32Exception(Marshal.GetLastWin32Error(), "AssignProcessToJobObject failed");
+        }
+    }
+
+    public void Terminate()
+    {
+        if (handle != IntPtr.Zero && !TerminateJobObject(handle, 1))
+        {
+            throw new Win32Exception(Marshal.GetLastWin32Error(), "TerminateJobObject failed");
+        }
+    }
+
+    public void Dispose()
+    {
+        var job = handle;
+        handle = IntPtr.Zero;
+        if (job != IntPtr.Zero)
+        {
+            CloseHandle(job);
+        }
+        GC.SuppressFinalize(this);
+    }
+
+    ~LibreSpotProcessJob()
+    {
+        var job = handle;
+        handle = IntPtr.Zero;
+        if (job != IntPtr.Zero)
+        {
+            CloseHandle(job);
+        }
+    }
+}
+'@
+    }
+
+    $startParameters = @{
+        FilePath = $FilePath
+        PassThru = $true
+        Wait = $false
+        ErrorAction = 'Stop'
+    }
+    if (-not [string]::IsNullOrWhiteSpace($ArgumentList)) { $startParameters.ArgumentList = $ArgumentList }
+    if (-not [string]::IsNullOrWhiteSpace($WorkingDirectory)) { $startParameters.WorkingDirectory = $WorkingDirectory }
+    if (-not [string]::IsNullOrWhiteSpace($RedirectStandardOutput)) { $startParameters.RedirectStandardOutput = $RedirectStandardOutput }
+    if (-not [string]::IsNullOrWhiteSpace($RedirectStandardError)) { $startParameters.RedirectStandardError = $RedirectStandardError }
+    if (-not [string]::IsNullOrWhiteSpace($WindowStyle)) { $startParameters.WindowStyle = $WindowStyle }
+    if ($NoNewWindow) { $startParameters.NoNewWindow = $true }
+
+    $job = $null
+    $process = $null
+    try {
+        $job = [LibreSpotProcessJob]::Create()
+        $process = Start-Process @startParameters
+        if ($null -eq $process) {
+            throw 'Start-Process returned no process handle.'
+        }
+        $job.Assign($process)
+        return [pscustomobject]@{ Process = $process; Job = $job }
+    } catch {
+        if ($job) {
+            try { $job.Terminate() } catch {}
+            try { $job.Dispose() } catch {}
+        }
+        if ($process) {
+            try { $process.Kill() } catch {}
+            try { $process.WaitForExit(5000) } catch {}
+            try { $process.Dispose() } catch {}
+        }
+        throw "LibreSpot could not contain external process '$FilePath': $($_.Exception.Message)"
+    }
+}
+
 function Enter-LibreSpotMutationLease {
     [CmdletBinding()]
     param(
@@ -9743,18 +9933,20 @@ function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Argume
     $childFailure = $null
     $scriptGuard = $null
     $p = $null
+    $ownedProcess = $null
     try {
         $scriptGuard = Open-VerifiedScriptForExecution -FilePath $FilePath -ExpectedHash $ExpectedHash -Label $Label -Arguments $Arguments
         if (-not [string]::IsNullOrWhiteSpace($ExpectedHash)) {
             Write-Log "  Execution copy verified and locked for $Label"
         }
         $argString = "-NoProfile -ExecutionPolicy Bypass -File `"$FilePath`" $Arguments"
-        $p = Start-Process -FilePath 'powershell.exe' -ArgumentList $argString -NoNewWindow -PassThru -Wait:$false -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath -ErrorAction Stop
+        $ownedProcess = Start-LibreSpotOwnedProcess -FilePath 'powershell.exe' -ArgumentList $argString -NoNewWindow -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
+        $p = $ownedProcess.Process
         $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
         while (-not $p.HasExited) {
             if ((Get-Date) -gt $deadline) {
                 Write-Log "Process exceeded ${TimeoutSeconds}s timeout - terminating." -Level 'WARN'
-                try { $p.Kill() } catch {}
+                try { $ownedProcess.Job.Terminate() } catch {}
                 try { $p.WaitForExit(5000) } catch {}
                 throw "External process timed out after ${TimeoutSeconds} seconds. It may have hung or entered an interactive prompt."
             }
@@ -9823,6 +10015,7 @@ function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Argume
             throw "Process exited with code $exitCode"
         }
     } finally {
+        if ($ownedProcess) { try { $ownedProcess.Job.Dispose() } catch {} }
         if ($p) { try { $p.Dispose() } catch {} }
         if ($scriptGuard) { try { $scriptGuard.Dispose() } catch {} }
         Remove-Item -LiteralPath $stdoutPath -Force -ErrorAction SilentlyContinue
@@ -12664,7 +12857,7 @@ $maintBlock = { param($sh,$action)
 $functionNamesForWorker = @(
     'ConvertTo-PlainHashtable','ConvertTo-ConfigBoolean','ConvertTo-ConfigInt','Get-LibreSpotConfigSchemaVersion','Assert-LibreSpotConfigSchemaSupported','Normalize-LibreSpotConfig','Move-ConfigFileToQuarantine',
     'Get-LibreSpotTempRoot','New-LibreSpotTempFile','New-SpotXCustomPatchesFile','New-LibreSpotTempDirectory',
-    'Update-UI','Write-Log','Write-OperationJournalEntry','Start-OperationJournalRun','Complete-OperationJournalRun','Download-FileSafe','Get-DownloadFailureHint','Get-NetworkDiagnosticCode','Get-NetworkPreflightStatus','Get-DownloaderCveExposure','Write-DownloaderCveWarningIfNeeded','Get-PowerShell7SecurityFloorStatus','Write-PowerShell7SecurityFloorWarningIfNeeded','Get-PowerShellSecurityContext','Write-PowerShellSecurityContext','Test-IsLanguageModeOrAppControlError','Get-QuarantineGuidance','Assert-LibreSpotExternalScriptDefenderPolicy','Open-VerifiedScriptForExecution','Get-FileSha256Lower','Confirm-FileHash','Update-AssetCacheIndexEntry','Save-ToAssetCache','Get-FromAssetCache','Clear-LibreSpotCache','Expand-ArchiveSafely','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Read-ProcessOutputDelta','Test-NetworkReady','Invoke-GitHubApiSafe','Check-ForUpdates','Compare-LibreSpotVersions','Get-LibreSpotCurrentSpotifyTarget','Get-LibreSpotCompatibilityWarnings','Write-LibreSpotCompatibilityMatrix',
+    'Update-UI','Write-Log','Write-OperationJournalEntry','Start-OperationJournalRun','Complete-OperationJournalRun','Download-FileSafe','Get-DownloadFailureHint','Get-NetworkDiagnosticCode','Get-NetworkPreflightStatus','Get-DownloaderCveExposure','Write-DownloaderCveWarningIfNeeded','Get-PowerShell7SecurityFloorStatus','Write-PowerShell7SecurityFloorWarningIfNeeded','Get-PowerShellSecurityContext','Write-PowerShellSecurityContext','Test-IsLanguageModeOrAppControlError','Get-QuarantineGuidance','Assert-LibreSpotExternalScriptDefenderPolicy','Open-VerifiedScriptForExecution','Get-FileSha256Lower','Confirm-FileHash','Update-AssetCacheIndexEntry','Save-ToAssetCache','Get-FromAssetCache','Clear-LibreSpotCache','Expand-ArchiveSafely','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Start-LibreSpotOwnedProcess','Read-ProcessOutputDelta','Test-NetworkReady','Invoke-GitHubApiSafe','Check-ForUpdates','Compare-LibreSpotVersions','Get-LibreSpotCurrentSpotifyTarget','Get-LibreSpotCompatibilityWarnings','Write-LibreSpotCompatibilityMatrix',
     'Get-SpotXChildFailureClassification','Get-SpotXDownloadRetryPlan','Stop-SpotifyProcesses','Unlock-SpotifyUpdateFolder','Get-DesktopPath','Test-SafeRemovalTarget','Clear-DirectoryContentsSafely','Remove-PathSafely','Enter-LibreSpotMutationLease','Exit-LibreSpotMutationLease',
     'Get-SpicetifyIntegrationContext','Get-SpicetifyV3Conflict','Get-SpicetifyConfigEntries','Get-SpicetifyConfigListValue','Get-SpicetifyApplyPlan','Get-MarketplaceHealth','ConvertTo-NativeArgumentString','Remove-ConsoleEscapeSequences','Update-SpicetifyCliProgress','Write-SpicetifyCliOutputLine','Invoke-SpicetifyCli','Sync-SpicetifyListSetting','Copy-DirectorySnapshotSafely',
     'Test-SpicetifyCliInstalled','Restore-SpotifyIfSpicetifyPresent','Get-SpicetifyDiagnosticSnapshot','Reapply-SavedSpicetifySetup',

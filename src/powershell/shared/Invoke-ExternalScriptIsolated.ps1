@@ -13,18 +13,20 @@ function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Argume
     $childFailure = $null
     $scriptGuard = $null
     $p = $null
+    $ownedProcess = $null
     try {
         $scriptGuard = Open-VerifiedScriptForExecution -FilePath $FilePath -ExpectedHash $ExpectedHash -Label $Label -Arguments $Arguments
         if (-not [string]::IsNullOrWhiteSpace($ExpectedHash)) {
             Write-Log "  Execution copy verified and locked for $Label"
         }
         $argString = "-NoProfile -ExecutionPolicy Bypass -File `"$FilePath`" $Arguments"
-        $p = Start-Process -FilePath 'powershell.exe' -ArgumentList $argString -NoNewWindow -PassThru -Wait:$false -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath -ErrorAction Stop
+        $ownedProcess = Start-LibreSpotOwnedProcess -FilePath 'powershell.exe' -ArgumentList $argString -NoNewWindow -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
+        $p = $ownedProcess.Process
         $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
         while (-not $p.HasExited) {
             if ((Get-Date) -gt $deadline) {
                 Write-Log "Process exceeded ${TimeoutSeconds}s timeout - terminating." -Level 'WARN'
-                try { $p.Kill() } catch {}
+                try { $ownedProcess.Job.Terminate() } catch {}
                 try { $p.WaitForExit(5000) } catch {}
                 throw "External process timed out after ${TimeoutSeconds} seconds. It may have hung or entered an interactive prompt."
             }
@@ -93,6 +95,7 @@ function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Argume
             throw "Process exited with code $exitCode"
         }
     } finally {
+        if ($ownedProcess) { try { $ownedProcess.Job.Dispose() } catch {} }
         if ($p) { try { $p.Dispose() } catch {} }
         if ($scriptGuard) { try { $scriptGuard.Dispose() } catch {} }
         Remove-Item -LiteralPath $stdoutPath -Force -ErrorAction SilentlyContinue
