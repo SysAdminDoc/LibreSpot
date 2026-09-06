@@ -885,6 +885,31 @@ function Test-LocalReleaseTruth {
         $failures += "README does not distinguish current source script version 'v$mainVersion'."
     }
 
+    # The public claim is checked against the GitHub API by Test-PublicReleaseTruth,
+    # which only -ReleaseTruth runs. Nothing in the offline lane noticed that the
+    # README had been naming v4.5.0 as the published stable release for as long as
+    # v4.5.0 was prepared but never tagged or uploaded, which sent readers to
+    # `gh release verify-asset v4.5.0` and a "release not found". A tag in this
+    # repository is the offline half of that answer: a version nobody tagged was
+    # certainly never published.
+    $stableClaim = [regex]::Match($readme, 'public latest stable release, v(?<version>\d+\.\d+\.\d+)')
+    if (-not $stableClaim.Success) {
+        $failures += "README does not name a public latest stable release in the documented form 'public latest stable release, vX.Y.Z'."
+    } else {
+        $claimedStable = $stableClaim.Groups['version'].Value
+        if (-not $readme.Contains("Stable-$claimedStable-blue.svg")) {
+            $failures += "README stable badge does not name the claimed public stable release 'v$claimedStable'."
+        }
+
+        $tagLookup = Invoke-GitCommand -Arguments "tag --list v$claimedStable"
+        if ($tagLookup.ExitCode -ne 0) {
+            $failures += "Could not list git tags to confirm the claimed public stable release 'v$claimedStable'."
+        } elseif ([string]::IsNullOrWhiteSpace($tagLookup.StandardOutput)) {
+            $failures += ("README claims 'v$claimedStable' is the public latest stable release, but no v$claimedStable " +
+                'tag exists in this repository. A prepared version belongs on the preview badge until it is tagged and published.')
+        }
+    }
+
     if ($failures.Count -gt 0) {
         Write-Host '=== LOCAL RELEASE TRUTH DRIFT ===' -ForegroundColor Red
         foreach ($failure in $failures) { Write-Host "  $failure" -ForegroundColor Red }
