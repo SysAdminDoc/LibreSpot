@@ -6,6 +6,8 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Fixed
 
+- The README no longer points at a release that was never published. It called v4.5.0 the public latest stable release and told you to verify against it, but v4.5.0 exists only in the source tree; the published one is v4.4.0. The badge, both verification commands and the surrounding text now name the release you can actually download, and the offline checks refuse a stable claim with no tag behind it.
+- The security policy now describes the shipped UI-automation surface accurately. It said every path a smoke run touches stays inside its own root, which is not true of the screenshot argument: that one writes where the caller asks, because that is what it is for.
 - Prism's settings entry now survives a slow client start. The retry that waits for Spotify's React, menu and modal APIs before registering it was written months ago and announced as shipped, but it only ever reached a copy of the theme that nothing installs, so the theme people actually had still registered the menu once and gave up. There is one copy of the theme in the tree now.
 - The App's third-party notices no longer credit a repository that does not exist. Prism is LibreSpot's own theme and is described as such, with the commit its history came from.
 - Building the standalone executable no longer refuses a machine that has the compiler installed. The check looked for ps2exe in the wrong PowerShell edition, so installing it the way the build tells you to could leave the build insisting it was missing. When it really is missing, the error now names the host and every folder it searched.
