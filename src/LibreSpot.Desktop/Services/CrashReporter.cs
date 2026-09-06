@@ -23,9 +23,32 @@ namespace LibreSpot.Desktop.Services;
 
 public static class CrashReporter
 {
-    private static readonly string LogRoot = LibreSpotPaths.LogsDirectory;
+    private static readonly string LogRoot = ResolveDataRoot(LibreSpotPaths.LogsDirectory, "logs");
 
-    private static readonly string CrashRoot = LibreSpotPaths.CrashesDirectory;
+    private static readonly string CrashRoot = ResolveDataRoot(LibreSpotPaths.CrashesDirectory, "crashes");
+
+    /// <summary>
+    /// Honours the LIBRESPOT_UIA_ROOT data-root override that the shipped
+    /// UI-automation surface documents, so a smoke run keeps its diagnostics
+    /// beside the rest of its state instead of in the real profile.
+    /// </summary>
+    /// <remarks>
+    /// These were bound straight to the real per-user directories, so a
+    /// --uia-smoke run appended to the user rolling log while
+    /// release-artifact-contract.json claimed a smoke run never writes real
+    /// logs or crashes. MainWindow already routes every other path through the
+    /// same variable; this was the one writer that did not.
+    /// </remarks>
+    private static string ResolveDataRoot(string realDirectory, string leaf)
+    {
+        var uiaRoot = Environment.GetEnvironmentVariable("LIBRESPOT_UIA_ROOT");
+        if (string.IsNullOrWhiteSpace(uiaRoot))
+        {
+            return realDirectory;
+        }
+
+        return Path.Combine(Path.GetFullPath(uiaRoot), leaf);
+    }
 
     private static int _initialized;
     private static int _crashDialogOpen;

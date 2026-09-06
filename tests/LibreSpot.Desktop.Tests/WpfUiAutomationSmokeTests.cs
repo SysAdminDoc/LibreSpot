@@ -8,6 +8,7 @@ using System.Windows.Automation.Peers;
 using Axe.Windows.Automation;
 using LibreSpot.Desktop.Controls;
 using LibreSpot.Desktop.Properties;
+using LibreSpot.Desktop.Services;
 using Xunit;
 
 namespace LibreSpot.Desktop.Tests;
@@ -758,13 +759,7 @@ public sealed class WpfUiAutomationSmokeTests
         // lands in the real profile. Found the hard way: a deliberately escaping
         // build wrote a whole config tree into the running user's AppData while
         // the sentinel stayed empty and the test still passed.
-        var realRoots = new[]
-        {
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        };
-
-        var realBefore = SnapshotRealProfile(realRoots);
+        var realBefore = SnapshotRealProfile();
 
         try
         {
@@ -823,14 +818,12 @@ public sealed class WpfUiAutomationSmokeTests
                     + Environment.NewLine
                     + string.Join(Environment.NewLine, escaped));
 
-            var appeared = SnapshotRealProfile(realRoots)
-                .Where(entry => !realBefore.Contains(entry))
-                .ToArray();
+            var changes = DescribeProfileChanges(realBefore, SnapshotRealProfile());
             Assert.True(
-                appeared.Length == 0,
-                $"Smoke state '{state}' created something in the real user profile, which no smoke state may touch:"
+                changes.Length == 0,
+                $"Smoke state '{state}' changed real user state, which no smoke state may touch:"
                     + Environment.NewLine
-                    + string.Join(Environment.NewLine, appeared));
+                    + string.Join(Environment.NewLine, changes));
 
             Assert.Contains(seeded, entry => entry.EndsWith("config.json", StringComparison.OrdinalIgnoreCase));
         }
@@ -849,87 +842,171 @@ public sealed class WpfUiAutomationSmokeTests
     }
 
     [Fact]
-    public void RealProfileSnapshotSeesAWriteNestedInsideAFolderThatAlreadyExists()
+    public void ProfileComparisonReportsCreatedModifiedAndRemovedState()
     {
-        // The positive control for the guard above. It used to compare top-level
-        // entries only, so on any machine where %LOCALAPPDATA%\LibreSpot already
-        // existed, a config written inside it added no new top-level entry and
-        // the containment test passed on exactly the escape it exists to catch.
-        // This plants that write and requires the snapshot to notice.
-        var root = Path.Combine(Path.GetTempPath(), "LibreSpot.SnapshotProbe", Guid.NewGuid().ToString("N"));
-        var existing = Path.Combine(root, "LibreSpot", "config");
-        Directory.CreateDirectory(existing);
-        File.WriteAllText(Path.Combine(existing, "already-here.json"), "{}");
-
-        try
+        // The positive control for the guard above, and it has been wrong twice.
+        // A version that compared top-level entries could not see a nested write.
+        // A version that recorded path names could not see an overwrite, which is
+        // the shape that destroys real settings: writing a smoke stub over an
+        // existing config.json adds no new path at all. A version that compared
+        // one direction could not see a deletion. All three are planted here.
+        var before = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
-            var roots = new[] { root };
-            var before = SnapshotRealProfile(roots);
+            [@"C:\real\config.json"] = "120:100",
+            [@"C:\real\keep.json"] = "40:100",
+            [@"C:\real\gone.json"] = "10:100",
+        };
 
-            var planted = Path.Combine(existing, "leaked-config.json");
-            File.WriteAllText(planted, "{}");
+        var after = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            [@"C:\real\config.json"] = "18:200",
+            [@"C:\real\keep.json"] = "40:100",
+            [@"C:\real\new.json"] = "5:200",
+        };
 
-            var appeared = SnapshotRealProfile(roots).Where(entry => !before.Contains(entry)).ToArray();
+        var changes = DescribeProfileChanges(before, after);
 
+        Assert.Contains(@"modified C:\real\config.json", changes);
+        Assert.Contains(@"created C:\real\new.json", changes);
+        Assert.Contains(@"removed C:\real\gone.json", changes);
+        Assert.DoesNotContain(changes, entry => entry.EndsWith(@"keep.json", StringComparison.OrdinalIgnoreCase));
+        Assert.Equal(3, changes.Length);
+    }
+
+    [Fact]
+    public void GuardedLocationsCoverEveryPlaceTheProductWritesByDefault()
+    {
+        // Naming one folder was the other half of the same mistake. The guard
+        // walked anything called LibreSpot, so the Spicetify configuration, the
+        // backup folder and the machine-wide directory were never looked at, and
+        // clobbering a real Spicetify config is the worst thing a leak here could
+        // do. This holds the guarded list against the defaults the product
+        // actually resolves, so adding a new location to one and not the other
+        // fails instead of quietly narrowing what is watched.
+        var guarded = GuardedRealLocations().ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var programData = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
+
+        var required = new[]
+        {
+            LibreSpotPaths.ConfigDirectory,
+            Path.Combine(localAppData, LibreSpotPaths.DirectoryName),
+            LibreSpotPaths.MachineConfigDirectory,
+            Path.Combine(userProfile, "LibreSpot_Backups"),
+            Path.Combine(appData, "spicetify"),
+            Path.Combine(localAppData, "spicetify"),
+        };
+
+        foreach (var location in required)
+        {
             Assert.True(
-                appeared.Contains(planted, StringComparer.OrdinalIgnoreCase),
-                "A file written inside an existing LibreSpot folder must show up as new. Saw: "
-                    + string.Join(", ", appeared));
+                guarded.Contains(location),
+                $"The containment guard does not watch {location}, so a smoke run could write there unseen.");
+        }
 
-            // And the comparison the guard replaced would have missed it, which
-            // is the whole reason this control exists.
-            var topLevelOnly = Directory.GetFileSystemEntries(root);
-            Assert.DoesNotContain(planted, topLevelOnly, StringComparer.OrdinalIgnoreCase);
-        }
-        finally
-        {
-            try
-            {
-                Directory.Delete(root, recursive: true);
-            }
-            catch (IOException)
-            {
-                // Temp probe; not worth failing a passing test over.
-            }
-        }
+        // LibreSpotPaths is the product's own answer for the per-user tree, so a
+        // rename there has to move the guard with it rather than leaving this
+        // test asserting a folder nothing uses any more.
+        Assert.StartsWith(appData, LibreSpotPaths.ConfigDirectory, StringComparison.OrdinalIgnoreCase);
+        Assert.EndsWith(LibreSpotPaths.DirectoryName, LibreSpotPaths.ConfigDirectory, StringComparison.OrdinalIgnoreCase);
+        Assert.StartsWith(programData, LibreSpotPaths.MachineConfigDirectory, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
-    /// Top-level entries of the real roaming and local profile, plus everything
-    /// under any LibreSpot folder already there.
+    /// The real locations a smoke run could collide with, fingerprinted so that
+    /// a new file, an overwritten one, and a deleted one are all visible.
     /// </summary>
     /// <remarks>
-    /// A top-level-only snapshot cannot see the leak that matters. On any machine
-    /// where the real app has run once, %LOCALAPPDATA%\LibreSpot already exists,
-    /// so a config written into it adds no new top-level entry and a comparison
-    /// of top-level entries goes green on exactly the escape it exists to catch.
-    /// Walking all of AppData would take longer than the test; walking our own
-    /// folders inside it costs nothing and is where a LibreSpot leak lands.
+    /// Three earlier versions of this guard were too weak in ways that each let
+    /// the escape it exists to catch pass. Comparing top-level entries of the
+    /// roaming and local profile missed anything nested. Walking only a folder
+    /// named LibreSpot missed the Spicetify configuration, the backup folder and
+    /// the machine-wide directory, which is where the most damaging clobber
+    /// would land. Recording path names alone missed an overwrite of a file that
+    /// already existed, which destroys real settings while adding no new entry.
+    /// Fingerprints close all three. %APPDATA%\Spotify is deliberately not
+    /// guarded: a running client rewrites its own cache and preferences, so
+    /// including it would fail runs for reasons that have nothing to do with
+    /// LibreSpot.
     /// </remarks>
-    private static HashSet<string> SnapshotRealProfile(IEnumerable<string> roots)
+    private static Dictionary<string, string> SnapshotRealProfile()
     {
-        var entries = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var snapshot = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var root in roots.Where(Directory.Exists))
+        var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+
+        // A brand new folder appearing beside the others is worth catching even
+        // when it is not one of the names below.
+        foreach (var root in new[] { appData, localAppData }.Where(Directory.Exists))
         {
             foreach (var entry in Directory.GetFileSystemEntries(root))
             {
-                entries.Add(entry);
-            }
-
-            var ours = Path.Combine(root, "LibreSpot");
-            if (!Directory.Exists(ours))
-            {
-                continue;
-            }
-
-            foreach (var entry in Directory.GetFileSystemEntries(ours, "*", SearchOption.AllDirectories))
-            {
-                entries.Add(entry);
+                snapshot[entry] = "present";
             }
         }
 
-        return entries;
+        foreach (var guarded in GuardedRealLocations().Where(Directory.Exists))
+        {
+            foreach (var file in Directory.GetFiles(guarded, "*", SearchOption.AllDirectories))
+            {
+                var info = new FileInfo(file);
+                snapshot[file] = $"{info.Length}:{info.LastWriteTimeUtc.Ticks}";
+            }
+        }
+
+        return snapshot;
+    }
+
+    private static string[] GuardedRealLocations()
+    {
+        var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var programData = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
+
+        // Everything EnvironmentSnapshotService and LibreSpotPaths resolve to by
+        // default, minus the Spotify install for the reason above.
+        return
+        [
+            Path.Combine(appData, LibreSpotPaths.DirectoryName),
+            Path.Combine(localAppData, LibreSpotPaths.DirectoryName),
+            Path.Combine(programData, LibreSpotPaths.DirectoryName),
+            Path.Combine(userProfile, "LibreSpot_Backups"),
+            Path.Combine(appData, "spicetify"),
+            Path.Combine(localAppData, "spicetify"),
+        ];
+    }
+
+    private static string[] DescribeProfileChanges(
+        Dictionary<string, string> before,
+        Dictionary<string, string> after)
+    {
+        var changes = new List<string>();
+
+        foreach (var (path, fingerprint) in after)
+        {
+            if (!before.TryGetValue(path, out var original))
+            {
+                changes.Add($"created {path}");
+            }
+            else if (!string.Equals(original, fingerprint, StringComparison.Ordinal))
+            {
+                changes.Add($"modified {path}");
+            }
+        }
+
+        // The other direction, so a run that deletes or truncates real state is
+        // not read as "nothing appeared, therefore nothing happened".
+        foreach (var path in before.Keys.Where(path => !after.ContainsKey(path)))
+        {
+            changes.Add($"removed {path}");
+        }
+
+        return changes.OrderBy(entry => entry, StringComparer.OrdinalIgnoreCase).ToArray();
     }
 
     private static Dictionary<string, int> LoadAxeBaseline(string state)
