@@ -31,12 +31,19 @@
       "packageRole": "stable-script-exe",
       "runtimeIdentifier": "win-x64",
       "buildMode": "ps2exe",
-      "channels": ["stable", "preview", "rc"],
+      "channels": [
+        "stable",
+        "preview",
+        "rc"
+      ],
       "required": true,
       "checksumEntry": true,
       "signingRequirement": "none",
       "attestation": "none",
-      "distributionChannels": ["github-releases", "powershell-oneliner"]
+      "distributionChannels": [
+        "github-releases",
+        "powershell-oneliner"
+      ]
     },
     {
       "name": "LibreSpot.ps1",
@@ -44,12 +51,19 @@
       "packageRole": "source-script",
       "runtimeIdentifier": "any",
       "buildMode": "script",
-      "channels": ["stable", "preview", "rc"],
+      "channels": [
+        "stable",
+        "preview",
+        "rc"
+      ],
       "required": true,
       "checksumEntry": true,
       "signingRequirement": "none",
       "attestation": "none",
-      "distributionChannels": ["github-releases", "powershell-oneliner"]
+      "distributionChannels": [
+        "github-releases",
+        "powershell-oneliner"
+      ]
     },
     {
       "name": "LibreSpot-Desktop.exe",
@@ -57,12 +71,19 @@
       "packageRole": "desktop-shell",
       "runtimeIdentifier": "win-x64",
       "buildMode": "dotnet-self-contained",
-      "channels": ["stable", "preview", "rc"],
+      "channels": [
+        "stable",
+        "preview",
+        "rc"
+      ],
       "required": true,
       "checksumEntry": true,
       "signingRequirement": "none",
       "attestation": "none",
-      "distributionChannels": ["github-releases-wpf", "velopack"]
+      "distributionChannels": [
+        "github-releases-wpf",
+        "velopack"
+      ]
     },
     {
       "name": "LibreSpot.Cli.exe",
@@ -70,12 +91,19 @@
       "packageRole": "fleet-cli",
       "runtimeIdentifier": "win-x64",
       "buildMode": "dotnet-self-contained",
-      "channels": ["stable", "preview", "rc"],
+      "channels": [
+        "stable",
+        "preview",
+        "rc"
+      ],
       "required": true,
       "checksumEntry": true,
       "signingRequirement": "none",
       "attestation": "none",
-      "distributionChannels": ["github-releases", "fleet-tools"]
+      "distributionChannels": [
+        "github-releases",
+        "fleet-tools"
+      ]
     },
     {
       "name": "LibreSpot.sbom.cdx.json",
@@ -84,12 +112,19 @@
       "runtimeIdentifier": "any",
       "buildMode": "metadata",
       "sbomSubject": "LibreSpot-Desktop.exe",
-      "channels": ["stable", "preview", "rc"],
+      "channels": [
+        "stable",
+        "preview",
+        "rc"
+      ],
       "required": true,
       "checksumEntry": true,
       "signingRequirement": "none",
       "attestation": "none",
-      "distributionChannels": ["github-releases", "github-releases-wpf"]
+      "distributionChannels": [
+        "github-releases",
+        "github-releases-wpf"
+      ]
     },
     {
       "name": "checksums.txt",
@@ -97,12 +132,19 @@
       "packageRole": "checksums",
       "runtimeIdentifier": "any",
       "buildMode": "metadata",
-      "channels": ["stable", "preview", "rc"],
+      "channels": [
+        "stable",
+        "preview",
+        "rc"
+      ],
       "required": true,
       "checksumEntry": false,
       "signingRequirement": "none",
       "attestation": "none",
-      "distributionChannels": ["github-releases", "github-releases-wpf"]
+      "distributionChannels": [
+        "github-releases",
+        "github-releases-wpf"
+      ]
     },
     {
       "name": "librespot-engine.zip",
@@ -110,12 +152,18 @@
       "packageRole": "custom-app-archive",
       "runtimeIdentifier": "any",
       "buildMode": "deterministic-zip",
-      "channels": ["stable", "preview", "rc"],
+      "channels": [
+        "stable",
+        "preview",
+        "rc"
+      ],
       "required": true,
       "checksumEntry": true,
       "signingRequirement": "none",
       "attestation": "none",
-      "distributionChannels": ["github-releases"]
+      "distributionChannels": [
+        "github-releases"
+      ]
     },
     {
       "name": "librespot-release-manifest.json",
@@ -124,18 +172,31 @@
       "runtimeIdentifier": "any",
       "buildMode": "metadata",
       "selfReferential": true,
-      "channels": ["stable", "preview", "rc"],
+      "channels": [
+        "stable",
+        "preview",
+        "rc"
+      ],
       "required": true,
       "checksumEntry": false,
       "signingRequirement": "none",
       "attestation": "none",
-      "distributionChannels": ["github-releases"]
+      "distributionChannels": [
+        "github-releases"
+      ]
     }
   ],
   "checksumContract": {
     "algorithm": "SHA256",
     "format": "sha256sum",
-    "coveredAssets": ["LibreSpot.exe", "LibreSpot.ps1", "LibreSpot-Desktop.exe", "LibreSpot.Cli.exe", "LibreSpot.sbom.cdx.json", "librespot-engine.zip"],
+    "coveredAssets": [
+      "LibreSpot.exe",
+      "LibreSpot.ps1",
+      "LibreSpot-Desktop.exe",
+      "LibreSpot.Cli.exe",
+      "LibreSpot.sbom.cdx.json",
+      "librespot-engine.zip"
+    ],
     "verificationCommand": "sha256sum --check checksums.txt"
   },
   "attestationContract": {
@@ -170,7 +231,36 @@
     "conditionalOn": [],
     "signedAssets": [],
     "verificationCommand": null,
-    "verificationEvidence": ["checksums.txt", "librespot-release-manifest.json", "LibreSpot.sbom.cdx.json"]
+    "verificationEvidence": [
+      "checksums.txt",
+      "librespot-release-manifest.json",
+      "LibreSpot.sbom.cdx.json"
+    ]
+  },
+  "uiAutomationSurface": {
+    "$comment": "The shipped executables accept a UI-automation surface. It is intentional and it is used against the release artifact itself: schemas/publish-footprint-budget.json measures cold start by launching LibreSpot-Desktop.exe with these flags, and the README screenshots are captured the same way. Excluding it from Release would mean measuring and photographing a binary nobody ships. Recorded here so the surface is declared rather than discovered.",
+    "status": "shipped-by-design",
+    "reason": "Release-artifact footprint measurement and offscreen README screenshot capture.",
+    "arguments": [
+      "--uia-smoke=",
+      "--uia-culture=",
+      "--uia-theme=",
+      "--uia-size=",
+      "--uia-focus=",
+      "--uia-capture=",
+      "--uia-background",
+      "--uia-capture-keep-open"
+    ],
+    "environmentVariables": [
+      "LIBRESPOT_UIA_ROOT"
+    ],
+    "limits": [
+      "Every path the smoke view model builds is derived from LIBRESPOT_UIA_ROOT, or from a fresh GUID directory under the user's temp folder when that variable is unset, so a smoke run never reads or writes the real configuration, logs, crashes, backups or Spicetify state.",
+      "The smoke view model constructs its backend service with noBackendMode, so no smoke state can invoke the PowerShell backend or touch a real Spotify or Spicetify install.",
+      "The surface changes only what the window displays. It crosses no privilege boundary and the desktop manifest stays asInvoker."
+    ],
+    "risk": "A person who can already run the executable can make the genuine binary display a fabricated readiness or maintenance state. That is a presentation concern, not an escalation, and it is why the states are listed here instead of being left undeclared.",
+    "provenTestedBy": "ReleaseArtifactContractTests.UiAutomationSurface_KeepsEveryWriteInsideItsOwnRoot"
   },
   "postUploadAudit": {
     "description": "After gh release upload, the local release audit should verify the published release matches this contract.",
@@ -187,7 +277,15 @@
   },
   "historicalReleases": {
     "description": "Releases before this contract was introduced do not conform to it.",
-    "priorToContract": ["v3.7.2", "v4.0.0-preview.1", "v4.0.0-preview.2", "v4.0.0-preview.3", "v4.0.0-preview.4", "v4.0.0-preview.5", "v4.0.0-preview.6"],
+    "priorToContract": [
+      "v3.7.2",
+      "v4.0.0-preview.1",
+      "v4.0.0-preview.2",
+      "v4.0.0-preview.3",
+      "v4.0.0-preview.4",
+      "v4.0.0-preview.5",
+      "v4.0.0-preview.6"
+    ],
     "notes": "v3.7.2 ships only checksums.txt, LibreSpot.exe, LibreSpot.ps1. v4.0.0-preview.1 ships only LibreSpot-v4.0.0-preview.1.exe. These releases predate the WPF desktop exe, CLI exe, SBOM, and release-manifest requirements."
   }
 }

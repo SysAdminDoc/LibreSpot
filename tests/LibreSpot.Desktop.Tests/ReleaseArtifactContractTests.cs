@@ -541,6 +541,50 @@ public sealed class ReleaseArtifactContractTests
         Assert.Contains(".NET 10", docs["SIGNPATH.md"], StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void UiAutomationSurface_IsDeclaredWithEveryFlagTheShellActuallyParses()
+    {
+        // The contract is only worth having if it cannot drift from the code.
+        // Every prefix the window parses has to be listed, so renaming or adding
+        // one without declaring it fails here rather than shipping undeclared.
+        var declared = Contract.RootElement
+            .GetProperty("uiAutomationSurface")
+            .GetProperty("arguments")
+            .EnumerateArray()
+            .Select(entry => entry.GetString() ?? string.Empty)
+            .ToHashSet(StringComparer.Ordinal);
+
+        var window = ReadFile("src", "LibreSpot.Desktop", "MainWindow.xaml.cs");
+        var parsed = Regex.Matches(window, @"private const string UiAutomation\w+Argument\w*\s*=\s*""(?<flag>--uia-[^""]+)"";")
+            .Select(match => match.Groups["flag"].Value)
+            .ToArray();
+
+        // Without this the comparison below passes trivially if the constants
+        // are ever renamed out of the pattern's reach.
+        Assert.True(
+            parsed.Length >= 6,
+            $"Only found {parsed.Length} --uia- argument constants in MainWindow.xaml.cs; the pattern in this test "
+                + "has stopped matching and it is no longer checking the contract against the code.");
+
+        foreach (var flag in parsed)
+        {
+            Assert.True(
+                declared.Contains(flag),
+                $"MainWindow.xaml.cs parses {flag} but schemas/release-artifact-contract.json does not declare it "
+                    + "under uiAutomationSurface.arguments.");
+        }
+
+        Assert.Equal("shipped-by-design", Contract.RootElement.GetProperty("uiAutomationSurface").GetProperty("status").GetString());
+
+        // A surface that ships on purpose has to be findable by someone reading
+        // the security policy, not only by someone reading the build contract.
+        // Anyone who discovers --uia-smoke= and goes looking should land on the
+        // statement that it is declared, rather than filing it as a finding.
+        var security = ReadFile("SECURITY.md");
+        Assert.Contains("--uia-smoke=", security, StringComparison.Ordinal);
+        Assert.Contains("LIBRESPOT_UIA_ROOT", security, StringComparison.Ordinal);
+    }
+
     private static JsonDocument LoadContract()
     {
         var path = Path.Combine(RepoRoot, "schemas", "release-artifact-contract.json");

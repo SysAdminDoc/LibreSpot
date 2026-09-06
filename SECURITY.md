@@ -59,6 +59,7 @@ Report these issues to the upstream owner instead:
 - Social engineering attacks requiring the user to run arbitrary PowerShell
 - Issues requiring physical access to the machine
 - Denial of service against local Spotify installations (LibreSpot modifies local files by design)
+- The UI-automation surface the shipped executables accept (`--uia-smoke=` and the other `--uia-` arguments, plus the `LIBRESPOT_UIA_ROOT` variable). It ships on purpose, because the release artifact is what gets measured for startup footprint and photographed for the README screenshots. Someone who can already run the executable can make it display a fabricated readiness or maintenance state, which is a presentation concern and not an escalation: every path a smoke run touches stays inside its own root, the backend is disabled so no Spotify or Spicetify state is reachable, and the manifest stays `asInvoker`. The surface, its limits, and the test that proves the containment are recorded under `uiAutomationSurface` in `schemas/release-artifact-contract.json`.
 
 ### Upstream dependency issues
 

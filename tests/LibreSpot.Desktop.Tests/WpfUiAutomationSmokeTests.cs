@@ -731,6 +731,124 @@ public sealed class WpfUiAutomationSmokeTests
         }
     }
 
+    [Fact]
+    public void UiAutomationSurface_KeepsEveryWriteInsideItsOwnRoot()
+    {
+        // The claim recorded in the contract, tested rather than asserted in
+        // prose. A sentinel APPDATA is handed to the child process: if any smoke
+        // state ever wrote to the real per-user location instead of the root, it
+        // would land in the sentinel and this fails, without ever touching the
+        // configuration of whoever is running the suite.
+        var appPath = Path.Combine(AppContext.BaseDirectory, "LibreSpot.exe");
+        Assert.True(File.Exists(appPath), $"Expected the WPF executable at {appPath}.");
+
+        var sandbox = Path.Combine(Path.GetTempPath(), "LibreSpot.UiaContainment", Guid.NewGuid().ToString("N"));
+        var uiaRoot = Path.Combine(sandbox, "uia-root");
+        var sentinelAppData = Path.Combine(sandbox, "sentinel-appdata");
+        Directory.CreateDirectory(uiaRoot);
+        Directory.CreateDirectory(sentinelAppData);
+
+        // Two escape routes, and the sentinel only closes one. Environment
+        // variables catch code that reads %APPDATA%, but Environment.GetFolderPath
+        // goes to the shell API and ignores them entirely, so a leak through it
+        // lands in the real profile. Snapshot the real locations and require them
+        // unchanged. Found the hard way: a deliberately escaping build wrote a
+        // whole config tree into the running user's AppData while the sentinel
+        // stayed empty and the test still passed this check.
+        var realRoots = new[]
+        {
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        };
+        var realBefore = realRoots
+            .Where(Directory.Exists)
+            .ToDictionary(root => root, root => Directory.GetFileSystemEntries(root).ToHashSet(StringComparer.OrdinalIgnoreCase), StringComparer.OrdinalIgnoreCase);
+
+        try
+        {
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = appPath,
+                UseShellExecute = false,
+                WorkingDirectory = AppContext.BaseDirectory,
+            };
+            startInfo.ArgumentList.Add("--uia-smoke=maintenance");
+            startInfo.ArgumentList.Add("--uia-culture=en");
+            startInfo.ArgumentList.Add("--uia-background");
+            startInfo.Environment["LIBRESPOT_UIA_ROOT"] = uiaRoot;
+            startInfo.Environment["APPDATA"] = sentinelAppData;
+            startInfo.Environment["LOCALAPPDATA"] = sentinelAppData;
+
+            using var process = Process.Start(startInfo)!;
+            try
+            {
+                // Long enough for the shell to build its snapshot and seed the
+                // root; the assertions below say whether it actually did.
+                Thread.Sleep(TimeSpan.FromSeconds(12));
+            }
+            finally
+            {
+                try
+                {
+                    if (!process.HasExited)
+                    {
+                        process.Kill(entireProcessTree: true);
+                    }
+
+                    process.WaitForExit(10000);
+                }
+                catch (InvalidOperationException)
+                {
+                    // Already gone.
+                }
+            }
+
+            // Positive control first. If the smoke state seeded nothing, the
+            // emptiness check below would pass against a run that never happened.
+            var seeded = Directory.Exists(uiaRoot)
+                ? Directory.GetFileSystemEntries(uiaRoot, "*", SearchOption.AllDirectories)
+                : Array.Empty<string>();
+            Assert.True(
+                seeded.Length > 0,
+                $"The smoke run created nothing under {uiaRoot}, so this proved nothing about where it writes.");
+
+            // Checked before the more specific assertion below, so a run that
+            // escaped is reported as an escape rather than as a missing file.
+            var escaped = Directory.GetFileSystemEntries(sentinelAppData, "*", SearchOption.AllDirectories);
+            Assert.True(
+                escaped.Length == 0,
+                "A UI-automation smoke run wrote outside LIBRESPOT_UIA_ROOT, into the per-user location:"
+                    + Environment.NewLine
+                    + string.Join(Environment.NewLine, escaped));
+
+            foreach (var (root, before) in realBefore)
+            {
+                var appeared = Directory.GetFileSystemEntries(root)
+                    .Where(entry => !before.Contains(entry))
+                    .ToArray();
+                Assert.True(
+                    appeared.Length == 0,
+                    $"A UI-automation smoke run created something in the real {root}, which no smoke state may touch:"
+                        + Environment.NewLine
+                        + string.Join(Environment.NewLine, appeared));
+            }
+
+            Assert.Contains(seeded, entry => entry.EndsWith("config.json", StringComparison.OrdinalIgnoreCase));
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(sandbox, recursive: true);
+            }
+            catch (IOException)
+            {
+                // A handle can outlive the process briefly; the temp folder is
+                // not worth failing a passing test over.
+            }
+        }
+    }
+
     private static Dictionary<string, int> LoadAxeBaseline(string state)
     {
         var path = Path.Combine(ResolveRepoRoot(), "schemas", "axe-windows-baseline.json");
