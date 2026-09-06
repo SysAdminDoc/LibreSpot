@@ -583,6 +583,36 @@ public sealed class ReleaseArtifactContractTests
         var security = ReadFile("SECURITY.md");
         Assert.Contains("--uia-smoke=", security, StringComparison.Ordinal);
         Assert.Contains("LIBRESPOT_UIA_ROOT", security, StringComparison.Ordinal);
+
+        // The contract cited ReleaseArtifactContractTests for a test that lives in
+        // WpfUiAutomationSmokeTests, so anyone auditing the containment claim ran
+        // the named filter, matched nothing, and would have been right to call the
+        // claim unproven. A name nobody checks is worth less than no name.
+        var provenBy = Contract.RootElement
+            .GetProperty("uiAutomationSurface")
+            .GetProperty("provenTestedBy")
+            .GetString() ?? string.Empty;
+
+        var parts = provenBy.Split('.', StringSplitOptions.RemoveEmptyEntries);
+        Assert.True(parts.Length == 2, $"provenTestedBy must read Class.Method; found '{provenBy}'.");
+
+        var sourcePath = Path.Combine(RepoRoot, "tests", "LibreSpot.Desktop.Tests", $"{parts[0]}.cs");
+        Assert.True(
+            File.Exists(sourcePath),
+            $"uiAutomationSurface.provenTestedBy names class '{parts[0]}', but {parts[0]}.cs does not exist.");
+        Assert.Contains($"public void {parts[1]}()", File.ReadAllText(sourcePath), StringComparison.Ordinal);
+
+        // The capture argument writes where the caller says, so a blanket "stays
+        // inside its own root" sentence in the security policy would be false.
+        // Both files have to name the exception for the claim to be honest.
+        Assert.Contains("--uia-capture=<path>", security, StringComparison.Ordinal);
+        Assert.Contains(
+            "--uia-capture=<path> is the exception",
+            string.Join(
+                " ",
+                Contract.RootElement.GetProperty("uiAutomationSurface").GetProperty("limits")
+                    .EnumerateArray().Select(entry => entry.GetString())),
+            StringComparison.Ordinal);
     }
 
     private static JsonDocument LoadContract()

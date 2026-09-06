@@ -53,7 +53,7 @@
   ],
   "coldStartMetrics": {
     "status": "measured",
-    "method": "LibreSpot-Desktop.exe launched with --uia-smoke=recommended --uia-background --uia-size=1280x800 --uia-capture, timed from process start to the capture file appearing, with a fresh DOTNET_BUNDLE_EXTRACT_BASE_DIR per run so run 1 is a true cold start. Three runs per variant, repeated twice, on the maintainer machine.",
+    "method": "LibreSpot-Desktop.exe launched with --uia-smoke=recommended --uia-background --uia-size=1280x800 --uia-capture=<path>, timed from process start to the capture file appearing, with a fresh DOTNET_BUNDLE_EXTRACT_BASE_DIR per run so run 1 is a true cold start. Three runs per variant, repeated twice, on the maintainer machine.",
     "measuredOn": "2026-09-03",
     "measuredMetrics": [
       {

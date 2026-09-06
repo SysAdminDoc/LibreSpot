@@ -256,11 +256,12 @@
     ],
     "limits": [
       "Every path the smoke view model builds is derived from LIBRESPOT_UIA_ROOT, or from a fresh GUID directory under the user's temp folder when that variable is unset, so a smoke run never reads or writes the real configuration, logs, crashes, backups or Spicetify state.",
+      "--uia-capture=<path> is the exception and is not confined to the root: it writes a PNG of the window to the path the caller names, which is the point of the argument. It reads nothing and writes with the privileges the caller already has.",
       "The smoke view model constructs its backend service with noBackendMode, so no smoke state can invoke the PowerShell backend or touch a real Spotify or Spicetify install.",
       "The surface changes only what the window displays. It crosses no privilege boundary and the desktop manifest stays asInvoker."
     ],
     "risk": "A person who can already run the executable can make the genuine binary display a fabricated readiness or maintenance state. That is a presentation concern, not an escalation, and it is why the states are listed here instead of being left undeclared.",
-    "provenTestedBy": "ReleaseArtifactContractTests.UiAutomationSurface_KeepsEveryWriteInsideItsOwnRoot"
+    "provenTestedBy": "WpfUiAutomationSmokeTests.UiAutomationSurface_KeepsEveryWriteInsideItsOwnRoot"
   },
   "postUploadAudit": {
     "description": "After gh release upload, the local release audit should verify the published release matches this contract.",
