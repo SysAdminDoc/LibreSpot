@@ -190,6 +190,44 @@ public sealed class ThirdPartyNoticesTests
             $"Community assets manifest referenced at '{refPath}' does not exist.");
     }
 
+    [Fact]
+    public void AppNotices_ListNoFirstPartyRepositoryAsThirdParty()
+    {
+        // The table used to credit github.com/SysAdminDoc/LibreSpot-Prism at a
+        // pinned commit. That repository was never pushed, so the link answered
+        // 404 and the commit lived only in a local folder. The deeper problem is
+        // that Prism is this project's own work: a third-party attribution table
+        // is the wrong place for it, and a licence notice is the one file that
+        // must not point somewhere that does not exist.
+        var notices = File.ReadAllText(
+            Path.Combine(RepoRoot, "src", "LibreSpot.App", "THIRD_PARTY_NOTICES.md"));
+
+        var rows = Regex.Matches(notices, @"^\| \[(?<label>[^\]]+)\]\((?<url>[^)]+)\)", RegexOptions.Multiline);
+
+        // Guards the regex rather than the content: if the table is reformatted
+        // out of this shape, the loop below would pass by matching nothing.
+        Assert.True(
+            rows.Count >= 20,
+            $"Only matched {rows.Count} linked rows in the App third-party notices; the table shape changed and this "
+                + "test is no longer reading it.");
+
+        var firstParty = rows
+            .Where(row => row.Groups["url"].Value.Contains("github.com/SysAdminDoc/", StringComparison.OrdinalIgnoreCase))
+            .Select(row => $"{row.Groups["label"].Value} -> {row.Groups["url"].Value}")
+            .ToArray();
+
+        Assert.True(
+            firstParty.Length == 0,
+            "The App third-party notices credit a repository owned by this project as though it were third party. "
+                + "First-party work belongs in the prose above the table, not in it: "
+                + string.Join(", ", firstParty));
+
+        // The replacement prose has to keep saying where the origin history went,
+        // or the commit it names becomes unreachable trivia.
+        Assert.Contains("refs/archive/prism-origin", notices, StringComparison.Ordinal);
+        Assert.Contains("72dc0334fdf11a156314c96593539e477aee7028", notices, StringComparison.Ordinal);
+    }
+
     private static HashSet<string> GetDependencyNames(string category)
     {
         return Notices.RootElement.GetProperty("dependencies").EnumerateArray()

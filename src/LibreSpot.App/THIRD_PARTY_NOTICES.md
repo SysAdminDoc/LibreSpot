@@ -4,9 +4,10 @@ LibreSpot App is licensed under the GNU Affero General Public License version 3.
 
 Vendored files retain their upstream copyright notices and license terms. Entries marked "approach only" supplied design or interoperability information. No source from those repositories is included.
 
+Prism is LibreSpot's own theme, so it is not listed in the table below. It started as a separate proof of concept in a local repository that was never published, and it moved into this repository on 2026-09-03. Its origin snapshot is commit `72dc0334fdf11a156314c96593539e477aee7028`, kept here under the `refs/archive/prism-origin` ref and readable with `git log refs/archive/prism-origin`. The theme itself ships from `resources/themes/Prism`.
+
 | Project | Revision | License at revision | Use in LibreSpot App |
 | --- | --- | --- | --- |
-| [SysAdminDoc/LibreSpot-Prism](https://github.com/SysAdminDoc/LibreSpot-Prism) | `72dc0334fdf11a156314c96593539e477aee7028` | MIT | Prism palettes, independent layer classes, scheduled schemes, artwork accents, frame-rate probe, and SpotX custom-patch example. |
 | [spicetify/cli](https://github.com/spicetify/cli) | `e1f66811a635557cabbd8726cf0bcc5c3ce2b084` | LGPL-2.1 | Experimental feature override flow, home and sidebar configuration patterns, Platform resolution, and custom-app injection behavior. |
 | [sanoojes/spicetify-lucid](https://github.com/sanoojes/spicetify-lucid) | `05df458210c535e84c9173fe87059748229af9ad` | AGPL-3.0 | Material color derivation, artwork color fallbacks, contrast selection, and settings structure. |
 | [theRealPadster/spicetify-hide-podcasts](https://github.com/theRealPadster/spicetify-hide-podcasts) | `686382ed194e0e358c0ef955ccfafb045a37fbfa` | MIT in the checked-out `LICENSE`; GitHub metadata reported GPL-3.0 on 2026-09-01 | Stable podcast and audiobook surface selectors and live visibility rules. |
