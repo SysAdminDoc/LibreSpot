@@ -6,6 +6,9 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Fixed
 
+- Prism's settings entry now survives a slow client start. The retry that waits for Spotify's React, menu and modal APIs before registering it was written months ago and announced as shipped, but it only ever reached a copy of the theme that nothing installs, so the theme people actually had still registered the menu once and gave up. There is one copy of the theme in the tree now.
+- The App's third-party notices no longer credit a repository that does not exist. Prism is LibreSpot's own theme and is described as such, with the commit its history came from.
+- Building the standalone executable no longer refuses a machine that has the compiler installed. The check looked for ps2exe in the wrong PowerShell edition, so installing it the way the build tells you to could leave the build insisting it was missing. When it really is missing, the error now names the host and every folder it searched.
 - The two identical icons at the repository root are one file now. The compiled PowerShell executable and the desktop shell read the same `icon.ico`, so changing the icon can no longer ship two artifacts wearing different faces.
 - The README says which parts of LibreSpot are translated. The desktop shell ships five reviewed languages, while the panel LibreSpot adds inside Spotify and the standalone script are English only, and nothing said so before.
 - The mutation-testing figure in the README carries the date it was measured rather than being called current, and the supported-theme count is checked against the preview manifest. Either one drifting from the code now fails a test.
