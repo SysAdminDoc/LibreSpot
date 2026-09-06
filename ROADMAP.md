@@ -6,13 +6,6 @@ Incomplete, implementer-actionable work only. Operator-dependent decisions remai
 
 ### P1: Now
 
-- [ ] P1: RD-224. Commit live edits only after validation and report failed application
-  Why: Impact 5/5. Clearing a schedule time saves invalid state before apply throws, so an ordinary edit can break the next startup.
-  Evidence: RESEARCH.md; core/engine.ts update/replace save before apply; panels/look.ts immediately commits empty time; runtime update callers discard rejected promises and ignore unavailable flag application.
-  Touches: src/LibreSpot.App/src/core/engine.ts and schedule.ts; src/LibreSpot.App/src/extensions/librespot-engine.ts; src/LibreSpot.App/src/panels/look.ts; tests/engine.test.ts and surface.test.ts within the component.
-  Acceptance: After RD-223, incomplete time edits remain local drafts and never reach saved state. Inject validation, style/apply and storage failures; previous persisted state and active appearance remain usable. Every failed operation produces one visible error without an unhandled rejection or success toast. When settings save but a host flag API is unavailable, report saved but not applied and retain a retry path. Valid edits still apply.
-  Complexity: M
-
 - [ ] P1: RD-225. Redact structured, quoted and prefixed secrets in support exports
   Why: Impact 5/5. Synthetic JSON tokens, multiword quoted passwords and timestamp-prefixed bearer headers survive the current redactor.
   Evidence: RESEARCH.md, Support-export privacy; src/LibreSpot.Core/SupportBundleService.cs RedactText; tests/LibreSpot.Desktop.Tests/SupportBundleServiceTests.cs.

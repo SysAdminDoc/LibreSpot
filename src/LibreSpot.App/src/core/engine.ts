@@ -19,6 +19,7 @@ import { resolveScheduledScheme } from "./schedule.ts";
 import { ManagedRuntimeStyles } from "./runtime-styles.ts";
 import type { EngineStore } from "./store.ts";
 import { cloneState, type EngineState } from "./state.ts";
+import { validateEngineState } from "./profile.ts";
 
 export type EngineEnvironment = {
   document: Document;
@@ -126,17 +127,45 @@ export class LibreSpotEngine extends EventTarget {
   }
 
   public update(mutator: (draft: EngineState) => void): EngineState {
+    const previous = cloneState(this.#state);
     const draft = cloneState(this.#state);
     mutator(draft);
-    this.#state = this.#store.save(draft);
-    this.apply();
-    return this.state;
+    validateEngineState(draft);
+    try {
+      this.#state = draft;
+      this.apply();
+      this.#state = this.#store.save(draft);
+      return this.state;
+    } catch (error) {
+      this.#state = previous;
+      try {
+        this.apply();
+      } catch {
+        // Keep the original state in memory even when a broken host document
+        // prevents the visual rollback from completing.
+      }
+      throw error;
+    }
   }
 
   public replace(state: EngineState): EngineState {
-    this.#state = this.#store.save(state);
-    this.apply();
-    return this.state;
+    validateEngineState(state);
+    const previous = cloneState(this.#state);
+    const next = cloneState(state);
+    try {
+      this.#state = next;
+      this.apply();
+      this.#state = this.#store.save(next);
+      return this.state;
+    } catch (error) {
+      this.#state = previous;
+      try {
+        this.apply();
+      } catch {
+        // Preserve the last valid state if the host rejects visual rollback.
+      }
+      throw error;
+    }
   }
 
   public setSnippetCatalog(catalog: Readonly<Record<string, string>>): void {

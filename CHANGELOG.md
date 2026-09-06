@@ -6,6 +6,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Fixed
 
+- Live settings edits now validate before they are saved, roll the active appearance back when applying or writing fails, and report one actionable error instead of leaving a rejected promise behind. Schedule times stay local until a complete 24-hour value is committed, and unavailable Spotify flag APIs are reported as saved but not applied.
 - Profile and backup imports now validate nested state, supported schemas and Marketplace sections before mutation. Raw profile recovery is accepted as an engine-only restore, and exported theme values remain JavaScript data even when they contain numeric-looking text.
 - An unreadable in-Spotify profile now blocks the next save until its recovery copy is stored successfully. When browser storage keeps refusing the copy, the original bytes remain in place and the failed save reports that no changes were saved.
 - Running the shell with the UI-automation arguments no longer appends to your real LibreSpot log. Everything else about those runs already went to a throwaway directory, but the crash reporter had its log and crash folders fixed to the real per-user ones, so a screenshot or timing run left entries in the journal for a session that never touched your setup.

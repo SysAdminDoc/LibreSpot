@@ -540,21 +540,42 @@ async function bootstrap(): Promise<void> {
         };
       },
       update: async (mutator, notice) => {
-        const beforeFlags = engine.state.featureOverrides;
-        const next = engine.update(mutator);
-        await engine.refreshAccent();
-        if (
-          JSON.stringify(next.featureOverrides) !== JSON.stringify(beforeFlags)
-        ) {
-          await engine.applyFlags(beforeFlags);
+        let saved = false;
+        try {
+          const beforeFlags = engine.state.featureOverrides;
+          const next = engine.update(mutator);
+          saved = true;
+          await engine.refreshAccent();
+          const flagsChanged =
+            JSON.stringify(next.featureOverrides) !== JSON.stringify(beforeFlags);
+          const flagResult = flagsChanged
+            ? await engine.applyFlags(beforeFlags)
+            : undefined;
+          refreshArrangements();
+          health = runHealth();
+          emit();
+          if (flagsChanged && flagResult === "unavailable") {
+            notify(
+              `${notice ? `${notice} ` : ""}Saved, but Spotify's live feature API is unavailable. Reload Spotify or retry the setting.`,
+              true,
+            );
+          } else if (notice) {
+            notify(notice);
+          }
+          return next;
+        } catch (error) {
+          notify(
+            error instanceof Error
+              ? saved
+                ? `The profile was saved, but the change could not be applied. Reload Spotify and try again. (${error.message})`
+                : error.message
+              : saved
+                ? "The profile was saved, but the change could not be applied. Reload Spotify and try again."
+                : "Change could not be saved. No changes were applied.",
+            true,
+          );
+          return engine.state;
         }
-        refreshArrangements();
-        health = runHealth();
-        emit();
-        if (notice) {
-          notify(notice);
-        }
-        return next;
       },
       previewScheme: (name) => {
         const scheme = engine.state.schemes[name];
@@ -698,15 +719,30 @@ async function bootstrap(): Promise<void> {
           if (count > 0) {
             await marketplaceStore.writeAll(restored.marketplace);
           }
-          await runtime.update((draft) => {
+          const beforeFlags = engine.state.featureOverrides;
+          const next = engine.update((draft) => {
             Object.assign(draft, restored.engine);
           });
+          await engine.refreshAccent();
+          const flagsChanged =
+            JSON.stringify(next.featureOverrides) !== JSON.stringify(beforeFlags);
+          const flagResult = flagsChanged
+            ? await engine.applyFlags(beforeFlags)
+            : undefined;
+          refreshArrangements();
+          health = runHealth();
+          emit();
           engineRestored = true;
 
-          notify(
+          const message =
             count > 0
               ? `Restored this profile and ${count} Marketplace settings. Reload Spotify to see Marketplace pick them up.`
-              : "Restored this profile.",
+              : "Restored this profile.";
+          notify(
+            flagsChanged && flagResult === "unavailable"
+              ? `${message} Spotify's live feature API is unavailable, so feature changes will apply after a reload.`
+              : message,
+            flagsChanged && flagResult === "unavailable",
           );
         } catch (error) {
           const message =

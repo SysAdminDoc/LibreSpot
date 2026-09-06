@@ -30,6 +30,10 @@ function eventValue(event: unknown): string {
   return target instanceof HTMLInputElement ? target.value : "";
 }
 
+function isClockValue(value: string): boolean {
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
+}
+
 function lucideIcon(source: string, className: string): UiNode {
   return h("span", {
     className,
@@ -144,9 +148,16 @@ function scheduleControls(properties: PanelProperties): UiNode {
       h("input", {
         type: "time",
         "aria-label": label,
-        value,
-        onChange: (event: unknown) => {
-          onChange(eventValue(event));
+        defaultValue: value,
+        onBlur: (event: unknown) => {
+          const next = eventValue(event);
+          if (!isClockValue(next)) {
+            properties.runtime.reportError(
+              `${label} must be a valid 24-hour time before it can be saved.`,
+            );
+            return;
+          }
+          onChange(next);
         },
       }),
     );

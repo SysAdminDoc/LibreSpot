@@ -204,6 +204,10 @@ function validateState(value: Record<string, unknown>, path = "state"): void {
   }
 }
 
+export function validateEngineState(state: EngineState): void {
+  validateState(state);
+}
+
 export function serializeEngineState(state: EngineState): string {
   return `${JSON.stringify(state, null, 2)}\n`;
 }

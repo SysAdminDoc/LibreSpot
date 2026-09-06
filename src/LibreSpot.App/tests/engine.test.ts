@@ -1,5 +1,6 @@
 import {
   createDefaultState,
+  ENGINE_STORAGE_KEY,
   EngineStore,
   LibreSpotEngine,
   type StorageAdapter,
@@ -119,5 +120,86 @@ describe("LibreSpot engine", () => {
     engine.clearPreview();
     expect(document.documentElement.classList).toContain("librespot-theme-prism");
     expect(document.getElementById("librespot-engine-theme")?.textContent).toContain(".prism");
+  });
+
+  it("keeps the saved state and active appearance when validation rejects an edit", async () => {
+    const state = createDefaultState();
+    state.schemes = {
+      Dark: { main: "000000", text: "FFFFFF" },
+      Light: { main: "FFFFFF", text: "111111" },
+    };
+    const values = new Map<string, string>();
+    const storage: StorageAdapter = {
+      get: (key) => values.get(key) ?? null,
+      set: (key, value) => values.set(key, value),
+      remove: (key) => values.delete(key),
+    };
+    const store = new EngineStore(storage);
+    const persisted = store.save(state);
+    const engine = new LibreSpotEngine({
+      document,
+      window,
+      store,
+      initialState: persisted,
+    });
+    await engine.start({ probePerformance: false });
+    const beforeState = engine.state;
+    const beforeProfile = values.get(ENGINE_STORAGE_KEY);
+
+    expect(() => {
+      engine.update((draft) => {
+        draft.scheme = "Missing";
+      });
+    }).toThrow(/references missing scheme/);
+
+    expect(engine.state).toEqual(beforeState);
+    expect(values.get(ENGINE_STORAGE_KEY)).toBe(beforeProfile);
+    expect(document.getElementById("librespot-engine-palette")?.textContent).toContain(
+      "--spice-main: #000000",
+    );
+  });
+
+  it("rolls back the state and appearance when storage rejects an edit", async () => {
+    const state = createDefaultState();
+    state.schemes = {
+      Dark: { main: "000000", text: "FFFFFF" },
+      Light: { main: "FFFFFF", text: "111111" },
+    };
+    const values = new Map<string, string>();
+    let rejectProfileWrite = false;
+    const storage: StorageAdapter = {
+      get: (key) => values.get(key) ?? null,
+      set: (key, value) => {
+        if (rejectProfileWrite && key === ENGINE_STORAGE_KEY) {
+          throw new Error("profile storage is full");
+        }
+        values.set(key, value);
+      },
+      remove: (key) => values.delete(key),
+    };
+    const store = new EngineStore(storage);
+    const persisted = store.save(state);
+    const engine = new LibreSpotEngine({
+      document,
+      window,
+      store,
+      initialState: persisted,
+    });
+    await engine.start({ probePerformance: false });
+    const beforeState = engine.state;
+    const beforeProfile = values.get(ENGINE_STORAGE_KEY);
+    rejectProfileWrite = true;
+
+    expect(() => {
+      engine.update((draft) => {
+        draft.scheme = "Light";
+      });
+    }).toThrow("profile storage is full");
+
+    expect(engine.state).toEqual(beforeState);
+    expect(values.get(ENGINE_STORAGE_KEY)).toBe(beforeProfile);
+    expect(document.getElementById("librespot-engine-palette")?.textContent).toContain(
+      "--spice-main: #000000",
+    );
   });
 });
