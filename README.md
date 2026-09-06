@@ -443,6 +443,7 @@ Custom Install exposes all 27 SpotX static lyrics color options: spotify, bluebe
 Prism does three things the wider theme ecosystem has not shipped. It switches between light and dark on a clock you set, which matters because Spotify launches its browser with dark mode forced and `prefers-color-scheme` reports the wrong answer to every theme that asks. It repaints the play button, progress bar, and highlights from the current album art through Spotify's own colour extractor, falling back to the scheme's fixed accent when that service is unavailable. And it runs a one-second frame-rate probe at startup, dropping from full glass to a cheaper tier on its own when the machine cannot keep up. Reduced-motion users get the flat, fast version with no probe at all. Appearance, effects, dynamic accent, and the auto-reduce switch live in one dialog reached from the profile menu.
 
 Every file is pinned by SHA256 in all three hosts, so a truncated or edited copy is refused instead of half-installed. The theme is UI customization only: nothing in it touches ads, Premium state, telemetry, or any Spotify binary, and removing the theme reverses all of it.
+When a theme is replaced, LibreSpot walks only the installed tree and unlinks nested junctions before copying the new files. An old or malformed theme tree cannot redirect that cleanup into another folder.
 
 **16 official themes:** Sleek, Dribbblish, Ziro, text, StarryNight, Turntable, Blackout, Blossom, BurntSienna, Default, Dreary, Flow, Matte, Nightlight, Onepunch, and SharkBlue.
 

@@ -10461,7 +10461,9 @@ function Module-InstallThemes { param($Config)
             }
 
             $dst = Join-Path $td $tn
-            if (Test-Path -LiteralPath $dst) { Remove-Item -LiteralPath $dst -Recurse -Force }
+            if (Test-Path -LiteralPath $dst) {
+                $null = Remove-PathSafely -Path $dst -Label "Installed bundled theme '$tn'" -Confirm:$false
+            }
             New-Item -Path $dst -ItemType Directory -Force | Out-Null
             # Copy only the pinned files so the installed theme is exactly what was verified.
             foreach ($fileName in @($bundle.Files.Keys)) {
@@ -10507,7 +10509,9 @@ function Module-InstallThemes { param($Config)
                 throw "Community theme '$tn' archive does not contain color.ini or user.css - not a valid Spicetify theme."
             }
             $dst = Join-Path $td $tn
-            if (Test-Path -LiteralPath $dst) { Remove-Item -LiteralPath $dst -Recurse -Force }
+            if (Test-Path -LiteralPath $dst) {
+                $null = Remove-PathSafely -Path $dst -Label "Installed community theme '$tn'" -Confirm:$false
+            }
             # Copy only theme-relevant files, not repo metadata (.git, .github, etc.)
             New-Item -Path $dst -ItemType Directory -Force | Out-Null
             $themeFiles = @('color.ini','user.css','theme.js','theme.script.js','assets','README.md')
@@ -10522,8 +10526,8 @@ function Module-InstallThemes { param($Config)
             Add-LibreSpotAssetInstallFailure -Kind 'Theme' -Name $tn -Reason "The download could not be installed: $($_.Exception.Message)."
             return
         } finally {
-            Remove-Item -LiteralPath $tz -Force -ErrorAction SilentlyContinue
-            Remove-Item -LiteralPath $tu -Recurse -Force -ErrorAction SilentlyContinue
+            $null = Remove-PathSafely -Path $tz -Label "Temporary community theme archive '$tn'" -Confirm:$false
+            $null = Remove-PathSafely -Path $tu -Label "Temporary community theme extraction '$tn'" -Confirm:$false
         }
     } else {
         # Official theme — extract from the pinned spicetify-themes archive
@@ -10550,12 +10554,14 @@ function Module-InstallThemes { param($Config)
                 throw "Theme '$tn' was not found in the pinned theme archive."
             }
             $dst = Join-Path $td $tn
-            if (Test-Path -LiteralPath $dst) { Remove-Item -LiteralPath $dst -Recurse -Force }
+            if (Test-Path -LiteralPath $dst) {
+                $null = Remove-PathSafely -Path $dst -Label "Installed official theme '$tn'" -Confirm:$false
+            }
             Copy-Item $src -Destination $dst -Recurse -Force
             Write-Log "Theme copied to $dst"
         } finally {
-            Remove-Item -LiteralPath $tz -Force -ErrorAction SilentlyContinue
-            Remove-Item -LiteralPath $tu -Recurse -Force -ErrorAction SilentlyContinue
+            $null = Remove-PathSafely -Path $tz -Label "Temporary official theme archive '$tn'" -Confirm:$false
+            $null = Remove-PathSafely -Path $tu -Label "Temporary official theme extraction '$tn'" -Confirm:$false
         }
     }
 

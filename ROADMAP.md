@@ -6,13 +6,6 @@ Incomplete, implementer-actionable work only. Operator-dependent decisions remai
 
 ### P1: Now
 
-- [ ] P1: RD-227. Use junction-safe deletion for every installed-theme replacement
-  Why: Impact 5/5. Three theme branches bypass the removal helper that already protects Windows PowerShell 5.1 from nested-junction traversal.
-  Evidence: RESEARCH.md; src/powershell/shared/Module-InstallThemes.ps1; Remove-PathSafely.ps1 documents and implements the safer behavior.
-  Touches: Module-InstallThemes.ps1; tests/powershell theme fixtures; tests/LibreSpot.Desktop.Tests/PowerShellRegressionTests.cs; composed hosts.
-  Acceptance: Bundled, community and official replacements use the approved removal boundary. Temporary NTFS trees containing nested junctions and external canary files must preserve every external byte on both supported PowerShell hosts. Exercise the actual installer branches, including cleanup, rather than checking only the helper's source.
-  Complexity: S
-
 - [ ] P1: RD-228. Make backup restoration recoverable across engine and Marketplace stores
   Why: Impact 5/5. Marketplace commits first, so a later engine failure leaves a partially restored setup with misleading failure feedback.
   Evidence: RESEARCH.md; src/LibreSpot.App/src/extensions/librespot-engine.ts restoreState; core/backup.ts writeAll performs a key merge.

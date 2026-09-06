@@ -2423,6 +2423,23 @@ public sealed class PowerShellRegressionTests
     // Risk acknowledgment — first-run ToS dialog gate.
     // ---------------------------------------------------------------------
     [Theory]
+    [InlineData("src/powershell/shared/Module-InstallThemes.ps1")]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void ThemeInstaller_UsesJunctionSafeRemovalForEveryBranch(string relativePath)
+    {
+        var body = ExtractFunction(ReadFile(relativePath.Split('/')), "Module-InstallThemes");
+
+        Assert.Equal(3, Regex.Matches(body, @"Remove-PathSafely\s+-Path\s+\$dst").Count);
+        Assert.Equal(2, Regex.Matches(body, @"Remove-PathSafely\s+-Path\s+\$tu").Count);
+        Assert.DoesNotContain("Remove-Item -LiteralPath $dst -Recurse", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("Remove-Item -LiteralPath $tu -Recurse", body, StringComparison.Ordinal);
+        Assert.Contains("Installed bundled theme", body, StringComparison.Ordinal);
+        Assert.Contains("Installed community theme", body, StringComparison.Ordinal);
+        Assert.Contains("Installed official theme", body, StringComparison.Ordinal);
+    }
+
+    [Theory]
     [InlineData("LibreSpot.ps1")]
     [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
     public void RiskAcknowledged_IsPartOfBooleanNormalization(string relativePath)

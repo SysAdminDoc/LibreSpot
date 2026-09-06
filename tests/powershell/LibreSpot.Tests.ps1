@@ -3205,6 +3205,7 @@ Describe 'Module-InstallThemes bundled theme resolution' {
     BeforeAll {
         $sharedDir = Join-Path $PSScriptRoot '..\..\src\powershell\shared'
         . (Join-Path $sharedDir 'Module-InstallThemes.ps1')
+        . (Join-Path $sharedDir 'Remove-PathSafely.ps1')
         . (Join-Path $sharedDir 'Add-LibreSpotAssetInstallFailure.ps1')
         . (Join-Path $sharedDir 'Get-LibreSpotAssetInstallFailureSummary.ps1')
         . (Join-Path $sharedDir 'Get-FileSha256Lower.ps1')
@@ -3275,6 +3276,19 @@ Describe 'Module-InstallThemes bundled theme resolution' {
 
         function Get-InstalledThemeDirectory { Join-Path (Join-Path $script:spicetifyDir 'Themes') 'Prism' }
 
+        function Test-SafeRemovalTarget { param([string]$Path) return $true }
+        function Write-OperationJournalEntry {
+            param(
+                [string]$Phase,
+                [string]$Target,
+                [string]$SafetyDecision,
+                [string]$Result,
+                [bool]$WouldChange,
+                [bool]$Reversible,
+                [string]$RollbackHint,
+                [hashtable]$Data
+            )
+        }
         function Write-Log { param([string]$Message, [string]$Level = 'INFO') $script:themeLog.Add("$Level|$Message") }
         function Get-SpicetifyIntegrationContext {
             [pscustomobject]@{ ThemesDirectory = Join-Path $script:spicetifyDir 'Themes' }
@@ -3292,6 +3306,50 @@ Describe 'Module-InstallThemes bundled theme resolution' {
         function Confirm-FileHash { param([string]$Path, [string]$ExpectedHash, [string]$Label) }
         function Expand-ArchiveSafely { param([string]$ZipPath, [string]$DestinationPath, [string]$Label, $MaxExpandedBytes) }
         function Invoke-SpicetifyCli { param($Arguments, [string]$FailureMessage) $script:cliCalls.Add(($Arguments -join ' ')) }
+
+        function New-ThemeJunctionFixture {
+            param(
+                [Parameter(Mandatory)][string]$ParentPath,
+                [Parameter(Mandatory)][string]$Name
+            )
+
+            $externalRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("librespot-theme-external-" + [guid]::NewGuid().ToString('N'))
+            $nestedRoot = Join-Path $ParentPath 'nested'
+            $junctionPath = Join-Path $nestedRoot 'escape'
+            $sentinelPath = Join-Path $externalRoot 'must-survive.txt'
+            New-Item -Path $nestedRoot -ItemType Directory -Force | Out-Null
+            New-Item -Path $externalRoot -ItemType Directory -Force | Out-Null
+            [System.IO.File]::WriteAllText($sentinelPath, $Name)
+            $null = & cmd.exe /d /c "mklink /J `"$junctionPath`" `"$externalRoot`""
+            if ($LASTEXITCODE -ne 0) { throw "Could not create junction fixture at $junctionPath." }
+            [pscustomobject]@{
+                ExternalRoot = $externalRoot
+                JunctionPath = $junctionPath
+                SentinelPath = $sentinelPath
+                SentinelValue = $Name
+            }
+        }
+
+        function Remove-ThemeJunctionFixture {
+            param([pscustomobject]$Fixture)
+            if (-not $Fixture) { return }
+            if (Test-Path -LiteralPath $Fixture.JunctionPath) {
+                $junction = Get-Item -LiteralPath $Fixture.JunctionPath -Force
+                if ($junction.Attributes -band [System.IO.FileAttributes]::ReparsePoint) {
+                    $junction.Delete()
+                }
+            }
+            if (Test-Path -LiteralPath $Fixture.ExternalRoot) {
+                Remove-Item -LiteralPath $Fixture.ExternalRoot -Recurse -Force -ErrorAction SilentlyContinue
+            }
+        }
+
+        function Assert-ThemeJunctionFixtureSurvived {
+            param([pscustomobject]$Fixture)
+            Test-Path -LiteralPath $Fixture.JunctionPath | Should -BeFalse
+            Test-Path -LiteralPath $Fixture.SentinelPath -PathType Leaf | Should -BeTrue
+            [System.IO.File]::ReadAllText($Fixture.SentinelPath) | Should -BeExactly $Fixture.SentinelValue
+        }
     }
 
     AfterEach { Remove-BundledThemeFixture }
@@ -3405,6 +3463,96 @@ Describe 'Module-InstallThemes bundled theme resolution' {
 
         Test-Path -LiteralPath (Join-Path $installed 'leftover.css') | Should -BeFalse
         Test-Path -LiteralPath (Join-Path $installed 'color.ini') | Should -BeTrue
+    }
+
+    It 'replaces a bundled theme without traversing a nested junction' {
+        Reset-BundledThemeFixture -WithBundle
+        $installed = Get-InstalledThemeDirectory
+        New-Item -Path $installed -ItemType Directory -Force | Out-Null
+        $fixture = New-ThemeJunctionFixture -ParentPath $installed -Name 'bundled'
+        try {
+            Module-InstallThemes -Config ([pscustomobject]@{ Spicetify_Theme = 'Prism'; Spicetify_Scheme = 'Dark' })
+
+            Assert-ThemeJunctionFixtureSurvived -Fixture $fixture
+            Test-Path -LiteralPath (Join-Path $installed 'color.ini') -PathType Leaf | Should -BeTrue
+        } finally {
+            Remove-ThemeJunctionFixture -Fixture $fixture
+        }
+    }
+
+    It 'replaces a community theme and cleans its extraction without traversing junctions' {
+        Reset-BundledThemeFixture
+        $global:CommunityThemeRepos = @{
+            Catppuccin = @{
+                Owner = 'fixture-owner'
+                Repo = 'fixture-theme'
+                CommitSha = '1111111111111111111111111111111111111111'
+                ThemeFolder = 'Catppuccin'
+                SHA256 = 'fixture-hash'
+            }
+        }
+        $installed = Join-Path $script:spicetifyDir 'Themes\Catppuccin'
+        $fixture = New-ThemeJunctionFixture -ParentPath $installed -Name 'community'
+        try {
+            Mock -CommandName Download-FileSafe -MockWith {
+                param([string]$Uri, [string]$OutFile)
+                [System.IO.File]::WriteAllText($OutFile, 'fixture archive')
+            }
+            Mock -CommandName Expand-ArchiveSafely -MockWith {
+                param([string]$ZipPath, [string]$DestinationPath, [string]$Label, [long]$MaxExpandedBytes)
+                $root = Join-Path $DestinationPath '00-theme-root'
+                $theme = Join-Path $root 'Catppuccin'
+                New-Item -Path $theme -ItemType Directory -Force | Out-Null
+                [System.IO.File]::WriteAllText((Join-Path $theme 'color.ini'), '[Mocha]')
+                [System.IO.File]::WriteAllText((Join-Path $theme 'user.css'), 'body {}')
+                $cleanupRoot = Join-Path $DestinationPath '99-junction'
+                New-Item -Path $cleanupRoot -ItemType Directory -Force | Out-Null
+                $cleanupJunction = Join-Path $cleanupRoot 'escape'
+                $null = & cmd.exe /d /c "mklink /J `"$cleanupJunction`" `"$($fixture.ExternalRoot)`""
+                if ($LASTEXITCODE -ne 0) { throw 'Could not create extraction junction fixture.' }
+            }
+
+            Module-InstallThemes -Config ([pscustomobject]@{ Spicetify_Theme = 'Catppuccin'; Spicetify_Scheme = 'Mocha' })
+
+            Assert-ThemeJunctionFixtureSurvived -Fixture $fixture
+            Test-Path -LiteralPath (Join-Path $installed 'color.ini') -PathType Leaf | Should -BeTrue
+            Test-Path -LiteralPath (Join-Path $script:tempDir 'community-theme-Catppuccin-unpack') | Should -BeFalse
+        } finally {
+            Remove-ThemeJunctionFixture -Fixture $fixture
+        }
+    }
+
+    It 'replaces an official theme and cleans its extraction without traversing junctions' {
+        Reset-BundledThemeFixture
+        $installed = Join-Path $script:spicetifyDir 'Themes\Dribbblish'
+        $fixture = New-ThemeJunctionFixture -ParentPath $installed -Name 'official'
+        try {
+            Mock -CommandName Download-FileSafe -MockWith {
+                param([string]$Uri, [string]$OutFile)
+                [System.IO.File]::WriteAllText($OutFile, 'fixture archive')
+            }
+            Mock -CommandName Expand-ArchiveSafely -MockWith {
+                param([string]$ZipPath, [string]$DestinationPath, [string]$Label, [long]$MaxExpandedBytes)
+                $root = Join-Path $DestinationPath '00-theme-root'
+                $theme = Join-Path $root 'Dribbblish'
+                New-Item -Path $theme -ItemType Directory -Force | Out-Null
+                [System.IO.File]::WriteAllText((Join-Path $theme 'color.ini'), '[Base]')
+                [System.IO.File]::WriteAllText((Join-Path $theme 'user.css'), 'body {}')
+                $cleanupRoot = Join-Path $DestinationPath '99-junction'
+                New-Item -Path $cleanupRoot -ItemType Directory -Force | Out-Null
+                $cleanupJunction = Join-Path $cleanupRoot 'escape'
+                $null = & cmd.exe /d /c "mklink /J `"$cleanupJunction`" `"$($fixture.ExternalRoot)`""
+                if ($LASTEXITCODE -ne 0) { throw 'Could not create extraction junction fixture.' }
+            }
+
+            Module-InstallThemes -Config ([pscustomobject]@{ Spicetify_Theme = 'Dribbblish'; Spicetify_Scheme = 'Base' })
+
+            Assert-ThemeJunctionFixtureSurvived -Fixture $fixture
+            Test-Path -LiteralPath (Join-Path $installed 'color.ini') -PathType Leaf | Should -BeTrue
+            Test-Path -LiteralPath (Join-Path $script:tempDir 'themes-unpack') | Should -BeFalse
+        } finally {
+            Remove-ThemeJunctionFixture -Fixture $fixture
+        }
     }
 }
 

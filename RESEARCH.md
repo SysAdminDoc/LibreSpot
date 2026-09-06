@@ -11,7 +11,7 @@ Priority order:
 1. Preserve the only unreadable profile when quarantine storage still refuses writes (RD-222).
 2. Validate imported state and live edits before persistence, including ordinary incomplete schedule edits (RD-223, RD-224).
 3. Close reproduced redaction gaps and stop treating a structurally valid dump as proof of privacy filtering (RD-225, RD-226).
-4. Make theme deletion, backup restoration and Marketplace reset preserve recoverable data (RD-227 through RD-229).
+4. Make backup restoration and Marketplace reset preserve recoverable data (RD-228, RD-229).
 5. Serialize mutations across hosts, own installer descendants, and replace installed assets through staging and rollback (RD-230 through RD-232).
 6. Repair Marketplace storage lifecycle and migration handling, then make cache writes survive concurrent work and process death (RD-234 through RD-237).
 7. Finish recovery and accessibility inside Spotify: bounded startup, render fallback, coherent dynamic colors and truthful preset state (RD-238 through RD-242).
@@ -79,7 +79,7 @@ Community [lost-setup](https://www.reddit.com/r/spicetify/comments/1uci5ou/spice
 
 ### Install and cache lifecycle
 
-**Verified source gaps; failure consequences Likely:** `Module-InstallThemes.ps1` bypasses the existing junction-safe removal helper. `Invoke-ExternalScriptIsolated.ps1` kills only its direct process on timeout. CLI, theme and custom-app installers remove working files before replacement completes. No shared mutation lease covers desktop, CLI and watcher together; the scheduled task's IgnoreNew policy covers only that task (RD-227, RD-230 through RD-232). Sources: those shared modules, `src/powershell/backend/lane-functions.ps1`, `src/LibreSpot.Core/BackendScriptService.cs`.
+**Verified source gaps; failure consequences Likely:** `Invoke-ExternalScriptIsolated.ps1` kills only its direct process on timeout. CLI, theme and custom-app installers remove working files before replacement completes. No shared mutation lease covers desktop, CLI and watcher together; the scheduled task's IgnoreNew policy covers only that task (RD-230 through RD-232). Sources: those shared modules, `src/powershell/backend/lane-functions.ps1`, `src/LibreSpot.Core/BackendScriptService.cs`.
 
 `Save-ToAssetCache.ps1` overwrites final objects and `Update-AssetCacheIndexEntry.ps1` performs an unlocked whole-index rewrite. C# and PowerShell bundle import compensate rename failures with catch blocks, but have no durable recovery record for termination between the two directory renames. Existing “interruption” tests throw exceptions, which still execute compensation. Separate individual-write atomicity from restart recovery (RD-236, RD-237).
 
