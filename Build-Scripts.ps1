@@ -1949,9 +1949,9 @@ function Invoke-LibreSpotStableExeCompile {
     }
     $OutputPath = [System.IO.Path]::GetFullPath($OutputPath)
 
-    $iconPath = Join-Path $PSScriptRoot 'LibreSpot.ico'
+    $iconPath = Join-Path $PSScriptRoot 'icon.ico'
     if (-not (Test-Path -LiteralPath $iconPath -PathType Leaf)) {
-        throw "Cannot compile the stable executable; LibreSpot.ico not found."
+        throw "Cannot compile the stable executable; icon.ico not found."
     }
 
     $scriptVersion = Get-LibreSpotScriptVersion -Path $mainScript

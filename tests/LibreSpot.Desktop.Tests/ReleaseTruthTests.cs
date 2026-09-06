@@ -231,6 +231,34 @@ public sealed class ReleaseTruthTests
     };
 
     [Fact]
+    public void RepositoryRootShipsExactlyOneIcon()
+    {
+        // There used to be two byte-identical icons at the root, consumed by
+        // different build paths: the PS2EXE compile took one and the WPF project
+        // the other. Nothing kept them in step, so an icon change could ship two
+        // artifacts wearing different faces.
+        var icons = Directory.GetFiles(RepoRoot, "*.ico", SearchOption.TopDirectoryOnly)
+            .Select(Path.GetFileName)
+            .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        Assert.True(
+            icons.Length == 1,
+            "The repository root must hold exactly one .ico so every build path uses the same one. Found: "
+                + string.Join(", ", icons));
+
+        var icon = icons[0]!;
+
+        // Both consumers have to name that file, or the single icon is single in
+        // name only and a build breaks instead of drifting.
+        Assert.Contains($"Join-Path $PSScriptRoot '{icon}'", Read("Build-Scripts.ps1"), StringComparison.Ordinal);
+
+        var desktopProject = Read("src/LibreSpot.Desktop/LibreSpot.Desktop.csproj");
+        Assert.Contains($@"<ApplicationIcon>..\..\{icon}</ApplicationIcon>", desktopProject, StringComparison.Ordinal);
+        Assert.Contains($@"<Resource Include=""..\..\{icon}""", desktopProject, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ReadmeLyricsThemeCountMatchesTheCatalog()
     {
         var readme = Read("README.md");

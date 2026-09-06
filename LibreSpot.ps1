@@ -3779,7 +3779,6 @@ function Get-LibreSpotBrandFrame {
     }
 
     $icoCandidates = @(
-        (Join-Path $script:ScriptRoot 'LibreSpot.ico'),
         (Join-Path $script:ScriptRoot 'icon.ico')
     ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf }
 
