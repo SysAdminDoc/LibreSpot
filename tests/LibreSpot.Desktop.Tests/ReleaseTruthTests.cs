@@ -231,6 +231,32 @@ public sealed class ReleaseTruthTests
     };
 
     [Fact]
+    public void ReadmeSaysWhichSurfacesAreEnglishOnlyUntilTheyAreNot()
+    {
+        // The desktop shell ships five reviewed locales, so "every language is
+        // reachable" reads as covering the whole product. The panel inside
+        // Spotify and the standalone script have no lookup layer at all, and the
+        // README said nothing about it. This retires itself: once those strings
+        // enter the translation scope, the claim has to come back out.
+        var readme = Read("README.md");
+        var crowdin = Read(".crowdin.yml");
+
+        var appIsTranslated = crowdin.Contains("LibreSpot.App", StringComparison.Ordinal);
+
+        if (appIsTranslated)
+        {
+            Assert.False(
+                readme.Contains("in-client panel does not", StringComparison.Ordinal),
+                "The in-Spotify app is in the Crowdin scope now, so README.md must stop saying its panel is English "
+                    + "only. Update the sentence next to the language picker.");
+            return;
+        }
+
+        Assert.Contains("are English", readme, StringComparison.Ordinal);
+        Assert.Contains("in-client panel does not", readme, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void RepositoryRootShipsExactlyOneIcon()
     {
         // There used to be two byte-identical icons at the root, consumed by

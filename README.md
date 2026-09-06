@@ -184,7 +184,7 @@ v4.0.0 is the first stable release of the v4 line. The desktop app and the fleet
 
 **Search boxes tell you what they do.** Settings search and the theme gallery show placeholder text inside the empty field, and the theme box is no longer labeled as if it were the pack picker. The taskbar Jump List says Home and Settings, matching the rail.
 
-**Every language is reachable.** The picker sits at the bottom of the navigation rail, next to the reversible-changes note, and all five interfaces are complete and translation-reviewed.
+**Every language is reachable.** The picker sits at the bottom of the navigation rail, next to the reversible-changes note, and all five interfaces are complete and translation-reviewed. That covers the desktop shell. The panel LibreSpot adds inside Spotify and the standalone `LibreSpot.ps1` window are English only, so on a non-English system the shell follows your language and the in-client panel does not.
 
 **One answer about your Spotify build.** Version strings are read through a single parser, so a build carrying a git hash, a trailing note, or a fourth component gets the same verdict on every screen.
 
