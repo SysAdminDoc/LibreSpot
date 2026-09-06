@@ -64,10 +64,32 @@ public sealed class SupportBundleService
     private const int MinidumpDirectoryEntryBytes = 12;
     private const uint MinidumpVersion = 0xA793;
     private const uint MaxMinidumpStreamCount = 4096;
+    private const ulong MiniDumpWithFullMemory = 0x00000002;
+    private const ulong MiniDumpWithPrivateReadWriteMemory = 0x00000200;
+    private const ulong MiniDumpWithPrivateWriteCopyMemory = 0x00010000;
+    private const ulong MiniDumpWithFullMemoryInfo = 0x00000800;
+    private const ulong MiniDumpWithTokenInformation = 0x00040000;
+    private const ulong MiniDumpWithFullAuxiliaryState = 0x00008000;
+    private const ulong TriageMinidumpFlags =
+        0x00100000 | // MiniDumpFilterTriage
+        0x00020000 | // MiniDumpIgnoreInaccessibleMemory
+        0x00000400 | // MiniDumpWithoutOptionalData
+        0x00000100 | // MiniDumpWithProcessThreadData
+        0x00000080 | // MiniDumpFilterModulePaths
+        0x00000020 | // MiniDumpWithUnloadedModules
+        0x00000008 | // MiniDumpFilterMemory
+        0x00000004; // MiniDumpWithHandleData
+    private const ulong DisallowedTriageMemoryFlags =
+        MiniDumpWithFullMemory |
+        MiniDumpWithPrivateReadWriteMemory |
+        MiniDumpWithPrivateWriteCopyMemory |
+        MiniDumpWithFullMemoryInfo |
+        MiniDumpWithTokenInformation |
+        MiniDumpWithFullAuxiliaryState;
     private const int MaxDiagnosticWindowBytes = 1024 * 1024;
     private const long MaxMinidumpBytes = 256L * 1024 * 1024;
     private const long MetadataEstimateBytes = 16 * 1024;
-    private const string MinidumpRedactionRule = "The newest .NET Triage minidump is included without rewriting its binary bytes. The runtime filters personal paths and passwords before writing it.";
+    private const string MinidumpRedactionRule = "The newest .NET Triage minidump that passes the header and stream policy is included without rewriting its binary bytes. The runtime filters personal paths and passwords, but diagnostic memory may still contain sensitive process state.";
     private static readonly Encoding StrictUtf8NoBom = new UTF8Encoding(false, true);
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -147,7 +169,7 @@ public sealed class SupportBundleService
             new SupportBundlePreviewEntry(
                 "minidump",
                 "Local Triage dump",
-                "Newest privacy-filtered .NET Triage dump. Binary dump bytes are never rewritten.",
+                "Newest .NET Triage dump that passes the privacy header and stream policy. Binary dump bytes are never rewritten.",
                 CountBinaryFiles(MinidumpFiles(), MaxMinidumpBytes),
                 EstimateBinaryFiles(MinidumpFiles(), MaxMinidumpBytes),
                 false,
@@ -881,6 +903,12 @@ public sealed class SupportBundleService
             return false;
         }
 
+        var flags = BinaryPrimitives.ReadUInt64LittleEndian(header.Slice(24, sizeof(ulong)));
+        if (flags != TriageMinidumpFlags || (flags & DisallowedTriageMemoryFlags) != 0)
+        {
+            return false;
+        }
+
         var directoryEnd = (long)directoryRva + ((long)streamCount * MinidumpDirectoryEntryBytes);
         if (directoryEnd > input.Length)
         {
@@ -897,7 +925,18 @@ public sealed class SupportBundleService
             var dataRva = BinaryPrimitives.ReadUInt32LittleEndian(directoryEntry.Slice(8, sizeof(uint)));
             var dataEnd = (long)dataRva + dataSize;
 
-            if (streamType <= 2 || dataSize == 0 || dataRva < directoryEnd || dataEnd > input.Length)
+            if (streamType == 0)
+            {
+                if (dataSize != 0 || dataRva != 0)
+                {
+                    return false;
+                }
+
+                continue;
+            }
+
+            if (streamType < 3 || !IsSupportedTriageStream(streamType) ||
+                dataSize == 0 || dataRva < directoryEnd || dataEnd > input.Length)
             {
                 return false;
             }
@@ -905,6 +944,9 @@ public sealed class SupportBundleService
 
         return true;
     }
+
+    private static bool IsSupportedTriageStream(uint streamType) => streamType is
+        3 or 4 or 5 or 6 or 7 or 8 or 10 or 11 or 12 or 13 or 14 or 15 or 16 or 17 or 21 or 22 or 24;
 
     private string ReadSupportFileWindow(string path, int maxLines) =>
         string.Equals(Path.GetFileName(path), "operation-journal.jsonl", StringComparison.OrdinalIgnoreCase)

@@ -637,7 +637,7 @@
       "schemaVersion": null,
       "description": "Opt-in .NET Triage crash dumps for LibreSpot desktop failures.",
       "sensitivity": "high",
-      "sensitivityNote": "The Triage dump type filters personal paths and passwords, but the binary still contains diagnostic process state.",
+      "sensitivityNote": "The Triage dump type filters personal paths and passwords, but the binary remains diagnostic memory that may contain sensitive process state. Header flags and stream checks are policy gates, not proof that every byte is anonymous.",
       "retention": "2 newest files",
       "retentionNote": "LibreSpot removes older dump files during startup and when the setting changes.",
       "retentionEnforcement": "startup-count-cleanup",
@@ -645,7 +645,7 @@
       "deleteBehavior": "remove-self-data",
       "includedInSupportBundle": true,
       "supportExportBehavior": "newest-only-when-opted-in",
-      "redactionRules": ["Include only when local crash dumps are enabled", "Include only the newest dump", "Do not rewrite binary bytes", "Rely on the .NET Triage writer to filter personal paths and passwords"],
+      "redactionRules": ["Include only when local crash dumps are enabled", "Include only the newest dump", "Require the .NET Triage header flags and supported stream kinds", "Reject full or private-memory streams", "Do not rewrite binary bytes", "Rely on the .NET Triage writer to filter personal paths and passwords"],
       "aclExpectation": "current-user inherited ACL from %LOCALAPPDATA%",
       "writeSites": [
         { "source": "src/LibreSpot.Core/MinidumpSettingsService.cs", "marker": "%e-%p-%t.dmp" },

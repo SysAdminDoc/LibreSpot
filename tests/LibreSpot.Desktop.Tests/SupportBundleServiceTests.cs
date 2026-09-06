@@ -571,6 +571,48 @@ public sealed class SupportBundleServiceTests
         Assert.DoesNotContain(archive.Entries, entry => entry.FullName.EndsWith(".dmp", StringComparison.OrdinalIgnoreCase));
     }
 
+    [Theory]
+    [InlineData(0x00000002UL)] // MiniDumpWithFullMemory
+    [InlineData(0x00000200UL)] // MiniDumpWithPrivateReadWriteMemory
+    [InlineData(0x00010000UL)] // MiniDumpWithPrivateWriteCopyMemory
+    [InlineData(0x04000000UL)] // unsupported flag outside the Windows valid mask
+    public async Task ExportAsync_RejectsMinidumpWithNonTriageFlags(ulong extraFlags)
+    {
+        using var fixture = new SupportBundleFixture();
+        Directory.CreateDirectory(fixture.CrashDirectory);
+        var fake = CreateMinimalMinidump(payloadMarker: 1);
+        BinaryPrimitives.WriteUInt64LittleEndian(
+            fake.AsSpan(24, sizeof(ulong)),
+            TriageMinidumpFlags | extraFlags);
+        File.WriteAllBytes(Path.Combine(fixture.CrashDirectory, "LibreSpot-non-triage.dmp"), fake);
+
+        var options = new SupportBundleOptions(IncludeMinidump: true);
+        var preview = fixture.Service.CreatePreview(fixture.GetSnapshot(), options);
+        var result = await fixture.ExportAsync(options);
+
+        Assert.Equal(0, Assert.Single(preview.Entries, entry => entry.Id == "minidump").FileCount);
+        using var archive = ZipFile.OpenRead(result.Path);
+        Assert.DoesNotContain(archive.Entries, entry => entry.FullName.EndsWith(".dmp", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task ExportAsync_RejectsMinidumpMemory64StreamEvenWithTriageFlags()
+    {
+        using var fixture = new SupportBundleFixture();
+        Directory.CreateDirectory(fixture.CrashDirectory);
+        var fake = CreateMinimalMinidump(payloadMarker: 1);
+        BinaryPrimitives.WriteUInt32LittleEndian(fake.AsSpan(32, sizeof(uint)), 9); // Memory64ListStream
+        File.WriteAllBytes(Path.Combine(fixture.CrashDirectory, "LibreSpot-memory64.dmp"), fake);
+
+        var options = new SupportBundleOptions(IncludeMinidump: true);
+        var preview = fixture.Service.CreatePreview(fixture.GetSnapshot(), options);
+        var result = await fixture.ExportAsync(options);
+
+        Assert.Equal(0, Assert.Single(preview.Entries, entry => entry.Id == "minidump").FileCount);
+        using var archive = ZipFile.OpenRead(result.Path);
+        Assert.DoesNotContain(archive.Entries, entry => entry.FullName.EndsWith(".dmp", StringComparison.OrdinalIgnoreCase));
+    }
+
     [Fact]
     public async Task ExportAsync_RejectsMinidumpWithEmptyDirectoryEntry()
     {
@@ -617,12 +659,15 @@ public sealed class SupportBundleServiceTests
         BinaryPrimitives.WriteUInt32LittleEndian(dump.AsSpan(4, 4), 0x0000A793);
         BinaryPrimitives.WriteUInt32LittleEndian(dump.AsSpan(8, 4), 1);
         BinaryPrimitives.WriteUInt32LittleEndian(dump.AsSpan(12, 4), 32);
-        BinaryPrimitives.WriteUInt32LittleEndian(dump.AsSpan(32, 4), 10);
+        BinaryPrimitives.WriteUInt64LittleEndian(dump.AsSpan(24, 8), TriageMinidumpFlags);
+        BinaryPrimitives.WriteUInt32LittleEndian(dump.AsSpan(32, 4), 5); // MemoryListStream, filtered stack memory
         BinaryPrimitives.WriteUInt32LittleEndian(dump.AsSpan(36, 4), 4);
         BinaryPrimitives.WriteUInt32LittleEndian(dump.AsSpan(40, 4), 44);
         dump.AsSpan(44, 4).Fill(payloadMarker);
         return dump;
     }
+
+    private const ulong TriageMinidumpFlags = 0x001205AC;
 
     private static IReadOnlyDictionary<string, string> ReadZipText(string path)
     {

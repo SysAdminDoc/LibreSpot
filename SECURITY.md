@@ -19,6 +19,10 @@ LibreSpot changes the local Windows desktop client. It does not grant Spotify Pr
 - Existing Premium users can select Custom Install's **Premium account (skip ad-blocking)** option. That leaves ad-related patches off and does not alter the subscription.
 - Maintenance > Full Reset restores the local Spotify installation to stock state. It does not change a Spotify account or subscription.
 
+## Local crash dump privacy
+
+Local crash dumps are opt-in and armed for the next LibreSpot process only. Support export accepts a dump only when its header flags and stream kinds match the .NET Triage policy, and it rejects full-memory and private-memory streams before copying the binary. The .NET writer filters personal paths and passwords, but a Triage dump is still diagnostic memory that may contain sensitive process state. The flag and stream checks are policy gates, not proof that every byte is anonymous. LibreSpot never uploads a dump automatically.
+
 ## Reporting a Vulnerability
 
 **Do not open a public issue for security vulnerabilities.**

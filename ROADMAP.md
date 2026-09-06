@@ -6,13 +6,6 @@ Incomplete, implementer-actionable work only. Operator-dependent decisions remai
 
 ### P1: Now
 
-- [ ] P1: RD-226. Enforce the declared minidump privacy policy before export
-  Why: Impact 5/5. A synthetic minidump carrying the full-memory flag passes the same check as a Triage-flagged fixture.
-  Evidence: RESEARCH.md; SupportBundleService.IsValidMinidump accepts fixtures with header flags 0, MiniDumpWithFullMemory and the runtime Triage flags; Microsoft MINIDUMP_HEADER/MINIDUMP_TYPE documentation.
-  Touches: src/LibreSpot.Core/SupportBundleService.cs; tests/LibreSpot.Desktop.Tests/SupportBundleServiceTests.cs; schemas/data-inventory.json; SECURITY.md.
-  Acceptance: Derive the accepted flags/stream policy from the positive Windows Triage artifact produced by RD-245 and retain regression coverage. Inspect the complete header flags and relevant stream kinds, reject full/private-memory policy violations and unknown unsupported combinations, and retain structural bounds checks. Full-memory-flagged fixtures with otherwise valid directories must not export; legitimate Triage stack-memory streams must remain accepted. Describe accepted dumps as diagnostic memory that may contain sensitive data; flags are policy checks, not proof every byte is anonymous.
-  Complexity: S
-
 - [ ] P1: RD-227. Use junction-safe deletion for every installed-theme replacement
   Why: Impact 5/5. Three theme branches bypass the removal helper that already protects Windows PowerShell 5.1 from nested-junction traversal.
   Evidence: RESEARCH.md; src/powershell/shared/Module-InstallThemes.ps1; Remove-PathSafely.ps1 documents and implements the safer behavior.
