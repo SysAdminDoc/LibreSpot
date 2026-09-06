@@ -8,7 +8,7 @@ import {
   createBackup,
   createDefaultState,
   indexedDbMarketplaceStore,
-  parseBackup,
+  parseRestoreSource,
   parseProfile,
   serializeBackup,
   runSelfTest,
@@ -689,7 +689,7 @@ async function bootstrap(): Promise<void> {
       restoreState: async (source) => {
         let engineRestored = false;
         try {
-          const restored = parseBackup(source);
+          const restored = parseRestoreSource(source);
           const count = Object.keys(restored.marketplace).length;
 
           // Marketplace first: it is the half that can refuse. Overwriting the

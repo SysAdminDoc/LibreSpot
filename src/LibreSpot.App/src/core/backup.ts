@@ -62,12 +62,13 @@ export function parseBackup(source: string): ParsedBackup {
     throw new Error("A LibreSpot backup must be a JSON object.");
   }
 
-  if (typeof parsed.schemaVersion !== "number") {
-    throw new Error("This file is not a LibreSpot backup: it has no schemaVersion.");
+  const schemaVersion = parsed.schemaVersion;
+  if (typeof schemaVersion !== "number" || !Number.isInteger(schemaVersion) || schemaVersion < 1) {
+    throw new Error("This file is not a LibreSpot backup: schemaVersion must be a supported integer.");
   }
-  if (parsed.schemaVersion > BACKUP_SCHEMA_VERSION) {
+  if (schemaVersion > BACKUP_SCHEMA_VERSION) {
     throw new Error(
-      `This backup was written by a newer LibreSpot (schema ${parsed.schemaVersion}). Update LibreSpot and try again.`,
+      `This backup was written by a newer LibreSpot (schema ${schemaVersion}). Update LibreSpot and try again.`,
     );
   }
 
@@ -86,6 +87,9 @@ export function parseBackup(source: string): ParsedBackup {
   // A null-prototype object so a "__proto__" key is stored as data rather than
   // being swallowed by the prototype setter and lost from the restore.
   const marketplace = Object.create(null) as MarketplaceEntries;
+  if ("marketplace" in parsed && !isRecord(parsed.marketplace)) {
+    throw new Error("This backup has a malformed Marketplace section.");
+  }
   if (isRecord(parsed.marketplace)) {
     for (const [key, value] of Object.entries(parsed.marketplace)) {
       Object.defineProperty(marketplace, key, {
@@ -102,6 +106,22 @@ export function parseBackup(source: string): ParsedBackup {
     marketplace,
     createdAt: typeof parsed.createdAt === "string" ? parsed.createdAt : null,
   };
+}
+
+export function parseRestoreSource(source: string): ParsedBackup {
+  try {
+    return parseBackup(source);
+  } catch (backupError) {
+    try {
+      return {
+        engine: parseProfile(source),
+        marketplace: Object.create(null) as MarketplaceEntries,
+        createdAt: null,
+      };
+    } catch {
+      throw backupError;
+    }
+  }
 }
 
 /**

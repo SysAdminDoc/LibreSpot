@@ -247,6 +247,7 @@ describe("engine state quarantine", () => {
     const readable = createDefaultState(new Date(QUARANTINED_AT));
     readable.schemes = {
       [readable.scheme]: { main: "000000", text: "FFFFFF", accent: "1ED760" },
+      Light: { main: "FFFFFF", text: "000000", accent: "16843D" },
     };
     const saved = serializeEngineState(readable);
     storage.set(ENGINE_STORAGE_KEY, saved);

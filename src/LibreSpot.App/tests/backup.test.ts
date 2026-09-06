@@ -3,6 +3,7 @@ import {
   BACKUP_SCHEMA_VERSION,
   createBackup,
   parseBackup,
+  parseRestoreSource,
   indexedDbMarketplaceStore,
   serializeBackup,
   type MarketplaceEntries,
@@ -244,6 +245,32 @@ describe("backup", () => {
         }),
       ),
     ).toThrow(/schema/);
+    expect(() =>
+      parseBackup(
+        JSON.stringify({
+          schemaVersion: 1.5,
+          engine: {},
+        }),
+      ),
+    ).toThrow(/supported integer/);
+    expect(() =>
+      parseBackup(
+        JSON.stringify({
+          schemaVersion: BACKUP_SCHEMA_VERSION,
+          engine: stateFixture(new Date("2026-09-03T10:00:00.000Z")),
+          marketplace: [],
+        }),
+      ),
+    ).toThrow(/malformed Marketplace/);
+  });
+
+  it("accepts a raw profile as an engine-only restore", () => {
+    const state = stateFixture(new Date("2026-09-03T10:00:00.000Z"));
+    const restored = parseRestoreSource(serializeProfileForTest(state));
+
+    expect(restored.engine).toEqual(state);
+    expect(restored.marketplace).toEqual({});
+    expect(restored.createdAt).toBeNull();
   });
 
   it("keeps a __proto__ key as data instead of losing it", () => {
@@ -268,3 +295,12 @@ describe("backup", () => {
     expect(parseBackup(file).marketplace).toEqual({});
   });
 });
+
+function serializeProfileForTest(state: ReturnType<typeof createDefaultState>): string {
+  return JSON.stringify({
+    schemaVersion: 1,
+    settings: {
+      LibreSpot_EngineProfileJson: JSON.stringify(state),
+    },
+  });
+}

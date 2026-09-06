@@ -15,6 +15,194 @@ export type ThemeExport = {
 };
 
 export const ENGINE_VERSION = "4.5.0";
+export const MAX_PROFILE_BYTES = 2 * 1024 * 1024;
+
+const EFFECTS_TIERS = ["glass", "eco", "flat"] as const;
+const ACCENT_MODES = ["scheme", "album-art", "fixed", "os"] as const;
+const ACCENT_PRESETS = ["VIBRANT", "LIGHT_VIBRANT", "PROMINENT"] as const;
+const MATERIAL_VARIANTS = [
+  "tonalSpot",
+  "fidelity",
+  "vibrant",
+  "expressive",
+  "neutral",
+  "monochrome",
+  "content",
+] as const;
+
+function invalid(path: string, message: string): never {
+  throw new Error(`Invalid LibreSpot profile ${path}: ${message}.`);
+}
+
+function stringValue(value: unknown, path: string, maxLength = 256): string {
+  if (typeof value !== "string" || value.length > maxLength) {
+    invalid(path, "expected a bounded string");
+  }
+  return value;
+}
+
+function nonEmptyString(value: unknown, path: string, maxLength = 256): string {
+  const result = stringValue(value, path, maxLength);
+  if (result.trim().length === 0) invalid(path, "must not be empty");
+  return result;
+}
+
+function finiteNumber(value: unknown, path: string, minimum?: number, maximum?: number): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    invalid(path, "expected a finite number");
+  }
+  if (minimum !== undefined && value < minimum) invalid(path, `must be at least ${minimum}`);
+  if (maximum !== undefined && value > maximum) invalid(path, `must be at most ${maximum}`);
+  return value;
+}
+
+function booleanValue(value: unknown, path: string): boolean {
+  if (typeof value !== "boolean") invalid(path, "expected a boolean");
+  return value;
+}
+
+function primitiveMap(value: unknown, path: string): Record<string, boolean | number | string> {
+  if (!isRecord(value)) invalid(path, "expected an object");
+  const result: Record<string, boolean | number | string> = Object.create(null) as Record<string, boolean | number | string>;
+  if (Object.keys(value).length > 512) invalid(path, "contains too many entries");
+  for (const [key, entry] of Object.entries(value)) {
+    nonEmptyString(key, `${path} key`, 128);
+    if (typeof entry === "number") finiteNumber(entry, `${path}.${key}`);
+    else if (typeof entry !== "boolean" && typeof entry !== "string") {
+      invalid(`${path}.${key}`, "expected a string, number, or boolean");
+    } else if (typeof entry === "string" && entry.length > 4096) {
+      invalid(`${path}.${key}`, "string is too long");
+    }
+    Object.defineProperty(result, key, {
+      value: entry,
+      enumerable: true,
+      writable: true,
+      configurable: true,
+    });
+  }
+  return result;
+}
+
+function stringArray(value: unknown, path: string, maxItems = 512): string[] {
+  if (!Array.isArray(value) || value.length > maxItems) invalid(path, "expected a bounded string array");
+  return value.map((entry, index) => nonEmptyString(entry, `${path}[${index}]`, 256));
+}
+
+function colorScheme(value: unknown, path: string): Record<string, string> {
+  if (!isRecord(value)) invalid(path, "expected an object");
+  if (Object.keys(value).length > 256) invalid(path, "contains too many colors");
+  const result: Record<string, string> = Object.create(null) as Record<string, string>;
+  for (const [key, entry] of Object.entries(value)) {
+    const name = nonEmptyString(key, `${path} key`, 128);
+    const color = stringValue(entry, `${path}.${name}`, 32);
+    try {
+      result[name] = normalizeHex(color);
+    } catch {
+      invalid(`${path}.${name}`, "expected a 3 or 6 digit hex color");
+    }
+  }
+  return result;
+}
+
+function clockValue(value: unknown, path: string): string {
+  const clock = stringValue(value, path, 5);
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(clock)) {
+    invalid(path, "expected a 24-hour HH:mm value");
+  }
+  return clock;
+}
+
+function validateLayers(value: unknown, path: string): void {
+  if (!isRecord(value)) invalid(path, "expected an object");
+  for (const key of ["palette", "layout", "effects", "accessibility"] as const) {
+    if (key in value) booleanValue(value[key], `${path}.${key}`);
+  }
+}
+
+function validateSchedule(value: unknown, path: string, schemes: Record<string, unknown>): void {
+  if (!isRecord(value)) invalid(path, "expected an object");
+  if ("enabled" in value) booleanValue(value.enabled, `${path}.enabled`);
+  if ("lightStart" in value) clockValue(value.lightStart, `${path}.lightStart`);
+  if ("darkStart" in value) clockValue(value.darkStart, `${path}.darkStart`);
+  for (const key of ["lightScheme", "darkScheme"] as const) {
+    if (key in value) {
+      const scheme = nonEmptyString(value[key], `${path}.${key}`, 128);
+      if (!(scheme in schemes)) invalid(`${path}.${key}`, `references missing scheme "${scheme}"`);
+    }
+  }
+}
+
+function validateState(value: Record<string, unknown>, path = "state"): void {
+  nonEmptyString(value.name, `${path}.name`);
+  nonEmptyString(value.theme, `${path}.theme`);
+  const selectedScheme = nonEmptyString(value.scheme, `${path}.scheme`);
+  if (!isRecord(value.schemes)) invalid(`${path}.schemes`, "expected an object");
+  if (Object.keys(value.schemes).length === 0) invalid(`${path}.schemes`, "must contain at least one scheme");
+  for (const [name, scheme] of Object.entries(value.schemes)) {
+    nonEmptyString(name, `${path}.schemes key`, 128);
+    colorScheme(scheme, `${path}.schemes.${name}`);
+  }
+  if (!(selectedScheme in value.schemes)) invalid(`${path}.scheme`, `references missing scheme "${selectedScheme}"`);
+
+  if ("layers" in value) validateLayers(value.layers, `${path}.layers`);
+  if ("effectsTier" in value && !EFFECTS_TIERS.includes(value.effectsTier as (typeof EFFECTS_TIERS)[number])) {
+    invalid(`${path}.effectsTier`, "contains an unsupported value");
+  }
+  if ("autoEffects" in value) booleanValue(value.autoEffects, `${path}.autoEffects`);
+  if ("lastMeasuredFps" in value && value.lastMeasuredFps !== null) {
+    finiteNumber(value.lastMeasuredFps, `${path}.lastMeasuredFps`, 0);
+  }
+
+  if ("dynamicAccent" in value) {
+    if (!isRecord(value.dynamicAccent)) invalid(`${path}.dynamicAccent`, "expected an object");
+    const accent = value.dynamicAccent;
+    if ("mode" in accent && !ACCENT_MODES.includes(accent.mode as (typeof ACCENT_MODES)[number])) invalid(`${path}.dynamicAccent.mode`, "contains an unsupported value");
+    if ("preset" in accent && !ACCENT_PRESETS.includes(accent.preset as (typeof ACCENT_PRESETS)[number])) invalid(`${path}.dynamicAccent.preset`, "contains an unsupported value");
+    if ("fixed" in accent) {
+      const fixed = stringValue(accent.fixed, `${path}.dynamicAccent.fixed`, 32);
+      try {
+        normalizeHex(fixed);
+      } catch {
+        invalid(`${path}.dynamicAccent.fixed`, "expected a 3 or 6 digit hex color");
+      }
+    }
+    if ("materialPalette" in accent) booleanValue(accent.materialPalette, `${path}.dynamicAccent.materialPalette`);
+    if ("materialVariant" in accent && !MATERIAL_VARIANTS.includes(accent.materialVariant as (typeof MATERIAL_VARIANTS)[number])) invalid(`${path}.dynamicAccent.materialVariant`, "contains an unsupported value");
+  }
+
+  if ("appearance" in value) {
+    if (!isRecord(value.appearance)) invalid(`${path}.appearance`, "expected an object");
+    const appearance = value.appearance;
+    if ("fontFamily" in appearance) stringValue(appearance.fontFamily, `${path}.appearance.fontFamily`, 512);
+    if ("radius" in appearance) finiteNumber(appearance.radius, `${path}.appearance.radius`, 0, 128);
+    if ("scale" in appearance) {
+      if (!isRecord(appearance.scale)) invalid(`${path}.appearance.scale`, "expected an object");
+      for (const key of ["navigation", "content", "playbar", "rightSidebar"] as const) {
+        if (key in appearance.scale) finiteNumber(appearance.scale[key], `${path}.appearance.scale.${key}`, 0.1, 4);
+      }
+    }
+  }
+
+  if ("schedule" in value) validateSchedule(value.schedule, `${path}.schedule`, value.schemes);
+  for (const key of ["enabledSnippets", "homeSections", "sidebarItems"] as const) {
+    if (key in value) stringArray(value[key], `${path}.${key}`);
+  }
+  for (const key of ["featureOverrides", "spotxSwitches", "spicetifyOptions"] as const) {
+    if (key in value) primitiveMap(value[key], `${path}.${key}`);
+  }
+  if ("userPresets" in value) {
+    if (!Array.isArray(value.userPresets) || value.userPresets.length > 128) invalid(`${path}.userPresets`, "expected a bounded array");
+    for (const [index, preset] of value.userPresets.entries()) {
+      if (!isRecord(preset)) invalid(`${path}.userPresets[${index}]`, "expected an object");
+      validateState(preset, `${path}.userPresets[${index}]`);
+      nonEmptyString(preset.id, `${path}.userPresets[${index}].id`, 128);
+    }
+  }
+  if ("updatedAt" in value) {
+    const updatedAt = stringValue(value.updatedAt, `${path}.updatedAt`, 64);
+    if (Number.isNaN(Date.parse(updatedAt))) invalid(`${path}.updatedAt`, "expected an ISO date");
+  }
+}
 
 export function serializeEngineState(state: EngineState): string {
   return `${JSON.stringify(state, null, 2)}\n`;
@@ -44,6 +232,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 export function parseProfile(source: string): EngineState {
+  if (new TextEncoder().encode(source).length > MAX_PROFILE_BYTES) {
+    throw new Error(`LibreSpot profile exceeds the ${MAX_PROFILE_BYTES}-byte limit.`);
+  }
   const parsed: unknown = JSON.parse(source);
   let value: unknown = parsed;
   if (
@@ -69,6 +260,8 @@ export function parseProfile(source: string): EngineState {
   ) {
     throw new Error("LibreSpot profile is missing its theme identity or schemes.");
   }
+
+  validateState(value);
 
   const defaults = createDefaultState();
   const merged = {
@@ -110,15 +303,20 @@ function exportThemeRuntime(state: EngineState): string {
     `librespot-tier-${state.effectsTier}`,
   ];
   const serializedClasses = JSON.stringify(classes);
+  const serializedRadius = JSON.stringify(`${state.appearance.radius}px`);
+  const serializedFont = JSON.stringify(state.appearance.fontFamily);
+  const serializedScales = Object.fromEntries(
+    Object.entries(state.appearance.scale).map(([key, value]) => [key, JSON.stringify(`${value}`)]),
+  ) as Record<string, string>;
   return `(function LibreSpotExportedTheme() {
   const root = document.documentElement;
   root.classList.add(...${serializedClasses});
-  root.style.setProperty("--librespot-radius", "${state.appearance.radius}px");
-  root.style.setProperty("--librespot-font", ${JSON.stringify(state.appearance.fontFamily)});
-  root.style.setProperty("--librespot-scale-navigation", "${state.appearance.scale.navigation}");
-  root.style.setProperty("--librespot-scale-content", "${state.appearance.scale.content}");
-  root.style.setProperty("--librespot-scale-playbar", "${state.appearance.scale.playbar}");
-  root.style.setProperty("--librespot-scale-right-sidebar", "${state.appearance.scale.rightSidebar}");
+  root.style.setProperty("--librespot-radius", ${serializedRadius});
+  root.style.setProperty("--librespot-font", ${serializedFont});
+  root.style.setProperty("--librespot-scale-navigation", ${serializedScales.navigation});
+  root.style.setProperty("--librespot-scale-content", ${serializedScales.content});
+  root.style.setProperty("--librespot-scale-playbar", ${serializedScales.playbar});
+  root.style.setProperty("--librespot-scale-right-sidebar", ${serializedScales.rightSidebar});
 })();\n`;
 }
 

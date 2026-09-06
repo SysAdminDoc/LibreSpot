@@ -6,6 +6,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Fixed
 
+- Profile and backup imports now validate nested state, supported schemas and Marketplace sections before mutation. Raw profile recovery is accepted as an engine-only restore, and exported theme values remain JavaScript data even when they contain numeric-looking text.
 - An unreadable in-Spotify profile now blocks the next save until its recovery copy is stored successfully. When browser storage keeps refusing the copy, the original bytes remain in place and the failed save reports that no changes were saved.
 - Running the shell with the UI-automation arguments no longer appends to your real LibreSpot log. Everything else about those runs already went to a throwaway directory, but the crash reporter had its log and crash folders fixed to the real per-user ones, so a screenshot or timing run left entries in the journal for a session that never touched your setup.
 - The README no longer points at a release that was never published. It called v4.5.0 the public latest stable release and told you to verify against it, but v4.5.0 exists only in the source tree; the published one is v4.4.0. The badge, both verification commands and the surrounding text now name the release you can actually download, and the offline checks refuse a stable claim with no tag behind it.

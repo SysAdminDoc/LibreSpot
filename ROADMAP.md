@@ -6,13 +6,6 @@ Incomplete, implementer-actionable work only. Operator-dependent decisions remai
 
 ### P1: Now
 
-- [ ] P1: RD-223. Validate complete imported state and safely serialize theme exports
-  Why: Impact 5/5. Malformed nested values reach the engine, and repaired raw recovery cannot use its advertised restore path.
-  Evidence: RESEARCH.md, Profile and backup safety; parseProfile accepts null snippets/object presets; a harmless core-export canary executed through interpolated appearance data.
-  Touches: src/LibreSpot.App/src/core/profile.ts, state.ts, backup.ts; src/LibreSpot.App/src/extensions/librespot-engine.ts; tests/profile.test.ts and backup.test.ts within the component.
-  Acceptance: Validate nested collections, enum values, finite positive scales, colors and valid schedule references before mutation; reject oversized input with a documented limit. Require a supported integer backup schema and reject a present, malformed Marketplace section while preserving compatibility with an absent section. Recognize raw engine/profile envelopes and full backups explicitly. Restoring repaired raw engine data must leave Marketplace untouched. Retain rejected raw data for recovery. Serialize every generated JavaScript value as data; malformed numeric-looking input must never produce executable statements. Preserve valid existing fixtures.
-  Complexity: M
-
 - [ ] P1: RD-224. Commit live edits only after validation and report failed application
   Why: Impact 5/5. Clearing a schedule time saves invalid state before apply throws, so an ordinary edit can break the next startup.
   Evidence: RESEARCH.md; core/engine.ts update/replace save before apply; panels/look.ts immediately commits empty time; runtime update callers discard rejected promises and ignore unavailable flag application.
