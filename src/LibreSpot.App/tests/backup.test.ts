@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   BACKUP_SCHEMA_VERSION,
+  MAX_MARKETPLACE_BYTES,
   createBackup,
   parseBackup,
   parseRestoreSource,
@@ -11,6 +12,7 @@ import {
 } from "../src/core/backup.ts";
 import { EngineStore, type StorageAdapter } from "../src/core/store.ts";
 import { createDefaultState, PROFILE_SCHEMA_VERSION } from "../src/core/state.ts";
+import { MAX_PROFILE_BYTES } from "../src/core/profile.ts";
 
 function memoryStorage(): StorageAdapter {
   const map = new Map<string, string>();
@@ -118,6 +120,21 @@ describe("backup", () => {
     );
 
     expect(restored.engine).toEqual(state);
+  });
+
+  it("rejects oversized Marketplace payloads and raw restore sources", () => {
+    const state = stateFixture(new Date("2026-09-03T10:00:00.000Z"));
+    const oversizedMarketplace = {
+      ...createBackup(state, {}, new Date("2026-09-03T11:00:00.000Z")),
+      marketplace: { payload: "x".repeat(MAX_MARKETPLACE_BYTES) },
+    };
+
+    expect(() => parseBackup(serializeBackup(oversizedMarketplace))).toThrow(
+      /Marketplace settings exceed/,
+    );
+    expect(() => parseRestoreSource("x".repeat(MAX_PROFILE_BYTES + 1))).toThrow(
+      /profile exceeds/,
+    );
   });
 
   it("reads and writes Marketplace records the way Marketplace stores them", async () => {

@@ -93,7 +93,7 @@ export async function applyFeatureOverrides(
   }
 
   if (runtime.resolver?.setOverrides) {
-    runtime.resolver.setOverrides(new Map(entries));
+    await runtime.resolver.setOverrides(new Map(entries));
     return "resolver";
   }
   return "unavailable";

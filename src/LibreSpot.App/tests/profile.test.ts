@@ -62,6 +62,16 @@ describe("profile and theme export", () => {
     expect(() => parseProfile(serializeProfile(state))).toThrow(/references missing scheme/);
   });
 
+  it("rejects inherited scheme names", () => {
+    const selected = stateFixture();
+    selected.scheme = "constructor";
+    expect(() => parseProfile(serializeProfile(selected))).toThrow(/references missing scheme/);
+
+    const scheduled = stateFixture();
+    scheduled.schedule.lightScheme = "toString";
+    expect(() => parseProfile(serializeProfile(scheduled))).toThrow(/references missing scheme/);
+  });
+
   it("rejects malformed nested state instead of filling it with defaults", () => {
     const state = stateFixture();
     const malformed = JSON.parse(serializeProfile(state)) as {

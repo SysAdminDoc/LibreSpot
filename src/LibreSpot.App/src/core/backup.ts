@@ -1,5 +1,10 @@
 import { PROFILE_SCHEMA_VERSION, type EngineState } from "./state.ts";
-import { ENGINE_VERSION, parseProfile, serializeProfile } from "./profile.ts";
+import {
+  ENGINE_VERSION,
+  MAX_PROFILE_BYTES,
+  parseProfile,
+  serializeProfile,
+} from "./profile.ts";
 
 /**
  * One file that holds everything a person would lose if their Spotify profile
@@ -7,6 +12,8 @@ import { ENGINE_VERSION, parseProfile, serializeProfile } from "./profile.ts";
  * its own database. Both stay on the machine; this is a file, not a sync.
  */
 export const BACKUP_SCHEMA_VERSION = 1;
+export const MAX_BACKUP_BYTES = 8 * 1024 * 1024;
+export const MAX_MARKETPLACE_BYTES = 2 * 1024 * 1024;
 
 export const MARKETPLACE_DATABASE = "spicetify-marketplace";
 export const MARKETPLACE_STORE = "settings";
@@ -57,6 +64,9 @@ export type ParsedBackup = {
 };
 
 export function parseBackup(source: string): ParsedBackup {
+  if (new TextEncoder().encode(source).length > MAX_BACKUP_BYTES) {
+    throw new Error(`LibreSpot backup exceeds the ${MAX_BACKUP_BYTES}-byte limit.`);
+  }
   const parsed: unknown = JSON.parse(source);
   if (!isRecord(parsed)) {
     throw new Error("A LibreSpot backup must be a JSON object.");
@@ -91,6 +101,11 @@ export function parseBackup(source: string): ParsedBackup {
     throw new Error("This backup has a malformed Marketplace section.");
   }
   if (isRecord(parsed.marketplace)) {
+    if (new TextEncoder().encode(JSON.stringify(parsed.marketplace)).length > MAX_MARKETPLACE_BYTES) {
+      throw new Error(
+        `Marketplace settings exceed the ${MAX_MARKETPLACE_BYTES}-byte backup limit.`,
+      );
+    }
     for (const [key, value] of Object.entries(parsed.marketplace)) {
       Object.defineProperty(marketplace, key, {
         value,
@@ -109,6 +124,16 @@ export function parseBackup(source: string): ParsedBackup {
 }
 
 export function parseRestoreSource(source: string): ParsedBackup {
+  const sourceBytes = new TextEncoder().encode(source).length;
+  if (sourceBytes > MAX_BACKUP_BYTES) {
+    throw new Error(`LibreSpot restore exceeds the ${MAX_BACKUP_BYTES}-byte limit.`);
+  }
+  // A raw profile must reach its bounded parser before the backup envelope is
+  // parsed. Backups carry an engine object, so larger envelopes use the backup
+  // limit while an oversized raw profile is rejected immediately.
+  if (sourceBytes > MAX_PROFILE_BYTES && !/"engine"\s*:/.test(source)) {
+    throw new Error(`LibreSpot profile exceeds the ${MAX_PROFILE_BYTES}-byte limit.`);
+  }
   try {
     return parseBackup(source);
   } catch (backupError) {

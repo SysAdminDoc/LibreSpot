@@ -114,4 +114,17 @@ describe("runtime signals", () => {
       { autoRunOverrideEffects: true },
     );
   });
+
+  it("waits for resolver writes so failures reach the caller", async () => {
+    const failure = new Error("resolver refused the feature override");
+    const setOverrides = vi.fn(() => Promise.reject(failure));
+
+    await expect(
+      applyFeatureOverrides(
+        { enableExample: true },
+        { resolver: { setOverrides } },
+      ),
+    ).rejects.toThrow("resolver refused the feature override");
+    expect(setOverrides).toHaveBeenCalledOnce();
+  });
 });

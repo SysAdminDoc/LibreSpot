@@ -127,7 +127,7 @@ function validateSchedule(value: unknown, path: string, schemes: Record<string, 
   for (const key of ["lightScheme", "darkScheme"] as const) {
     if (key in value) {
       const scheme = nonEmptyString(value[key], `${path}.${key}`, 128);
-      if (!(scheme in schemes)) invalid(`${path}.${key}`, `references missing scheme "${scheme}"`);
+      if (!Object.prototype.hasOwnProperty.call(schemes, scheme)) invalid(`${path}.${key}`, `references missing scheme "${scheme}"`);
     }
   }
 }
@@ -142,7 +142,7 @@ function validateState(value: Record<string, unknown>, path = "state"): void {
     nonEmptyString(name, `${path}.schemes key`, 128);
     colorScheme(scheme, `${path}.schemes.${name}`);
   }
-  if (!(selectedScheme in value.schemes)) invalid(`${path}.scheme`, `references missing scheme "${selectedScheme}"`);
+  if (!Object.prototype.hasOwnProperty.call(value.schemes, selectedScheme)) invalid(`${path}.scheme`, `references missing scheme "${selectedScheme}"`);
 
   if ("layers" in value) validateLayers(value.layers, `${path}.layers`);
   if ("effectsTier" in value && !EFFECTS_TIERS.includes(value.effectsTier as (typeof EFFECTS_TIERS)[number])) {
@@ -292,7 +292,7 @@ export function parseProfile(source: string): EngineState {
     },
   } as EngineState;
 
-  if (!merged.schemes[merged.scheme]) {
+  if (!Object.prototype.hasOwnProperty.call(merged.schemes, merged.scheme)) {
     throw new Error(`Profile scheme "${merged.scheme}" is not present.`);
   }
   merged.dynamicAccent.fixed = normalizeHex(merged.dynamicAccent.fixed);

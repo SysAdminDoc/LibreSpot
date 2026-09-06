@@ -126,6 +126,29 @@ describe("engine state quarantine", () => {
     expect(store.readQuarantine()?.raw).toBe("{ broken");
   });
 
+  it("keeps the unreadable state in place when storage silently drops the copy", () => {
+    const map = new Map<string, string>();
+    map.set(ENGINE_STORAGE_KEY, "{ broken");
+    const storage: StorageAdapter = {
+      get: (key) => map.get(key) ?? null,
+      set: (key, value) => {
+        if (!key.startsWith(QUARANTINE_KEY_PREFIX)) {
+          map.set(key, value);
+        }
+      },
+      remove: (key) => {
+        map.delete(key);
+      },
+    };
+
+    const store = storeAt(storage);
+    store.load();
+
+    expect(map.get(ENGINE_STORAGE_KEY)).toBe("{ broken");
+    expect(storage.get(QUARANTINE_POINTER_KEY)).toBeNull();
+    expect(store.readQuarantine()?.raw).toBe("{ broken");
+  });
+
   it("re-tries the refused copy on the next save, and keeps offering it meanwhile", () => {
     const map = new Map<string, string>();
     map.set(ENGINE_STORAGE_KEY, "{ broken");

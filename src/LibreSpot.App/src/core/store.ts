@@ -155,6 +155,11 @@ export class EngineStore {
   /** Writes one quarantine record and its pointer. False when storage refuses. */
   private writeQuarantine(record: QuarantinedState): boolean {
     const key = `${QUARANTINE_KEY_PREFIX}${record.quarantinedAt}`;
+    const payload = JSON.stringify({
+      quarantinedAt: record.quarantinedAt,
+      reason: record.reason,
+      raw: record.raw,
+    });
     const previous = (() => {
       try {
         return this.storage.get(QUARANTINE_POINTER_KEY);
@@ -164,16 +169,25 @@ export class EngineStore {
     })();
 
     try {
-      this.storage.set(
-        key,
-        JSON.stringify({
-          quarantinedAt: record.quarantinedAt,
-          reason: record.reason,
-          raw: record.raw,
-        }),
-      );
+      this.storage.set(key, payload);
       this.storage.set(QUARANTINE_POINTER_KEY, key);
+      if (
+        this.storage.get(key) !== payload ||
+        this.storage.get(QUARANTINE_POINTER_KEY) !== key
+      ) {
+        throw new Error("The quarantine copy could not be verified.");
+      }
     } catch {
+      try {
+        this.storage.remove(key);
+        if (previous === null) {
+          this.storage.remove(QUARANTINE_POINTER_KEY);
+        } else {
+          this.storage.set(QUARANTINE_POINTER_KEY, previous);
+        }
+      } catch {
+        // The original state remains protected because this reports failure.
+      }
       return false;
     }
 
