@@ -1183,8 +1183,8 @@ public sealed class SupportBundleService
         public static IReadOnlyList<string> RuleDescriptions { get; } = new[]
         {
             "Replaces local user, machine, profile, AppData, LocalAppData, temp, and LibreSpot config paths with placeholders, including JSON-escaped path forms.",
-            "Redacts Authorization and GitHub response/request headers.",
-            "Redacts GitHub tokens, API keys, passwords, proxy credentials, and command-line secret arguments.",
+            "Redacts Authorization and GitHub response/request headers, including timestamp-prefixed lines.",
+            "Redacts JSON secret properties, quoted key-value values, GitHub tokens, API keys, passwords, proxy credentials, and quoted command-line secret arguments.",
             "Omits binary or unreadable file payloads from text windows."
         };
 
@@ -1202,13 +1202,15 @@ public sealed class SupportBundleService
             _literalRules = BuildLiteralRules(configDirectory);
             _regexRules = new[]
             {
-                (new Regex(@"(?im)^(?<prefix>\s*(authorization|proxy-authorization)\s*[:=]\s*).+$", RegexOptions.Compiled, RuleTimeout), "${prefix}<redacted>"),
+                (new Regex(@"(?im)(?<prefix>(?<![A-Za-z0-9_-])(?:authorization|proxy-authorization)\s*[:=]\s*)[^\r\n]+", RegexOptions.Compiled, RuleTimeout), "${prefix}<redacted>"),
                 (new Regex(@"(?im)^(?<prefix>\s*x-(github|oauth|accepted-oauth|ratelimit)-[A-Za-z0-9-]+\s*:\s*).+$", RegexOptions.Compiled, RuleTimeout), "${prefix}<redacted>"),
                 (new Regex(@"(?i)\b(ghp|gho|ghu|ghs|ghr|github_pat)_[A-Za-z0-9_]{12,}\b", RegexOptions.Compiled, RuleTimeout), "<redacted-github-token>"),
-                (new Regex(@"(?i)\b(?<key>[A-Z0-9_]*(TOKEN|SECRET|PASSWORD|PASS|API_KEY|PAT|PROXY)[A-Z0-9_]*)\s*[:=]\s*(?<value>[^\s;]+)", RegexOptions.Compiled, RuleTimeout), "${key}=<redacted>"),
+                (new Regex(@"(?i)(?<prefix>""[^""\r\n]*(?:TOKEN|SECRET|PASSWORD|PASS|API[_-]?KEY|PAT|PROXY)[^""\r\n]*""\s*:\s*"")(?:(?:\\.)|[^""\\\r\n])*(?<suffix>"")", RegexOptions.Compiled, RuleTimeout), "${prefix}<redacted>${suffix}"),
+                (new Regex(@"(?i)(?<prefix>\b[A-Z0-9_]*(?:TOKEN|SECRET|PASSWORD|PASS|API[_-]?KEY|PAT|PROXY)[A-Z0-9_]*\s*[:=]\s*)(?:""(?:\\.|[^""\\\r\n])*""|'(?:\\.|[^'\\\r\n])*')", RegexOptions.Compiled, RuleTimeout), "${prefix}\"<redacted>\""),
+                (new Regex(@"(?i)\b(?<prefix>[A-Z0-9_]*(?:TOKEN|SECRET|PASSWORD|PASS|API[_-]?KEY|PAT|PROXY)[A-Z0-9_]*\s*[:=]\s*)(?![""'])[^\s;,}\]]+", RegexOptions.Compiled, RuleTimeout), "${prefix}<redacted>"),
                 (new Regex(@"(?i)(?<prefix>[?&](token|secret|password|pass|api[_-]?key|pat|proxy)=)[^&#\s""]+", RegexOptions.Compiled, RuleTimeout), "${prefix}<redacted>"),
                 (new Regex(@"(?i)\b(?<scheme>https?|socks5?)://[^/\s:@]+:[^@\s/]+@", RegexOptions.Compiled, RuleTimeout), "${scheme}://<redacted>@"),
-                (new Regex(@"(?i)(--?(token|password|secret|api-key|proxy)\s+)(\S+)", RegexOptions.Compiled, RuleTimeout), "$1<redacted>")
+                (new Regex(@"(?i)(?<prefix>--?(?:token|password|secret|api[_-]?key|proxy)\b(?:\s+|=))(?:""(?:\\.|[^""\\\r\n])*""|'(?:\\.|[^'\\\r\n])*'|\S+)", RegexOptions.Compiled, RuleTimeout), "${prefix}<redacted>")
             };
         }
 

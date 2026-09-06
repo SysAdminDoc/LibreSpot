@@ -6,13 +6,6 @@ Incomplete, implementer-actionable work only. Operator-dependent decisions remai
 
 ### P1: Now
 
-- [ ] P1: RD-225. Redact structured, quoted and prefixed secrets in support exports
-  Why: Impact 5/5. Synthetic JSON tokens, multiword quoted passwords and timestamp-prefixed bearer headers survive the current redactor.
-  Evidence: RESEARCH.md, Support-export privacy; src/LibreSpot.Core/SupportBundleService.cs RedactText; tests/LibreSpot.Desktop.Tests/SupportBundleServiceTests.cs.
-  Touches: SupportBundleService redaction and text-export paths; SupportBundleServiceTests.cs.
-  Acceptance: Cover JSON secret properties, escaped quoted arguments, prefixed authorization headers and existing simple forms. Synthetic canaries must be absent from the final exported text entries, while neighboring harmless text stays intact. Exercise the export path as well as the helper; do not claim arbitrary binary content can be redacted.
-  Complexity: S
-
 - [ ] P1: RD-226. Enforce the declared minidump privacy policy before export
   Why: Impact 5/5. A synthetic minidump carrying the full-memory flag passes the same check as a Triage-flagged fixture.
   Evidence: RESEARCH.md; SupportBundleService.IsValidMinidump accepts fixtures with header flags 0, MiniDumpWithFullMemory and the runtime Triage flags; Microsoft MINIDUMP_HEADER/MINIDUMP_TYPE documentation.

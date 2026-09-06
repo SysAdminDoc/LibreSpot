@@ -20,14 +20,17 @@ public sealed class SupportBundleServiceTests
         var machine = Environment.MachineName;
         fixture.WriteStackReadyState();
         fixture.WriteInstallLog(
-            $"""
-            Authorization: Bearer ghp_abcdefghijklmnopqrstuvwxyz123456
-            x-github-request-id: raw-request-id
-            HTTP_PROXY=http://proxyUser:proxyPass@example.test:8080
-            command.exe --token topsecret --password othersecret
-            log path: {profile}\repos\LibreSpot\src\Program.cs on {machine}
-            slash path: {slashProfile}/repos/LibreSpot/src/Program.cs
-            """);
+            string.Join(
+                Environment.NewLine,
+                [
+                    "2026-09-06T12:00:00Z Authorization: Bearer timestamp-bearer-secret",
+                    "x-github-request-id: raw-request-id",
+                    "HTTP_PROXY=http://proxyUser:proxyPass@example.test:8080",
+                    "command.exe --token topsecret --password \"two words secret\" --token \"escaped \\\"quoted-secret\\\"\" harmless-neighbor",
+                    "{\"password\":\"json-password-secret\",\"message\":\"harmless-neighbor\"}",
+                    $"log path: {profile}\\repos\\LibreSpot\\src\\Program.cs on {machine}",
+                    $"slash path: {slashProfile}/repos/LibreSpot/src/Program.cs"
+                ]));
         fixture.WriteRollingLog("GITHUB_TOKEN=ghp_abcdefghijklmnopqrstuvwxyz123456");
         fixture.WriteCrashReport(
             $"""
@@ -46,7 +49,12 @@ public sealed class SupportBundleServiceTests
         Assert.DoesNotContain("raw-request-id", text);
         Assert.DoesNotContain("proxyUser:proxyPass", text);
         Assert.DoesNotContain("topsecret", text);
+        Assert.DoesNotContain("timestamp-bearer-secret", text);
+        Assert.DoesNotContain("two words secret", text);
+        Assert.DoesNotContain("quoted-secret", text);
+        Assert.DoesNotContain("json-password-secret", text);
         Assert.DoesNotContain("plain-text-secret", text);
+        Assert.Contains("harmless-neighbor", text);
         Assert.Contains("<USERPROFILE>", text);
         Assert.Contains("<MACHINE>", text);
         Assert.Contains("<redacted", text);
