@@ -259,6 +259,134 @@ public sealed class ReleaseTruthTests
     }
 
     [Fact]
+    public void ReadmeThemeCountMatchesThePreviewManifest()
+    {
+        // RD-190 gated the extension and lyrics-theme counts and left this one
+        // behind, so a theme could be added to the manifest without the README
+        // moving. The manifest carries one entry that is not a theme, the
+        // Marketplace-only placeholder the gallery shows when nothing is picked.
+        var readme = Read("README.md");
+        using var manifest = System.Text.Json.JsonDocument.Parse(Read("schemas/theme-preview-manifest.json"));
+
+        var entries = manifest.RootElement.GetProperty("themes").EnumerateArray().ToArray();
+        var placeholders = entries
+            .Where(entry => (entry.GetProperty("id").GetString() ?? string.Empty).Contains("Marketplace Only", StringComparison.Ordinal))
+            .ToArray();
+
+        // Without this the count could silently become "every entry" if the
+        // placeholder were ever renamed, and the README would then be wrong in
+        // the other direction while this test stayed green.
+        Assert.True(
+            placeholders.Length == 1,
+            $"Expected exactly one Marketplace-only placeholder in the preview manifest, found {placeholders.Length}. "
+                + "If the placeholder was renamed, update this test rather than the count.");
+
+        var expected = entries.Length - placeholders.Length;
+        var matches = Regex.Matches(readme, @"(?<count>\d+) supported themes");
+        Assert.True(matches.Count > 0, "README.md no longer states a supported theme count.");
+
+        foreach (Match match in matches)
+        {
+            Assert.Equal(expected, int.Parse(match.Groups["count"].Value, System.Globalization.CultureInfo.InvariantCulture));
+        }
+    }
+
+    [Fact]
+    public void ReadmeStrykerBaselineIsNotPresentedAsNewerThanItIs()
+    {
+        // The README used to call the mutation baseline "current" with no date.
+        // StrykerOutput/ is gitignored, so nothing in a checkout can confirm the
+        // figure, and the files it measures kept changing under it. Record when
+        // it was measured and refuse to let that date fall behind the code.
+        var readme = Read("README.md");
+
+        var measured = Regex.Match(readme, @"tested mutants, measured (?<date>\d{4}-\d{2}-\d{2})");
+        Assert.True(
+            measured.Success,
+            "README.md must say when the Stryker baseline was measured, in the form "
+                + "\"tested mutants, measured YYYY-MM-DD\". Calling a figure current says nothing a reader can check.");
+
+        Assert.DoesNotContain("The current baseline is", readme, StringComparison.Ordinal);
+
+        var measuredOn = DateTimeOffset.Parse(
+            measured.Groups["date"].Value,
+            System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.AssumeUniversal);
+
+        // The config names what Stryker mutates. A baseline measured before the
+        // newest change to any of those files describes code that no longer
+        // exists.
+        using var config = System.Text.Json.JsonDocument.Parse(Read("src/LibreSpot.Core/stryker-config.json"));
+        var globs = config.RootElement
+            .GetProperty("stryker-config")
+            .GetProperty("mutate")
+            .EnumerateArray()
+            .Select(entry => Path.GetFileName(entry.GetString() ?? string.Empty))
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .ToArray();
+
+        Assert.NotEmpty(globs);
+
+        DateTimeOffset? newest = null;
+        var newestFile = string.Empty;
+        foreach (var name in globs)
+        {
+            var relative = $"src/LibreSpot.Core/{name}";
+            Assert.True(
+                File.Exists(Path.Combine(RepoRoot, relative)),
+                $"stryker-config.json mutates {name} but {relative} does not exist.");
+
+            var stamp = GitCommitDate(relative);
+            // A shallow clone or an export has no history for the file. Saying so
+            // beats quietly passing on a comparison that never happened.
+            Assert.True(stamp.HasValue, $"Could not read the last commit date for {relative} from git.");
+
+            if (newest is null || stamp!.Value > newest.Value)
+            {
+                newest = stamp;
+                newestFile = relative;
+            }
+        }
+
+        // Both sides reduced to a UTC calendar day. The README carries a date and
+        // the commit carries an instant, so comparing them directly would call a
+        // baseline measured the same afternoon "older" than the morning's commit.
+        Assert.True(
+            measuredOn.UtcDateTime.Date >= newest!.Value.UtcDateTime.Date,
+            $"The README records the Stryker baseline as measured {measured.Groups["date"].Value}, but {newestFile} "
+                + $"changed on {newest.Value:yyyy-MM-dd}. Re-run `dotnet stryker` from src/LibreSpot.Core and update "
+                + "the figure and the date together, or the README is describing code that has moved on.");
+    }
+
+    private static DateTimeOffset? GitCommitDate(string relativePath)
+    {
+        using var process = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+        {
+            FileName = "git",
+            Arguments = $"-C \"{RepoRoot}\" log -1 --format=%cI -- \"{relativePath}\"",
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+        })!;
+
+        // Both pipes are read before waiting; draining one first can deadlock
+        // when the other fills its buffer.
+        var output = process.StandardOutput.ReadToEndAsync();
+        var error = process.StandardError.ReadToEndAsync();
+        process.WaitForExit();
+        _ = error.GetAwaiter().GetResult();
+
+        var text = output.GetAwaiter().GetResult().Trim();
+        if (process.ExitCode != 0 || text.Length == 0)
+        {
+            return null;
+        }
+
+        return DateTimeOffset.Parse(text, System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    [Fact]
     public void ReadmeLyricsThemeCountMatchesTheCatalog()
     {
         var readme = Read("README.md");

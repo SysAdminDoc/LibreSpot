@@ -788,8 +788,8 @@ dotnet stryker --test-runner mtp --concurrency 1
 Pop-Location
 ```
 
-The MTP runner is still preview software. The current baseline is 24.32% over
-1,476 tested mutants, with a 24% break threshold in
+The MTP runner is still preview software. The baseline is 24.51% over
+1,477 tested mutants, measured 2026-09-05, with a 24% break threshold in
 `src\LibreSpot.Core\stryker-config.json`. Treat the report as a regression
 ratchet, not as a release gate for the WPF shell.
 
