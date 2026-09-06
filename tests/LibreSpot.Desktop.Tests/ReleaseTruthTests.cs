@@ -252,8 +252,29 @@ public sealed class ReleaseTruthTests
             return;
         }
 
-        Assert.Contains("are English", readme, StringComparison.Ordinal);
+        // The clause has two halves and the gate used to check one of them. It
+        // asserted "are English" and "in-client panel does not", so deleting the
+        // sentence that says the shell is translated at all kept it green, and
+        // "are English" was loose enough for any unrelated sentence to satisfy.
+        // Both halves, and the two surfaces by name, or the README can say half
+        // the truth and pass.
+        Assert.Matches(@"all five interfaces are complete and translation-reviewed", readme);
+        Assert.Matches(
+            @"panel LibreSpot adds inside Spotify and the standalone `LibreSpot\.ps1` window are English only",
+            readme);
         Assert.Contains("in-client panel does not", readme, StringComparison.Ordinal);
+
+        // The five locales the shell claims have to be the five it ships, or the
+        // half of the sentence that is not about English is wrong instead.
+        // Strings.resx is the neutral fallback; the five interfaces are the five
+        // culture-qualified files beside it.
+        var cultures = Directory
+            .GetFiles(Path.Combine(RepoRoot, "src", "LibreSpot.Desktop", "Properties"), "Strings.*.resx")
+            .Length;
+        Assert.True(
+            cultures == 5,
+            $"README says five interfaces are complete, but Properties holds {cultures} culture-qualified resx files. "
+                + "Update the sentence and this count together.");
     }
 
     [Fact]
