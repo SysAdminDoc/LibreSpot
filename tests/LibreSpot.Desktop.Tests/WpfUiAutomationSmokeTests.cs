@@ -1200,10 +1200,20 @@ public sealed class WpfUiAutomationSmokeTests
                         Process.Kill(entireProcessTree: true);
                     }
                 }
+
+                // Kill does not wait, so this used to release the gate while the
+                // window was still tearing down. Axe walks every child of the
+                // desktop calling get_CurrentProcessId, so a window vanishing
+                // mid-walk threw COMException 0x80040201 and failed the next
+                // state's scan for a reason that had nothing to do with
+                // accessibility. Doubling the launches for the minimum-window
+                // pass made it frequent enough to see.
+                Process.WaitForExit(15000);
             }
             catch
             {
                 try { Process.Kill(entireProcessTree: true); } catch { }
+                try { Process.WaitForExit(15000); } catch { }
             }
             finally
             {
