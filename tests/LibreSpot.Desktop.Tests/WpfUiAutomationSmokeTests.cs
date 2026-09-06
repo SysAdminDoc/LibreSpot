@@ -731,14 +731,18 @@ public sealed class WpfUiAutomationSmokeTests
         }
     }
 
-    [Fact]
-    public void UiAutomationSurface_KeepsEveryWriteInsideItsOwnRoot()
+    [Theory]
+    [InlineData("home-healthy")]
+    [InlineData("maintenance")]
+    [InlineData("recommended")]
+    public void UiAutomationSurface_KeepsEveryWriteInsideItsOwnRoot(string state)
     {
         // The claim recorded in the contract, tested rather than asserted in
-        // prose. A sentinel APPDATA is handed to the child process: if any smoke
+        // prose. A sentinel APPDATA is handed to the child process: if a smoke
         // state ever wrote to the real per-user location instead of the root, it
         // would land in the sentinel and this fails, without ever touching the
-        // configuration of whoever is running the suite.
+        // configuration of whoever is running the suite. Several states run,
+        // because one state passing says nothing about the other forty-two.
         var appPath = Path.Combine(AppContext.BaseDirectory, "LibreSpot.exe");
         Assert.True(File.Exists(appPath), $"Expected the WPF executable at {appPath}.");
 
@@ -751,18 +755,16 @@ public sealed class WpfUiAutomationSmokeTests
         // Two escape routes, and the sentinel only closes one. Environment
         // variables catch code that reads %APPDATA%, but Environment.GetFolderPath
         // goes to the shell API and ignores them entirely, so a leak through it
-        // lands in the real profile. Snapshot the real locations and require them
-        // unchanged. Found the hard way: a deliberately escaping build wrote a
-        // whole config tree into the running user's AppData while the sentinel
-        // stayed empty and the test still passed this check.
+        // lands in the real profile. Found the hard way: a deliberately escaping
+        // build wrote a whole config tree into the running user's AppData while
+        // the sentinel stayed empty and the test still passed.
         var realRoots = new[]
         {
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         };
-        var realBefore = realRoots
-            .Where(Directory.Exists)
-            .ToDictionary(root => root, root => Directory.GetFileSystemEntries(root).ToHashSet(StringComparer.OrdinalIgnoreCase), StringComparer.OrdinalIgnoreCase);
+
+        var realBefore = SnapshotRealProfile(realRoots);
 
         try
         {
@@ -772,7 +774,7 @@ public sealed class WpfUiAutomationSmokeTests
                 UseShellExecute = false,
                 WorkingDirectory = AppContext.BaseDirectory,
             };
-            startInfo.ArgumentList.Add("--uia-smoke=maintenance");
+            startInfo.ArgumentList.Add($"--uia-smoke={state}");
             startInfo.ArgumentList.Add("--uia-culture=en");
             startInfo.ArgumentList.Add("--uia-background");
             startInfo.Environment["LIBRESPOT_UIA_ROOT"] = uiaRoot;
@@ -810,28 +812,25 @@ public sealed class WpfUiAutomationSmokeTests
                 : Array.Empty<string>();
             Assert.True(
                 seeded.Length > 0,
-                $"The smoke run created nothing under {uiaRoot}, so this proved nothing about where it writes.");
+                $"Smoke state '{state}' created nothing under {uiaRoot}, so this proved nothing about where it writes.");
 
             // Checked before the more specific assertion below, so a run that
             // escaped is reported as an escape rather than as a missing file.
             var escaped = Directory.GetFileSystemEntries(sentinelAppData, "*", SearchOption.AllDirectories);
             Assert.True(
                 escaped.Length == 0,
-                "A UI-automation smoke run wrote outside LIBRESPOT_UIA_ROOT, into the per-user location:"
+                $"Smoke state '{state}' wrote outside LIBRESPOT_UIA_ROOT, into the per-user location:"
                     + Environment.NewLine
                     + string.Join(Environment.NewLine, escaped));
 
-            foreach (var (root, before) in realBefore)
-            {
-                var appeared = Directory.GetFileSystemEntries(root)
-                    .Where(entry => !before.Contains(entry))
-                    .ToArray();
-                Assert.True(
-                    appeared.Length == 0,
-                    $"A UI-automation smoke run created something in the real {root}, which no smoke state may touch:"
-                        + Environment.NewLine
-                        + string.Join(Environment.NewLine, appeared));
-            }
+            var appeared = SnapshotRealProfile(realRoots)
+                .Where(entry => !realBefore.Contains(entry))
+                .ToArray();
+            Assert.True(
+                appeared.Length == 0,
+                $"Smoke state '{state}' created something in the real user profile, which no smoke state may touch:"
+                    + Environment.NewLine
+                    + string.Join(Environment.NewLine, appeared));
 
             Assert.Contains(seeded, entry => entry.EndsWith("config.json", StringComparison.OrdinalIgnoreCase));
         }
@@ -847,6 +846,90 @@ public sealed class WpfUiAutomationSmokeTests
                 // not worth failing a passing test over.
             }
         }
+    }
+
+    [Fact]
+    public void RealProfileSnapshotSeesAWriteNestedInsideAFolderThatAlreadyExists()
+    {
+        // The positive control for the guard above. It used to compare top-level
+        // entries only, so on any machine where %LOCALAPPDATA%\LibreSpot already
+        // existed, a config written inside it added no new top-level entry and
+        // the containment test passed on exactly the escape it exists to catch.
+        // This plants that write and requires the snapshot to notice.
+        var root = Path.Combine(Path.GetTempPath(), "LibreSpot.SnapshotProbe", Guid.NewGuid().ToString("N"));
+        var existing = Path.Combine(root, "LibreSpot", "config");
+        Directory.CreateDirectory(existing);
+        File.WriteAllText(Path.Combine(existing, "already-here.json"), "{}");
+
+        try
+        {
+            var roots = new[] { root };
+            var before = SnapshotRealProfile(roots);
+
+            var planted = Path.Combine(existing, "leaked-config.json");
+            File.WriteAllText(planted, "{}");
+
+            var appeared = SnapshotRealProfile(roots).Where(entry => !before.Contains(entry)).ToArray();
+
+            Assert.True(
+                appeared.Contains(planted, StringComparer.OrdinalIgnoreCase),
+                "A file written inside an existing LibreSpot folder must show up as new. Saw: "
+                    + string.Join(", ", appeared));
+
+            // And the comparison the guard replaced would have missed it, which
+            // is the whole reason this control exists.
+            var topLevelOnly = Directory.GetFileSystemEntries(root);
+            Assert.DoesNotContain(planted, topLevelOnly, StringComparer.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(root, recursive: true);
+            }
+            catch (IOException)
+            {
+                // Temp probe; not worth failing a passing test over.
+            }
+        }
+    }
+
+    /// <summary>
+    /// Top-level entries of the real roaming and local profile, plus everything
+    /// under any LibreSpot folder already there.
+    /// </summary>
+    /// <remarks>
+    /// A top-level-only snapshot cannot see the leak that matters. On any machine
+    /// where the real app has run once, %LOCALAPPDATA%\LibreSpot already exists,
+    /// so a config written into it adds no new top-level entry and a comparison
+    /// of top-level entries goes green on exactly the escape it exists to catch.
+    /// Walking all of AppData would take longer than the test; walking our own
+    /// folders inside it costs nothing and is where a LibreSpot leak lands.
+    /// </remarks>
+    private static HashSet<string> SnapshotRealProfile(IEnumerable<string> roots)
+    {
+        var entries = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var root in roots.Where(Directory.Exists))
+        {
+            foreach (var entry in Directory.GetFileSystemEntries(root))
+            {
+                entries.Add(entry);
+            }
+
+            var ours = Path.Combine(root, "LibreSpot");
+            if (!Directory.Exists(ours))
+            {
+                continue;
+            }
+
+            foreach (var entry in Directory.GetFileSystemEntries(ours, "*", SearchOption.AllDirectories))
+            {
+                entries.Add(entry);
+            }
+        }
+
+        return entries;
     }
 
     private static Dictionary<string, int> LoadAxeBaseline(string state)

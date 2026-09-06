@@ -600,7 +600,9 @@ public sealed class ReleaseArtifactContractTests
         Assert.True(
             File.Exists(sourcePath),
             $"uiAutomationSurface.provenTestedBy names class '{parts[0]}', but {parts[0]}.cs does not exist.");
-        Assert.Contains($"public void {parts[1]}()", File.ReadAllText(sourcePath), StringComparison.Ordinal);
+        // Name then open bracket, so a [Theory] taking a state parameter still
+        // counts. What matters is that the cited method is in the cited class.
+        Assert.Contains($"public void {parts[1]}(", File.ReadAllText(sourcePath), StringComparison.Ordinal);
 
         // The capture argument writes where the caller says, so a blanket "stays
         // inside its own root" sentence in the security policy would be false.
