@@ -286,21 +286,40 @@ public sealed class BundledThemeTests
         // directory. The vendor copy that caused this would have matched all
         // three on the day it was made and the last two after it drifted.
         const string marker = "prism:settings";
+        const string signature = "function Prism()";
         var bundledRelative = Path.GetRelativePath(RepoRoot, bundled);
+        var bundledText = File.ReadAllText(bundled);
 
-        // Guards the marker rather than the tree: a renamed key would otherwise
-        // quietly reduce this to a hash-only check without saying so.
-        Assert.Contains(marker, File.ReadAllText(bundled), StringComparison.Ordinal);
+        // Guards the two content signals rather than the tree: renaming either
+        // would otherwise quietly reduce this to a hash check without saying so.
+        Assert.Contains(marker, bundledText, StringComparison.Ordinal);
+        Assert.Contains(signature, bundledText, StringComparison.Ordinal);
 
-        var duplicates = Directory.EnumerateFiles(RepoRoot, "theme.js", SearchOption.AllDirectories)
+        // Every .js file, not just ones named theme.js. Narrowing to that name
+        // was a coverage loss: the historical copy happened to be called
+        // theme.js, and nothing stops the next one being prism.js or theme.min.js.
+        var duplicates = Directory.EnumerateFiles(RepoRoot, "*.js", SearchOption.AllDirectories)
             .Where(path => !Path.GetRelativePath(RepoRoot, path)
                 .Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
                 .Any(segment => skip.Contains(segment, StringComparer.OrdinalIgnoreCase)))
             .Where(path => !Path.GetRelativePath(RepoRoot, path).Equals(bundledRelative, StringComparison.OrdinalIgnoreCase))
             .Where(path =>
-                pinnedHashes.Contains(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant())
-                || File.ReadAllText(path).Contains(marker, StringComparison.Ordinal)
-                || (Path.GetDirectoryName(path) ?? string.Empty).Contains(ThemeId, StringComparison.OrdinalIgnoreCase))
+            {
+                // Four signals, because a copy that drifts defeats any one of
+                // them. A rename of the storage key leaves the IIFE name; a
+                // rewrite of both still matches a pin until a byte changes; and
+                // a copy kept under a Prism-named folder is caught by its path
+                // whatever its contents say.
+                if (pinnedHashes.Contains(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant())
+                    || (Path.GetDirectoryName(path) ?? string.Empty).Contains(ThemeId, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+
+                var text = File.ReadAllText(path);
+                return text.Contains(marker, StringComparison.Ordinal)
+                    || text.Contains(signature, StringComparison.Ordinal);
+            })
             .Select(path => Path.GetRelativePath(RepoRoot, path))
             .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
             .ToArray();
