@@ -86,6 +86,9 @@ function restoreEngineFixture(initial: ReturnType<typeof stateFixture>, storage:
     get state() {
       return structuredClone(current);
     },
+    readPersistedRaw() {
+      return storage.get(ENGINE_STORAGE_KEY);
+    },
     set failTargetWrite(value: boolean) {
       failTargetWrite = value;
     },
@@ -100,12 +103,19 @@ function restoreEngineFixture(initial: ReturnType<typeof stateFixture>, storage:
       }
       return structuredClone(current);
     },
-    restoreExact(next: ReturnType<typeof stateFixture>) {
+    restoreExact(next: ReturnType<typeof stateFixture>, persistedRaw?: string | null) {
       if (failExactRestore) {
         throw new Error("engine compensation failed");
       }
       current = structuredClone(next);
-      storage.set(ENGINE_STORAGE_KEY, JSON.stringify(current));
+      if (persistedRaw === null) {
+        storage.remove(ENGINE_STORAGE_KEY);
+      } else {
+        storage.set(
+          ENGINE_STORAGE_KEY,
+          persistedRaw ?? JSON.stringify(current),
+        );
+      }
       return structuredClone(current);
     },
     refreshAccent: () => Promise.resolve(),
@@ -258,6 +268,79 @@ describe("backup", () => {
     expect(deletes).toEqual(["introduced"]);
   });
 
+  it("creates the known Marketplace schema for explicit reset recovery", async () => {
+    let hasStore = false;
+    let created = false;
+    let aborted = false;
+    const records: unknown[] = [];
+    const recordsStore = {
+      getAll: () => ({ result: records }),
+      put: (record: unknown) => {
+        const value = record as { key: string; value: unknown };
+        const index = records.findIndex(
+          (item) =>
+            typeof item === "object" &&
+            item !== null &&
+            (item as { key?: unknown }).key === value.key,
+        );
+        if (index >= 0) records[index] = record;
+        else records.push(record);
+      },
+      delete: () => undefined,
+    };
+    const factory = {
+      open: () => {
+        const request: Record<string, unknown> = {
+          result: null,
+          transaction: null,
+        };
+        queueMicrotask(() => {
+          const transaction: Record<string, unknown> = {
+            objectStore: () => recordsStore,
+            abort: () => {
+              aborted = true;
+            },
+          };
+          const database = {
+            objectStoreNames: { contains: () => hasStore },
+            createObjectStore: () => {
+              hasStore = true;
+              created = true;
+              return recordsStore;
+            },
+            transaction: () => transaction,
+            close: () => undefined,
+          };
+          request.result = database;
+          request.transaction = transaction;
+          if (!hasStore) {
+            (request.onupgradeneeded as () => void)();
+          }
+          if (!aborted) {
+            (request.onsuccess as () => void)();
+            queueMicrotask(() => {
+              const oncomplete = transaction.oncomplete as (() => void) | undefined;
+              oncomplete?.();
+            });
+          }
+        });
+        return request as unknown as IDBOpenDBRequest;
+      },
+    } as unknown as IDBFactory;
+
+    const marketplace = indexedDbMarketplaceStore(factory, 200);
+    const read = await marketplace.readAll(true);
+
+    expect(read).toEqual({ available: true, entries: {} });
+    expect(created).toBe(true);
+    expect(aborted).toBe(false);
+
+    await marketplace.writeAll({ "marketplace:active-tab": "Themes" });
+    expect(records).toEqual([
+      { key: "marketplace:active-tab", value: "Themes" },
+    ]);
+  });
+
   it("compensates exact Marketplace keys while preserving the merge boundary", async () => {
     const marketplace = memoryMarketplace({
       keep: "untouched",
@@ -400,7 +483,8 @@ describe("backup", () => {
     const storage = memoryStorage();
     const before = stateFixture(new Date("2026-09-03T10:00:00.000Z"));
     before.name = "Before";
-    storage.set(ENGINE_STORAGE_KEY, JSON.stringify(before));
+    const beforeRaw = `${JSON.stringify(before, null, 2)}\n`;
+    storage.set(ENGINE_STORAGE_KEY, beforeRaw);
     const engine = restoreEngineFixture(before, storage);
     engine.failTargetWrite = true;
     const marketplace = memoryMarketplace({
@@ -432,6 +516,7 @@ describe("backup", () => {
       "keep-me": { version: 1 },
     });
     expect(new EngineStore(storage).load()).toEqual(before);
+    expect(storage.get(ENGINE_STORAGE_KEY)).toBe(beforeRaw);
     expect(engine.state).toEqual(before);
   });
 

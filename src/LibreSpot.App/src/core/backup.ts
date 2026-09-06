@@ -165,7 +165,7 @@ export type MarketplaceReadResult = {
 };
 
 export type MarketplaceStore = {
-  readAll(): Promise<MarketplaceReadResult>;
+  readAll(createIfMissing?: boolean): Promise<MarketplaceReadResult>;
   /**
    * Merges the supplied keys into Marketplace's settings store. Existing keys
    * outside the supplied set are intentionally left untouched.
@@ -196,7 +196,7 @@ export function indexedDbMarketplaceStore(
   factory: IDBFactory,
   timeoutMs = 8000,
 ): MarketplaceStore {
-  const open = () =>
+  const open = (createIfMissing = false) =>
     new Promise<IDBDatabase | null>((resolve) => {
       let settled = false;
       const finish = (database: IDBDatabase | null) => {
@@ -229,10 +229,26 @@ export function indexedDbMarketplaceStore(
         settle(null);
       };
       request.onupgradeneeded = () => {
-        // Marketplace owns this database. If it does not exist yet there is
-        // nothing to read, and LibreSpot must not invent its schema.
-        request.transaction?.abort();
-        settle(null);
+        const database = request.result;
+        if (database.objectStoreNames.contains(MARKETPLACE_STORE)) {
+          return;
+        }
+        if (!createIfMissing) {
+          // Marketplace owns this database. If it does not exist yet there is
+          // nothing to read, and normal backup operations must not invent its
+          // schema.
+          request.transaction?.abort();
+          settle(null);
+          return;
+        }
+        try {
+          // A retained reset recovery is the one explicit path allowed to
+          // recreate the known Marketplace schema before restoring its keys.
+          database.createObjectStore(MARKETPLACE_STORE, { keyPath: "key" });
+        } catch {
+          request.transaction?.abort();
+          settle(null);
+        }
       };
       request.onsuccess = () => {
         const database = request.result;
@@ -246,8 +262,8 @@ export function indexedDbMarketplaceStore(
     });
 
   return {
-    readAll: async () => {
-      const database = await open();
+    readAll: async (createIfMissing = false) => {
+      const database = await open(createIfMissing);
       if (!database) return { available: false, entries: {} };
       try {
         return await new Promise<MarketplaceReadResult>((resolve) => {
@@ -417,7 +433,8 @@ export function indexedDbMarketplaceStore(
 export type RestoreEnginePort = {
   readonly state: EngineState;
   replace(state: EngineState): EngineState;
-  restoreExact?(state: EngineState): EngineState;
+  readPersistedRaw?(): string | null;
+  restoreExact?(state: EngineState, persistedRaw?: string | null): EngineState;
   refreshAccent(): Promise<unknown>;
   applyFlags(
     previousOverrides: Readonly<Record<string, boolean | number | string>>,
@@ -449,6 +466,8 @@ export class RestoreTransactionError extends Error {
 export type RestoreTransactionOptions = {
   engine: RestoreEnginePort;
   marketplaceStore: MarketplaceStore;
+  /** Allows explicit reset recovery to recreate a missing Marketplace schema. */
+  createMarketplaceIfMissing?: boolean;
   now?: () => Date;
   /** Called before compensation so a process exit cannot lose the snapshot. */
   retainRecovery?: (record: RecoveryRecord) => void;
@@ -466,8 +485,12 @@ function recoveryHalfNames(halves: readonly RestoreHalf[]): string {
     .join(" and ");
 }
 
-function restoreEngineExact(engine: RestoreEnginePort, state: EngineState): EngineState {
-  return engine.restoreExact?.(state) ?? engine.replace(state);
+function restoreEngineExact(
+  engine: RestoreEnginePort,
+  state: EngineState,
+  persistedRaw?: string | null,
+): EngineState {
+  return engine.restoreExact?.(state, persistedRaw) ?? engine.replace(state);
 }
 
 /**
@@ -482,6 +505,7 @@ export async function restoreBackupTransaction(
 ): Promise<RestoreTransactionResult> {
   const now = options.now ?? (() => new Date());
   const beforeEngine = structuredClone(options.engine.state);
+  const beforeEngineRaw = options.engine.readPersistedRaw?.();
   const beforeFlags = structuredClone(beforeEngine.featureOverrides);
   const targetKeys = Object.keys(restored.marketplace);
   let beforeMarketplace = Object.create(null) as MarketplaceEntries;
@@ -490,7 +514,9 @@ export async function restoreBackupTransaction(
   // Read the Marketplace snapshot before either store is touched. An
   // unavailable database is different from an empty one and must stop here.
   if (targetKeys.length > 0) {
-    const current = await options.marketplaceStore.readAll();
+    const current = await options.marketplaceStore.readAll(
+      options.createMarketplaceIfMissing === true,
+    );
     if (!current.available) {
       throw new Error(
         "Marketplace's settings could not be read, so restore stopped before changing anything. Close any other Spotify window and try again.",
@@ -565,7 +591,7 @@ export async function restoreBackupTransaction(
     const incomplete: RestoreHalf[] = [];
     if (engineAttempted) {
       try {
-        restoreEngineExact(options.engine, beforeEngine);
+        restoreEngineExact(options.engine, beforeEngine, beforeEngineRaw);
         if (flagsAttempted) {
           await options.engine.applyFlags(restored.engine.featureOverrides);
         }

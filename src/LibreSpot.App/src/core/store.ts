@@ -231,6 +231,11 @@ export class EngineStore {
     this.storage.remove(RECOVERY_RECORD_KEY);
   }
 
+  /** Returns the exact bytes currently persisted for the engine, if present. */
+  public readPersistedRaw(): string | null {
+    return this.storage.get(ENGINE_STORAGE_KEY);
+  }
+
   /** True when the raw value is safely stored and the original can be dropped. */
   private quarantine(raw: string, error: unknown): boolean {
     const candidate: QuarantinedState = {
@@ -326,15 +331,30 @@ export class EngineStore {
     return next;
   }
 
-  /** Persists a previously captured state byte-for-byte for compensation. */
-  public restoreExact(state: EngineState): EngineState {
-    validateEngineState(state);
-    const next = structuredClone(state);
-    const raw = serializeEngineState(next);
+  /** Restores validated bytes exactly, including the absence of a saved value. */
+  public restoreRaw(raw: string | null): void {
+    if (raw === null) {
+      this.storage.remove(ENGINE_STORAGE_KEY);
+      if (this.storage.get(ENGINE_STORAGE_KEY) !== null) {
+        throw new Error("The previous engine state could not be verified.");
+      }
+      return;
+    }
+
+    // Parse before writing so compensation never replaces a valid state with
+    // malformed bytes supplied by an untrusted adapter.
+    parseProfile(raw);
     this.storage.set(ENGINE_STORAGE_KEY, raw);
     if (this.storage.get(ENGINE_STORAGE_KEY) !== raw) {
       throw new Error("The previous engine state could not be verified.");
     }
+  }
+
+  /** Persists a previously captured state without changing its timestamp. */
+  public restoreExact(state: EngineState, persistedRaw?: string | null): EngineState {
+    validateEngineState(state);
+    const next = structuredClone(state);
+    this.restoreRaw(persistedRaw === undefined ? serializeEngineState(next) : persistedRaw);
     return next;
   }
 

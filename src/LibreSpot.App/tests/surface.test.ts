@@ -297,6 +297,8 @@ describe("LibreSpot surface contract", () => {
       reset.indexOf("await marketplaceStore.deleteAll()"),
     );
     expect(extension).toContain("restoreRecovery: async ()");
+    expect(extension).toContain('retained.kind === "marketplace-reset"');
+    expect(extension).toContain("createMarketplaceIfMissing");
     expect(extension).toContain("exportRecovery: async ()");
     expect(extension).toContain("discardRecovery: ()");
     expect(health).toContain('title: "Durable recovery copy available"');

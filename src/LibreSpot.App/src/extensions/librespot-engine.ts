@@ -547,12 +547,16 @@ async function bootstrap(): Promise<void> {
       recovery = store.readRecovery();
     }
 
-    async function restoreSource(source: string): Promise<void> {
+    async function restoreSource(
+      source: string,
+      createMarketplaceIfMissing = false,
+    ): Promise<void> {
       try {
         const restored = parseRestoreSource(source);
         const result = await restoreBackupTransaction(restored, {
           engine,
           marketplaceStore,
+          createMarketplaceIfMissing,
           retainRecovery: (record) => store.writeRecovery(record),
           clearRecovery: () => store.discardRecovery(),
         });
@@ -777,7 +781,10 @@ async function bootstrap(): Promise<void> {
           notify("There is no durable recovery copy to restore.", true);
           return;
         }
-        await restoreSource(retained.raw);
+        await restoreSource(
+          retained.raw,
+          retained.kind === "marketplace-reset",
+        );
       },
       exportRecovery: async () => {
         syncRecovery();

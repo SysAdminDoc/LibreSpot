@@ -169,14 +169,14 @@ export class LibreSpotEngine extends EventTarget {
   }
 
   /** Restores a captured state without changing its persisted timestamp. */
-  public restoreExact(state: EngineState): EngineState {
+  public restoreExact(state: EngineState, persistedRaw?: string | null): EngineState {
     validateEngineState(state);
     const previous = cloneState(this.#state);
     const next = cloneState(state);
     try {
       this.#state = next;
       this.apply();
-      this.#state = this.#store.restoreExact(next);
+      this.#state = this.#store.restoreExact(next, persistedRaw);
       return this.state;
     } catch (error) {
       this.#state = previous;
