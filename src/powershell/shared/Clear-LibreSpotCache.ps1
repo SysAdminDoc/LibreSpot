@@ -5,6 +5,7 @@ function Clear-LibreSpotCache {
         $cacheLease = $null
         try {
             $cacheLease = Enter-LibreSpotAssetCacheLease -CacheDirectory $global:CACHE_DIR -Label 'asset-cache clear'
+            Recover-LibreSpotAssetCacheTransaction -CacheDirectory $global:CACHE_DIR
             if (-not (Test-Path -LiteralPath $global:CACHE_DIR -PathType Container)) {
                 Write-Log 'Asset cache directory does not exist. Nothing to clear.'
                 return

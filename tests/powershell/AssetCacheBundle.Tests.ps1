@@ -6,6 +6,7 @@ BeforeAll {
     . (Join-Path $script:RepoRoot 'src\powershell\shared\Enter-LibreSpotAssetCacheLease.ps1')
     . (Join-Path $script:RepoRoot 'src\powershell\shared\Exit-LibreSpotAssetCacheLease.ps1')
     . (Join-Path $script:RepoRoot 'src\powershell\shared\Write-LibreSpotAssetCacheFileAtomically.ps1')
+    . (Join-Path $script:RepoRoot 'src\powershell\shared\Recover-LibreSpotAssetCacheTransaction.ps1')
     . (Join-Path $script:RepoRoot 'src\powershell\shared\Update-AssetCacheIndexEntry.ps1')
     . (Join-Path $script:RepoRoot 'src\powershell\shared\Save-ToAssetCache.ps1')
     . (Join-Path $script:RepoRoot 'src\powershell\shared\Export-LibreSpotAssetCacheBundle.ps1')
@@ -184,6 +185,7 @@ function Write-Log { param([string]$Message, [string]$Level = 'INFO') }
 . (Join-Path $RepoRoot 'src\powershell\shared\Enter-LibreSpotAssetCacheLease.ps1')
 . (Join-Path $RepoRoot 'src\powershell\shared\Exit-LibreSpotAssetCacheLease.ps1')
 . (Join-Path $RepoRoot 'src\powershell\shared\Write-LibreSpotAssetCacheFileAtomically.ps1')
+. (Join-Path $RepoRoot 'src\powershell\shared\Recover-LibreSpotAssetCacheTransaction.ps1')
 . (Join-Path $RepoRoot 'src\powershell\shared\Get-FileSha256Lower.ps1')
 . (Join-Path $RepoRoot 'src\powershell\shared\Update-AssetCacheIndexEntry.ps1')
 . (Join-Path $RepoRoot 'src\powershell\shared\Save-ToAssetCache.ps1')
@@ -224,5 +226,146 @@ try {
         @($index.entries).Count | Should -Be 2
         @($index.entries | ForEach-Object { [string]$_.sha256 }) | Should -Contain $hashA
         @($index.entries | ForEach-Object { [string]$_.sha256 }) | Should -Contain $hashB
+    }
+
+    It 'recovers after process termination at every cache swap boundary' {
+        $unrelatedDirectory = Join-Path $script:TargetConfig 'unrelated'
+        New-Item -Path $unrelatedDirectory -ItemType Directory -Force | Out-Null
+        [System.IO.File]::WriteAllText(
+            (Join-Path $unrelatedDirectory 'keep.txt'),
+            'unrelated sibling content',
+            [System.Text.UTF8Encoding]::new($false))
+
+        $baseConfig = Join-Path $script:TestRoot 'base-target'
+        New-Item -Path $baseConfig -ItemType Directory -Force | Out-Null
+        Copy-Item -Path (Join-Path $script:TargetConfig '*') -Destination $baseConfig -Recurse -Force
+        $baseCache = Join-Path $baseConfig 'cache'
+        $before = @(Get-TestCacheSnapshot -CachePath $baseCache)
+        $beforeWithoutIndex = @($before | Where-Object { $_ -notlike 'asset-cache-index.json=*' })
+
+        $worker = Join-Path $script:TestRoot 'crash-import-worker.ps1'
+        $workerText = @'
+param([string]$Stage, [string]$BundlePath, [string]$CachePath, [string]$ConfigDirectory, [string]$RepoRoot, [string]$ResultPath)
+$global:CACHE_DIR = $CachePath
+$global:CONFIG_DIR = $ConfigDirectory
+function Write-Log { param([string]$Message, [string]$Level = 'INFO') }
+. (Join-Path $RepoRoot 'src\powershell\shared\Get-FileSha256Lower.ps1')
+. (Join-Path $RepoRoot 'src\powershell\shared\Enter-LibreSpotAssetCacheLease.ps1')
+. (Join-Path $RepoRoot 'src\powershell\shared\Exit-LibreSpotAssetCacheLease.ps1')
+. (Join-Path $RepoRoot 'src\powershell\shared\Write-LibreSpotAssetCacheFileAtomically.ps1')
+. (Join-Path $RepoRoot 'src\powershell\shared\Recover-LibreSpotAssetCacheTransaction.ps1')
+. (Join-Path $RepoRoot 'src\powershell\shared\Import-LibreSpotAssetCacheBundle.ps1')
+$kill = { [System.Diagnostics.Process]::GetCurrentProcess().Kill() }
+$importArgs = @{ BundlePath = $BundlePath }
+switch ($Stage) {
+    'before-first-move' { $importArgs['BeforeFirstMove'] = $kill }
+    'after-first-move' { $importArgs['AfterBackupMove'] = $kill }
+    'before-second-move' { $importArgs['BeforeReplacementMove'] = $kill }
+    'after-second-move' { $importArgs['AfterReplacementMove'] = $kill }
+    'after-commit-marker' { $importArgs['AfterCommitMarker'] = $kill }
+    default { throw "Unknown crash stage: $Stage" }
+}
+try {
+    $null = Import-LibreSpotAssetCacheBundle @importArgs
+    [System.IO.File]::WriteAllText($ResultPath, 'completed')
+} catch {
+    [System.IO.File]::WriteAllText($ResultPath, $_.Exception.ToString())
+    exit 2
+}
+'@
+        [System.IO.File]::WriteAllText($worker, $workerText, [System.Text.UTF8Encoding]::new($false))
+        $powershellPath = (Get-Command powershell.exe -ErrorAction Stop).Source
+        $stages = @('before-first-move', 'after-first-move', 'before-second-move', 'after-second-move', 'after-commit-marker')
+
+        foreach ($stage in $stages) {
+            $stageConfig = Join-Path $script:TestRoot ('stage-' + $stage)
+            New-Item -Path $stageConfig -ItemType Directory -Force | Out-Null
+            Copy-Item -Path (Join-Path $baseConfig '*') -Destination $stageConfig -Recurse -Force
+            $stageCache = Join-Path $stageConfig 'cache'
+            $resultPath = Join-Path $script:TestRoot ($stage + '.result')
+
+            $process = Start-Process -FilePath $powershellPath -ArgumentList @(
+                '-NoProfile', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-File', $worker,
+                $stage, $script:BundlePath, $stageCache, $stageConfig, $script:RepoRoot, $resultPath) -WindowStyle Hidden -PassThru
+            try {
+                $process.WaitForExit(15000) | Should -BeTrue
+                $process.ExitCode | Should -Not -Be 0
+            } finally {
+                $process.Dispose()
+            }
+            (Test-Path -LiteralPath $resultPath -PathType Leaf) | Should -BeFalse
+
+            $global:CONFIG_DIR = $stageConfig
+            $global:CACHE_DIR = $stageCache
+            $lease = $null
+            try {
+                $lease = Enter-LibreSpotAssetCacheLease -CacheDirectory $stageCache -Label "restart recovery: $stage"
+                Recover-LibreSpotAssetCacheTransaction -CacheDirectory $stageCache
+            } finally {
+                if ($lease) { Exit-LibreSpotAssetCacheLease -Lease $lease }
+            }
+
+            if ($stage -in @('after-second-move', 'after-commit-marker')) {
+                $actualWithoutIndex = @(Get-TestCacheSnapshot -CachePath $stageCache | Where-Object { $_ -notlike 'asset-cache-index.json=*' })
+                $actualWithoutIndex.Count | Should -Be ($beforeWithoutIndex.Count + 1)
+                foreach ($entry in $beforeWithoutIndex) {
+                    $actualWithoutIndex | Should -Contain $entry
+                }
+                $actualWithoutIndex | Should -Contain "$($script:ImportHash)=$($script:ImportHash)"
+                $index = Get-Content -LiteralPath (Join-Path $stageCache 'asset-cache-index.json') -Raw | ConvertFrom-Json
+                @($index.entries).Count | Should -Be 2
+                @($index.entries | ForEach-Object { [string]$_.sha256 }) | Should -Contain $script:ImportHash
+            } else {
+                @(Get-TestCacheSnapshot -CachePath $stageCache) | Should -Be $before
+            }
+
+            (Test-Path -LiteralPath (Join-Path $stageConfig 'unrelated\keep.txt') -PathType Leaf) | Should -BeTrue
+            (Test-Path -LiteralPath (Join-Path $stageConfig '.asset-cache-transaction.json')) | Should -BeFalse
+            @(Get-ChildItem -LiteralPath $stageConfig -Force -Directory | Where-Object { $_.Name -like '.asset-cache-*' }).Count | Should -Be 0
+        }
+    }
+
+    It 'cleans an incomplete replacement when the original cache was absent' {
+        $config = Join-Path $script:TestRoot 'empty-target'
+        $cache = Join-Path $config 'cache'
+        New-Item -Path $config -ItemType Directory -Force | Out-Null
+        $staging = Join-Path $config ('.asset-cache-import-' + [guid]::NewGuid().ToString('N'))
+        $replacement = Join-Path $config ('.asset-cache-ready-' + [guid]::NewGuid().ToString('N'))
+        $rollback = Join-Path $config ('.asset-cache-rollback-' + [guid]::NewGuid().ToString('N'))
+        New-Item -Path $staging, $replacement -ItemType Directory -Force | Out-Null
+        $entry = [pscustomobject]@{ sha256 = ('b' * 64); byteSize = 1 }
+
+        $null = Recover-LibreSpotAssetCacheTransaction -CacheDirectory $cache -Operation Begin `
+            -StagingDirectory $staging -ReplacementDirectory $replacement -RollbackDirectory $rollback -ImportedEntries @($entry)
+        Recover-LibreSpotAssetCacheTransaction -CacheDirectory $cache
+
+        (Test-Path -LiteralPath $cache) | Should -BeFalse
+        (Test-Path -LiteralPath (Join-Path $config '.asset-cache-transaction.json')) | Should -BeFalse
+        (Test-Path -LiteralPath $staging) | Should -BeFalse
+        (Test-Path -LiteralPath $replacement) | Should -BeFalse
+        (Test-Path -LiteralPath $rollback) | Should -BeFalse
+    }
+
+    It 'retains a transaction marker when a recorded sibling escapes the configuration directory' {
+        $staging = Join-Path $script:TargetConfig ('.asset-cache-import-' + [guid]::NewGuid().ToString('N'))
+        $replacement = Join-Path $script:TargetConfig ('.asset-cache-ready-' + [guid]::NewGuid().ToString('N'))
+        $rollback = Join-Path $script:TargetConfig ('.asset-cache-rollback-' + [guid]::NewGuid().ToString('N'))
+        New-Item -Path $staging, $replacement -ItemType Directory -Force | Out-Null
+        $entry = [pscustomobject]@{ sha256 = ('c' * 64); byteSize = 1 }
+        $null = Recover-LibreSpotAssetCacheTransaction -CacheDirectory $script:TargetCache -Operation Begin `
+            -StagingDirectory $staging -ReplacementDirectory $replacement -RollbackDirectory $rollback -ImportedEntries @($entry)
+
+        $outside = Join-Path $script:TestRoot ('outside-' + [guid]::NewGuid().ToString('N'))
+        New-Item -Path $outside -ItemType Directory -Force | Out-Null
+        [System.IO.File]::WriteAllText((Join-Path $outside 'sentinel.txt'), 'leave me')
+        $markerPath = Join-Path $script:TargetConfig '.asset-cache-transaction.json'
+        $marker = Get-Content -LiteralPath $markerPath -Raw | ConvertFrom-Json
+        $marker.stagingDirectory = Join-Path $outside ('.asset-cache-import-' + [guid]::NewGuid().ToString('N'))
+        $marker | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $markerPath -Encoding UTF8
+
+        { Recover-LibreSpotAssetCacheTransaction -CacheDirectory $script:TargetCache } |
+            Should -Throw -ExpectedMessage '*unowned sibling*'
+        (Test-Path -LiteralPath $markerPath -PathType Leaf) | Should -BeTrue
+        (Test-Path -LiteralPath (Join-Path $outside 'sentinel.txt') -PathType Leaf) | Should -BeTrue
     }
 }

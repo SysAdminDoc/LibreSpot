@@ -43,6 +43,7 @@ public sealed class AssetCacheBundleService
 
         var cacheRoot = Path.GetFullPath(cacheDirectory);
         using var cacheLease = AssetCacheLease.Acquire(cacheRoot);
+        AssetCacheTransactionRecovery.Recover(cacheRoot);
         var indexPath = Path.Combine(cacheRoot, "asset-cache-index.json");
         var entries = ReadCompleteIndex(indexPath, cacheRoot);
         var totalBytes = entries.Sum(entry => entry.ByteSize);
@@ -131,6 +132,8 @@ public sealed class AssetCacheBundleService
         var stagingRoot = Path.Combine(configRoot, $".asset-cache-import-{Guid.NewGuid():N}");
         var replacementRoot = Path.Combine(configRoot, $".asset-cache-ready-{Guid.NewGuid():N}");
         var rollbackRoot = Path.Combine(configRoot, $".asset-cache-rollback-{Guid.NewGuid():N}");
+        using var cacheLease = AssetCacheLease.Acquire(cacheRoot);
+        AssetCacheTransactionRecovery.Recover(cacheRoot);
         Directory.CreateDirectory(stagingRoot);
 
         try
@@ -192,7 +195,6 @@ public sealed class AssetCacheBundleService
                 }
             }
 
-            using var cacheLease = AssetCacheLease.Acquire(cacheRoot);
             var existingEntries = ReadExistingIndexForMerge(Path.Combine(cacheRoot, "asset-cache-index.json"));
             var now = DateTimeOffset.UtcNow;
             foreach (var entry in manifest.Entries)
@@ -227,7 +229,13 @@ public sealed class AssetCacheBundleService
             }
 
             WriteIndexAtomically(replacementRoot, existingEntries.Values.OrderBy(entry => entry.Sha256, StringComparer.Ordinal).ToArray(), now);
-            CommitPreparedCache(cacheRoot, replacementRoot, rollbackRoot);
+            var transaction = AssetCacheTransactionRecovery.Begin(
+                cacheRoot,
+                stagingRoot,
+                replacementRoot,
+                rollbackRoot,
+                manifest.Entries);
+            CommitPreparedCache(cacheRoot, replacementRoot, rollbackRoot, transaction);
             return new AssetCacheBundleResult(
                 fullBundlePath,
                 manifest.EntryCount,
@@ -246,8 +254,11 @@ public sealed class AssetCacheBundleService
         }
         finally
         {
-            TryDeleteDirectory(stagingRoot);
-            TryDeleteDirectory(replacementRoot);
+            if (!AssetCacheTransactionRecovery.Exists(cacheRoot))
+            {
+                TryDeleteDirectory(stagingRoot);
+                TryDeleteDirectory(replacementRoot);
+            }
         }
     }
 
@@ -565,7 +576,11 @@ public sealed class AssetCacheBundleService
         destination.Flush(flushToDisk: true);
     }
 
-    private void CommitPreparedCache(string cacheRoot, string replacementRoot, string rollbackRoot)
+    private void CommitPreparedCache(
+        string cacheRoot,
+        string replacementRoot,
+        string rollbackRoot,
+        AssetCacheTransactionRecovery.AssetCacheTransaction transaction)
     {
         var originalMoved = false;
         try
@@ -577,7 +592,10 @@ public sealed class AssetCacheBundleService
                 transactionObserver?.Invoke(AssetCacheBundleTransactionStage.ExistingCacheMoved);
             }
 
+            transaction.MarkExistingMoved();
             Directory.Move(replacementRoot, cacheRoot);
+            transaction.MarkCommitted();
+            transaction.Complete();
         }
         catch (Exception commitError)
         {
@@ -598,6 +616,11 @@ public sealed class AssetCacheBundleService
                         $"Asset-cache commit failed and automatic rollback also failed. The original cache is retained at {rollbackRoot}.",
                         new AggregateException(commitError, rollbackError));
                 }
+            }
+
+            if (Directory.Exists(replacementRoot))
+            {
+                transaction.Abort();
             }
 
             throw;

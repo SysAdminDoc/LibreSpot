@@ -5,6 +5,7 @@ function Save-ToAssetCache { param([string]$SourcePath, [string]$SHA256Hash, [st
     $cacheLease = $null
     try {
         $cacheLease = Enter-LibreSpotAssetCacheLease -CacheDirectory $global:CACHE_DIR -Label "asset-cache save: $Label"
+        Recover-LibreSpotAssetCacheTransaction -CacheDirectory $global:CACHE_DIR
         if (-not (Test-Path -LiteralPath $global:CACHE_DIR -PathType Container)) {
             New-Item -Path $global:CACHE_DIR -ItemType Directory -Force | Out-Null
         }

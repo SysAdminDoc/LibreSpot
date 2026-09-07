@@ -178,6 +178,193 @@ public sealed class AssetCacheBundleServiceTests
         Assert.Empty(Directory.EnumerateDirectories(Path.GetDirectoryName(fixture.TargetCache)!, ".asset-cache-rollback-*"));
     }
 
+    [Fact]
+    public void TransactionRecovery_RestoresOriginalAfterProcessDeathBeforeReplacementMove()
+    {
+        using var fixture = new Fixture();
+        fixture.AddTargetAsset("Existing", "https://example.invalid/existing", "existing bytes");
+        File.WriteAllText(Path.Combine(fixture.TargetCache, "unindexed-note.txt"), "preserve me");
+        var original = SnapshotFiles(fixture.TargetCache);
+        var paths = CreateOwnedTransactionPaths(fixture.TargetCache);
+        var imported = new AssetCacheBundleEntry(
+            new string('a', 64),
+            "Imported",
+            null,
+            1,
+            null,
+            null,
+            "2026-09-04T00:00:00Z");
+
+        _ = AssetCacheTransactionRecovery.Begin(
+            fixture.TargetCache,
+            paths.Staging,
+            paths.Replacement,
+            paths.Rollback,
+            [imported]);
+        Directory.Move(fixture.TargetCache, paths.Rollback);
+
+        AssetCacheTransactionRecovery.Recover(fixture.TargetCache);
+
+        Assert.Equal(original, SnapshotFiles(fixture.TargetCache));
+        Assert.False(AssetCacheTransactionRecovery.Exists(fixture.TargetCache));
+        Assert.False(Directory.Exists(paths.Staging));
+        Assert.False(Directory.Exists(paths.Replacement));
+        Assert.False(Directory.Exists(paths.Rollback));
+    }
+
+    [Fact]
+    public void TransactionRecovery_PublishesVerifiedReplacementAfterProcessDeathAfterSecondMove()
+    {
+        using var fixture = new Fixture();
+        var imported = fixture.AddSourceAsset("Imported", "https://example.invalid/imported", "imported bytes");
+        fixture.AddTargetAsset("Existing", "https://example.invalid/existing", "existing bytes");
+        File.WriteAllText(Path.Combine(fixture.TargetCache, "unindexed-note.txt"), "preserve me");
+        var paths = CreateOwnedTransactionPaths(fixture.TargetCache);
+        CopyDirectory(fixture.TargetCache, paths.Replacement);
+        File.Copy(
+            Path.Combine(fixture.SourceCache, imported.Hash),
+            Path.Combine(paths.Replacement, imported.Hash));
+        var replacementIndex = JsonNode.Parse(File.ReadAllText(Path.Combine(paths.Replacement, "asset-cache-index.json")))!.AsObject();
+        replacementIndex["entries"]!.AsArray().Add(JsonSerializer.SerializeToNode(new
+        {
+            sha256 = imported.Hash,
+            label = imported.Label,
+            sourceUrl = imported.SourceUrl,
+            byteSize = imported.Bytes.LongLength,
+            firstSeenAtUtc = "2026-09-04T00:00:00Z",
+            lastUsedAtUtc = "2026-09-04T00:00:00Z",
+            lastVerifiedAtUtc = "2026-09-04T00:00:00Z",
+            status = "present",
+            quarantinedPath = (string?)null
+        }));
+        File.WriteAllText(
+            Path.Combine(paths.Replacement, "asset-cache-index.json"),
+            replacementIndex.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
+
+        var transaction = AssetCacheTransactionRecovery.Begin(
+            fixture.TargetCache,
+            paths.Staging,
+            paths.Replacement,
+            paths.Rollback,
+            [new AssetCacheBundleEntry(
+                imported.Hash,
+                imported.Label,
+                imported.SourceUrl,
+                imported.Bytes.LongLength,
+                "2026-09-04T00:00:00Z",
+                "2026-09-04T00:00:00Z",
+                "2026-09-04T00:00:00Z")]);
+        Directory.Move(fixture.TargetCache, paths.Rollback);
+        transaction.MarkExistingMoved();
+        Directory.Move(paths.Replacement, fixture.TargetCache);
+
+        AssetCacheTransactionRecovery.Recover(fixture.TargetCache);
+
+        Assert.Equal(imported.Bytes, File.ReadAllBytes(Path.Combine(fixture.TargetCache, imported.Hash)));
+        Assert.Equal("preserve me", File.ReadAllText(Path.Combine(fixture.TargetCache, "unindexed-note.txt")));
+        Assert.Equal(2, JsonDocument.Parse(File.ReadAllText(Path.Combine(fixture.TargetCache, "asset-cache-index.json"))).RootElement.GetProperty("entries").GetArrayLength());
+        Assert.False(AssetCacheTransactionRecovery.Exists(fixture.TargetCache));
+        Assert.False(Directory.Exists(paths.Staging));
+        Assert.False(Directory.Exists(paths.Replacement));
+        Assert.False(Directory.Exists(paths.Rollback));
+    }
+
+    [Fact]
+    public void TransactionRecovery_CleansIncompleteReplacementWhenOriginalCacheWasAbsent()
+    {
+        using var fixture = new Fixture();
+        Directory.Delete(fixture.TargetCache);
+        var paths = CreateOwnedTransactionPaths(fixture.TargetCache);
+        var imported = new AssetCacheBundleEntry(
+            new string('b', 64),
+            "Imported",
+            null,
+            1,
+            null,
+            null,
+            "2026-09-04T00:00:00Z");
+
+        _ = AssetCacheTransactionRecovery.Begin(
+            fixture.TargetCache,
+            paths.Staging,
+            paths.Replacement,
+            paths.Rollback,
+            [imported]);
+
+        AssetCacheTransactionRecovery.Recover(fixture.TargetCache);
+
+        Assert.False(Directory.Exists(fixture.TargetCache));
+        Assert.False(AssetCacheTransactionRecovery.Exists(fixture.TargetCache));
+        Assert.False(Directory.Exists(paths.Staging));
+        Assert.False(Directory.Exists(paths.Replacement));
+        Assert.False(Directory.Exists(paths.Rollback));
+    }
+
+    [Fact]
+    public void TransactionRecovery_RetainsMarkerWhenRecordedSiblingIsOutsideConfigurationDirectory()
+    {
+        using var fixture = new Fixture();
+        fixture.AddTargetAsset("Existing", "https://example.invalid/existing", "existing bytes");
+        var paths = CreateOwnedTransactionPaths(fixture.TargetCache);
+        var imported = new AssetCacheBundleEntry(
+            new string('c', 64),
+            "Imported",
+            null,
+            1,
+            null,
+            null,
+            "2026-09-04T00:00:00Z");
+        _ = AssetCacheTransactionRecovery.Begin(
+            fixture.TargetCache,
+            paths.Staging,
+            paths.Replacement,
+            paths.Rollback,
+            [imported]);
+
+        var markerPath = Path.Combine(Path.GetDirectoryName(fixture.TargetCache)!, AssetCacheTransactionRecovery.MarkerFileName);
+        var outsidePath = Path.Combine(fixture.Root, "outside", $".asset-cache-import-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(outsidePath);
+        File.WriteAllText(Path.Combine(outsidePath, "sentinel.txt"), "leave me");
+        var marker = JsonNode.Parse(File.ReadAllText(markerPath))!.AsObject();
+        marker["stagingDirectory"] = outsidePath;
+        File.WriteAllText(markerPath, marker.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
+
+        var error = Assert.Throws<AssetCacheBundleException>(() => AssetCacheTransactionRecovery.Recover(fixture.TargetCache));
+
+        Assert.Contains("unowned sibling", error.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.True(File.Exists(markerPath));
+        Assert.True(File.Exists(Path.Combine(outsidePath, "sentinel.txt")));
+        Assert.True(Directory.Exists(fixture.TargetCache));
+    }
+
+    private static (string Staging, string Replacement, string Rollback) CreateOwnedTransactionPaths(string cachePath)
+    {
+        var config = Path.GetDirectoryName(cachePath)!;
+        var paths = (
+            Staging: Path.Combine(config, $".asset-cache-import-{Guid.NewGuid():N}"),
+            Replacement: Path.Combine(config, $".asset-cache-ready-{Guid.NewGuid():N}"),
+            Rollback: Path.Combine(config, $".asset-cache-rollback-{Guid.NewGuid():N}"));
+        Directory.CreateDirectory(paths.Staging);
+        Directory.CreateDirectory(paths.Replacement);
+        return paths;
+    }
+
+    private static void CopyDirectory(string source, string destination)
+    {
+        foreach (var directory in Directory.EnumerateDirectories(source, "*", SearchOption.AllDirectories))
+        {
+            Directory.CreateDirectory(Path.Combine(destination, Path.GetRelativePath(source, directory)));
+        }
+
+        Directory.CreateDirectory(destination);
+        foreach (var file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
+        {
+            var target = Path.Combine(destination, Path.GetRelativePath(source, file));
+            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+            File.Copy(file, target, overwrite: true);
+        }
+    }
+
     private static void RewriteManifest(string bundlePath, Action<JsonObject> mutateEntry)
     {
         using var archive = ZipFile.Open(bundlePath, ZipArchiveMode.Update);

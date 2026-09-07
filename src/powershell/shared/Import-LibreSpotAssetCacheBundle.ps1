@@ -5,7 +5,19 @@ function Import-LibreSpotAssetCacheBundle {
         [string]$BundlePath,
 
         [Parameter(DontShow = $true)]
-        [scriptblock]$AfterBackupMove
+        [scriptblock]$AfterBackupMove,
+
+        [Parameter(DontShow = $true)]
+        [scriptblock]$BeforeFirstMove,
+
+        [Parameter(DontShow = $true)]
+        [scriptblock]$BeforeReplacementMove,
+
+        [Parameter(DontShow = $true)]
+        [scriptblock]$AfterReplacementMove,
+
+        [Parameter(DontShow = $true)]
+        [scriptblock]$AfterCommitMarker
     )
 
     $maxManifestBytes = 4MB
@@ -31,10 +43,12 @@ function Import-LibreSpotAssetCacheBundle {
     $replacementRoot = Join-Path $global:CONFIG_DIR ('.asset-cache-ready-' + [guid]::NewGuid().ToString('N'))
     $rollbackRoot = Join-Path $global:CONFIG_DIR ('.asset-cache-rollback-' + [guid]::NewGuid().ToString('N'))
     New-Item -Path $stagingRoot -ItemType Directory -Force | Out-Null
+    $transactionStarted = $false
 
     $archive = $null
     $file = $null
     $cacheLease = $null
+    $transaction = $null
     try {
         Add-Type -AssemblyName System.IO.Compression -ErrorAction Stop
         $file = [System.IO.File]::Open($resolvedBundle, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::Read)
@@ -185,6 +199,7 @@ function Import-LibreSpotAssetCacheBundle {
         }
 
         $cacheLease = Enter-LibreSpotAssetCacheLease -CacheDirectory $resolvedCache -Label 'asset-cache bundle import'
+        Recover-LibreSpotAssetCacheTransaction -CacheDirectory $resolvedCache
         $indexPath = Join-Path $resolvedCache 'asset-cache-index.json'
         $existingEntries = @()
         if (Test-Path -LiteralPath $indexPath -PathType Leaf) {
@@ -280,6 +295,15 @@ function Import-LibreSpotAssetCacheBundle {
             $stream.Write($bytes, 0, $bytes.Length)
         }
 
+        $transaction = Recover-LibreSpotAssetCacheTransaction `
+            -CacheDirectory $resolvedCache `
+            -Operation Begin `
+            -StagingDirectory $stagingRoot `
+            -ReplacementDirectory $replacementRoot `
+            -RollbackDirectory $rollbackRoot `
+            -ImportedEntries $normalizedEntries
+        $transactionStarted = $true
+
         $archive.Dispose()
         $archive = $null
         $file.Dispose()
@@ -287,6 +311,9 @@ function Import-LibreSpotAssetCacheBundle {
 
         $originalMoved = $false
         try {
+            if ($null -ne $BeforeFirstMove) {
+                & $BeforeFirstMove
+            }
             if (Test-Path -LiteralPath $resolvedCache -PathType Container) {
                 [System.IO.Directory]::Move($resolvedCache, $rollbackRoot)
                 $originalMoved = $true
@@ -294,7 +321,19 @@ function Import-LibreSpotAssetCacheBundle {
                     & $AfterBackupMove
                 }
             }
+            Recover-LibreSpotAssetCacheTransaction -CacheDirectory $resolvedCache -Operation SetState -Transaction $transaction -State 'existing-moved'
+            if ($null -ne $BeforeReplacementMove) {
+                & $BeforeReplacementMove
+            }
             [System.IO.Directory]::Move($replacementRoot, $resolvedCache)
+            if ($null -ne $AfterReplacementMove) {
+                & $AfterReplacementMove
+            }
+            Recover-LibreSpotAssetCacheTransaction -CacheDirectory $resolvedCache -Operation SetState -Transaction $transaction -State 'committed'
+            if ($null -ne $AfterCommitMarker) {
+                & $AfterCommitMarker
+            }
+            Recover-LibreSpotAssetCacheTransaction -CacheDirectory $resolvedCache -Operation Complete -Transaction $transaction
         } catch {
             $commitError = $_
             if ($originalMoved) {
@@ -307,11 +346,10 @@ function Import-LibreSpotAssetCacheBundle {
                     throw "Asset-cache commit failed and automatic rollback also failed. The original cache is retained at $rollbackRoot. Commit error: $($commitError.Exception.Message) Rollback error: $($_.Exception.Message)"
                 }
             }
+            if ($transaction -and (Test-Path -LiteralPath $replacementRoot -PathType Container)) {
+                Recover-LibreSpotAssetCacheTransaction -CacheDirectory $resolvedCache -Operation Abort -Transaction $transaction
+            }
             throw $commitError
-        }
-
-        if ($originalMoved -and (Test-Path -LiteralPath $rollbackRoot -PathType Container)) {
-            Remove-Item -LiteralPath $rollbackRoot -Recurse -Force -ErrorAction SilentlyContinue
         }
 
         return [pscustomobject][ordered]@{
@@ -328,10 +366,14 @@ function Import-LibreSpotAssetCacheBundle {
         }
         if ($null -ne $archive) { $archive.Dispose() }
         if ($null -ne $file) { $file.Dispose() }
-        if (Test-Path -LiteralPath $stagingRoot -PathType Container) {
+        $preserveTransactionPaths = $transactionStarted -and
+            (Test-Path -LiteralPath (Join-Path $resolvedCache '..\.asset-cache-transaction.json'))
+        if (-not $preserveTransactionPaths -and
+            (Test-Path -LiteralPath $stagingRoot -PathType Container)) {
             Remove-Item -LiteralPath $stagingRoot -Recurse -Force -ErrorAction SilentlyContinue
         }
-        if (Test-Path -LiteralPath $replacementRoot -PathType Container) {
+        if (-not $preserveTransactionPaths -and
+            (Test-Path -LiteralPath $replacementRoot -PathType Container)) {
             Remove-Item -LiteralPath $replacementRoot -Recurse -Force -ErrorAction SilentlyContinue
         }
     }

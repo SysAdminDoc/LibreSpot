@@ -215,6 +215,7 @@ foreach ($name in @(
     'Enter-LibreSpotAssetCacheLease',
     'Exit-LibreSpotAssetCacheLease',
     'Write-LibreSpotAssetCacheFileAtomically',
+    'Recover-LibreSpotAssetCacheTransaction',
     'Export-LibreSpotAssetCacheBundle',
     'Import-LibreSpotAssetCacheBundle',
     'Update-AssetCacheIndexEntry',

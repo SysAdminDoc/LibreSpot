@@ -8,13 +8,6 @@ Incomplete, implementer-actionable work only. Operator-dependent decisions remai
 
 ### P2: Next
 
-- [ ] P2: RD-237. Recover cache directory swaps after process death
-  Why: Impact 4/5. Existing catch-based rollback cannot run when the importer terminates between its two renames.
-  Evidence: RESEARCH.md; AssetCacheBundleService.CommitPreparedCache; PowerShell bundle import; existing interruption tests throw exceptions rather than terminate a process.
-  Touches: src/LibreSpot.Core/AssetCacheBundleService.cs; PowerShell cache import; tests/LibreSpot.Core.Tests/AssetCacheBundleServiceTests.cs; tests/powershell/AssetCacheBundle.Tests.ps1.
-  Acceptance: After RD-236, persist a bounded transaction record before renaming and recover it under the same lease on the next invocation. Terminate a fixture process before/after each rename and commit marker. Restart must yield the byte-identical prior cache, including its unindexed files, or the complete committed replacement with every imported asset verified. Validate recorded owned sibling paths and reparse boundaries before replay or cleanup; preserve unrelated directories and account for rollback/staging paths.
-  Complexity: M
-
 - [ ] P2: RD-238. Bound engine readiness and background frame measurement
   Why: Impact 4/5. Failed companion startup leaves endless polling or a cached failed runtime; frame measurement can also wait forever.
   Evidence: RESEARCH.md; app.ts useRuntime; companion waitForApi; core/performance.ts; engine.start awaits the frame probe.

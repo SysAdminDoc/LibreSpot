@@ -2293,6 +2293,7 @@ public sealed class EnvironmentSnapshotService
     {
         var cacheDirectory = Path.Combine(configDirectory, "cache");
         using var cacheLease = AssetCacheLease.Acquire(cacheDirectory);
+        AssetCacheTransactionRecovery.Recover(cacheDirectory);
         var indexPath = Path.Combine(cacheDirectory, "asset-cache-index.json");
         var entries = new List<AssetCacheEntryState>();
         var indexedHashes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

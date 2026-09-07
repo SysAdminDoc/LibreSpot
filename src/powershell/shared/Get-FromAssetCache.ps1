@@ -5,6 +5,7 @@ function Get-FromAssetCache { param([string]$SHA256Hash, [string]$DestinationPat
     $cacheLease = $null
     try {
         $cacheLease = Enter-LibreSpotAssetCacheLease -CacheDirectory $global:CACHE_DIR -Label "asset-cache read: $Label"
+        Recover-LibreSpotAssetCacheTransaction -CacheDirectory $global:CACHE_DIR
         $cachePath = Join-Path $global:CACHE_DIR $hash
         if (-not (Test-Path -LiteralPath $cachePath -PathType Leaf)) {
             Write-Log "  Cache miss for $Label (SHA256: $hash)"
