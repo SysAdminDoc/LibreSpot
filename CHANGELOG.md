@@ -6,6 +6,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Fixed
 
+- CLI, theme, and custom app installs now stage complete pinned packages on the target volume, verify their contents, and commit package, companion extension, and configuration changes through one recoverable swap. Extraction, copy, bootstrap, rename, and configuration failures restore the original bytes without leaving mixed versions.
 - Desktop, standalone script, and auto-reapply watcher mutations now share a per-user lease keyed to the canonical Spotify and Spicetify installation. Calls against the same installation defer with a busy result before snapshots or shutdown, while separate installations can proceed independently and nested calls remain reentrant.
 - External PowerShell runs now own their complete process trees with a Windows Job Object. Timeout, cancellation, watchdog shutdown, and launcher exit terminate descendants before cleanup, containment failures are reported explicitly, and unrelated processes remain untouched.
 - Theme replacement now uses the junction-safe remover for bundled, community, and official themes, including temporary archive cleanup. A nested junction in an old theme tree cannot redirect deletion into another folder on either supported PowerShell host.

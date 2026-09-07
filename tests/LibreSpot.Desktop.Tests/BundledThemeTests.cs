@@ -201,7 +201,7 @@ public sealed class BundledThemeTests
             var script = ReadFile(source);
             var bundledBranch = Regex.Match(
                 script,
-                @"if \(\$isBundled\) \{(?<body>.+?)\n    \} elseif \(\$isCommunity\)",
+                @"if \(\$isBundled\) \{(?<body>.+?)\n\s+\} elseif \(\$isCommunity\)",
                 RegexOptions.Singleline);
             Assert.True(bundledBranch.Success, $"The bundled theme branch is missing from {string.Join('/', source)}.");
 

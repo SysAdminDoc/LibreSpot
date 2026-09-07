@@ -6290,10 +6290,33 @@ function Module-InstallSpicetifyCLI {
     $integration = Get-SpicetifyIntegrationContext
     $ver = $global:PinnedReleases.SpicetifyCLI.Version
     Write-Log "Installing Spicetify CLI v$ver..." -Level 'STEP'
-    New-Item -Path $integration.InstallDirectory -ItemType Directory -Force | Out-Null
+
+    $installParent = Split-Path -Path $integration.InstallDirectory -Parent
+    if (-not (Test-Path -LiteralPath $installParent -PathType Container)) {
+        New-Item -Path $installParent -ItemType Directory -Force -ErrorAction Stop | Out-Null
+    }
+    $configDirectory = if ($integration.PSObject.Properties['ConfigDirectory']) {
+        [string]$integration.ConfigDirectory
+    } else {
+        Split-Path -Path $integration.ThemesDirectory -Parent
+    }
+    $configPath = if ($integration.PSObject.Properties['ConfigPath']) {
+        [string]$integration.ConfigPath
+    } else {
+        Join-Path $configDirectory 'config-xpui.ini'
+    }
+    if (-not (Test-Path -LiteralPath $configDirectory -PathType Container)) {
+        New-Item -Path $configDirectory -ItemType Directory -Force -ErrorAction Stop | Out-Null
+    }
+    $allowedRoots = @($installParent, $configDirectory)
+    $transactionPath = Join-Path $configDirectory '.librespot-package-cli.transaction.json'
+    Resolve-LibreSpotPackageTransaction -TransactionPath $transactionPath -AllowedRoots $allowedRoots | Out-Null
+
     $arch = switch ($env:PROCESSOR_ARCHITECTURE) { 'ARM64' {'arm64'} default {'x64'} }
     $zip = $global:URL_SPICETIFY_FMT -f $ver, $arch
     $zp = New-LibreSpotTempFile -Name 'spicetify.zip'
+    $transactionId = [Guid]::NewGuid().ToString('N')
+    $stagePath = Join-Path $installParent ('.librespot-package-' + $transactionId + '-cli-stage')
     try {
         $expectedHash = $global:PinnedReleases.SpicetifyCLI.SHA256[$arch]
         if (-not (Get-FromAssetCache -SHA256Hash $expectedHash -DestinationPath $zp -Label "Spicetify CLI ($arch)")) {
@@ -6307,27 +6330,54 @@ function Module-InstallSpicetifyCLI {
             Confirm-FileHash -Path $zp -ExpectedHash $expectedHash -Label "Spicetify CLI ($arch)"
             $attestation = Test-SpicetifyCliAttestation -Path $zp -Attestation $global:PinnedReleases.SpicetifyCLI.Attestation
             switch ($attestation) {
-                'Verified' { Write-Log "Spicetify CLI build provenance verified via GitHub attestation." }
+                'Verified' { Write-Log 'Spicetify CLI build provenance verified via GitHub attestation.' }
                 'Mismatch' { Write-Log "Spicetify CLI GitHub attestation did not verify against the pinned signer identity ($($global:PinnedReleases.SpicetifyCLI.Attestation.Repo)). The SHA256 hash matched the pin, so the install proceeds on the verified hash, but provenance could not be confirmed - re-verify the pin if this persists." -Level 'WARN' }
-                default    { } # Unavailable: gh/network absent. SHA256 remains the gate; stay quiet.
+                default    { }
             }
             Save-ToAssetCache -SourcePath $zp -SHA256Hash $expectedHash -Label "Spicetify CLI ($arch)" -SourceUrl $zip
         }
-        if (Test-Path -LiteralPath $integration.InstallDirectory) {
-            $null = Clear-DirectoryContentsSafely -Path $integration.InstallDirectory -Label 'Spicetify CLI'
+
+        New-Item -Path $stagePath -ItemType Directory -Force -ErrorAction Stop | Out-Null
+        Expand-ArchiveSafely -ZipPath $zp -DestinationPath $stagePath -Label 'Spicetify CLI'
+        $stagedCliPath = Join-Path $stagePath 'spicetify.exe'
+        if (-not (Test-Path -LiteralPath $stagedCliPath -PathType Leaf)) {
+            throw 'spicetify.exe not found in the verified staging directory - ZIP may be corrupted.'
         }
-        Expand-ArchiveSafely -ZipPath $zp -DestinationPath $integration.InstallDirectory -Label 'Spicetify CLI'
-        $sExe = $integration.CliPath
-        if (-not (Test-Path $sExe)) { throw "spicetify.exe not found after extraction - ZIP may be corrupted" }
+        $expectedFingerprint = Get-LibreSpotPackageFingerprint -Path $stagePath
+
+        Invoke-LibreSpotPackageTransaction `
+            -TransactionPath $transactionPath `
+            -AllowedRoots $allowedRoots `
+            -TransactionId $transactionId `
+            -Packages @(
+                [pscustomobject]@{
+                    Action = 'swap'
+                    Kind = 'directory'
+                    TargetPath = $integration.InstallDirectory
+                    StagePath = $stagePath
+                    ExpectedFingerprint = $expectedFingerprint
+                },
+                [pscustomobject]@{
+                    Action = 'preserve'
+                    Kind = 'file'
+                    TargetPath = $configPath
+                }
+            ) `
+            -Commit {
+                Write-Log 'Generating config...'
+                Invoke-SpicetifyCli -Arguments @('config', '--bypass-admin') -FailureMessage 'Could not generate the initial Spicetify config.'
+            } | Out-Null
+
         $null = Add-PathEntry -Entry $integration.InstallDirectory -Scope 'Process'
         if (Add-PathEntry -Entry $integration.InstallDirectory -Scope 'User') {
-            Write-Log "Added Spicetify to user PATH."
+            Write-Log 'Added Spicetify to user PATH.'
         }
-        Write-Log "Generating config..."
-        Invoke-SpicetifyCli -Arguments @('config', '--bypass-admin') -FailureMessage 'Could not generate the initial Spicetify config.'
         Write-Log "Spicetify CLI v$ver installed."
     } finally {
         Remove-Item -LiteralPath $zp -Force -ErrorAction SilentlyContinue
+        if (-not (Test-Path -LiteralPath $transactionPath) -and (Test-Path -LiteralPath $stagePath)) {
+            try { Remove-LibreSpotPackagePathSafely -Path $stagePath | Out-Null } catch { Write-Log "Could not clean the failed CLI staging directory: $($_.Exception.Message)" -Level 'WARN' }
+        }
     }
 }
 
@@ -6379,25 +6429,37 @@ function Get-LibreSpotAssetInstallFailureSummary {
 }
 
 function Module-InstallThemes { param($Config)
-    $tn = $Config.Spicetify_Theme; if ($tn -eq '(None - Marketplace Only)') { Write-Log "No theme selected."; return }
+    $tn = [string]$Config.Spicetify_Theme
+    if ($tn -eq '(None - Marketplace Only)') { Write-Log 'No theme selected.'; return }
     Write-Log "Installing theme: $tn..." -Level 'STEP'
-    $td = (Get-SpicetifyIntegrationContext).ThemesDirectory
-    if (-not (Test-Path $td)) { New-Item -Path $td -ItemType Directory -Force | Out-Null }
+
+    $integration = Get-SpicetifyIntegrationContext
+    $td = $integration.ThemesDirectory
+    $configDirectory = if ($integration.PSObject.Properties['ConfigDirectory']) { [string]$integration.ConfigDirectory } else { Split-Path -Path $td -Parent }
+    $configPath = if ($integration.PSObject.Properties['ConfigPath']) { [string]$integration.ConfigPath } else { Join-Path $configDirectory 'config-xpui.ini' }
+    if (-not (Test-Path -LiteralPath $configDirectory -PathType Container)) {
+        New-Item -Path $configDirectory -ItemType Directory -Force -ErrorAction Stop | Out-Null
+    }
+    if (-not (Test-Path -LiteralPath $td -PathType Container)) {
+        New-Item -Path $td -ItemType Directory -Force -ErrorAction Stop | Out-Null
+    }
+    $allowedRoots = @($td, $configDirectory)
+    $transactionPath = Join-Path $configDirectory '.librespot-package-theme.transaction.json'
+    Resolve-LibreSpotPackageTransaction -TransactionPath $transactionPath -AllowedRoots $allowedRoots | Out-Null
 
     $isBundled = ($null -ne $global:BundledThemes) -and $global:BundledThemes.Contains($tn)
-    $isCommunity = $global:CommunityThemeRepos.ContainsKey($tn)
+    $isCommunity = ($null -ne $global:CommunityThemeRepos) -and $global:CommunityThemeRepos.ContainsKey($tn)
+    $transactionId = [Guid]::NewGuid().ToString('N')
+    $safeName = ($tn -replace '[^a-zA-Z0-9_-]', '_')
+    $stagePath = Join-Path $td ('.librespot-package-' + $transactionId + '-theme-' + $safeName + '-stage')
+    $tz = $null
+    $tu = $null
 
-    if ($isBundled) {
-        # Bundled theme — LibreSpot writes this one itself, so it ships inside the
-        # package and never touches the network. Every file is pinned, so a
-        # truncated or edited copy is rejected rather than half-installed.
-        $bundle = $global:BundledThemes[$tn]
-        try {
-            # PS2EXE leaves $PSScriptRoot empty, and the install runs in a worker
-            # runspace where a script-scoped root is not visible either, so the
-            # monolith publishes $global:LibreSpotScriptRoot and exports it. The
-            # backend host has neither and relies on LIBRESPOT_BUNDLED_ASSETS,
-            # which the desktop and CLI hosts set.
+    try {
+        if ($isBundled) {
+            # Bundled themes are copied into the target-volume staging directory
+            # after every pinned source file has been checked.
+            $bundle = $global:BundledThemes[$tn]
             $bundleScriptRoot = if (-not [string]::IsNullOrWhiteSpace($global:LibreSpotScriptRoot)) {
                 [string]$global:LibreSpotScriptRoot
             } elseif (-not [string]::IsNullOrWhiteSpace($script:ScriptRoot)) {
@@ -6431,9 +6493,6 @@ function Module-InstallThemes { param($Config)
                         $verified = $false
                         break
                     }
-                    # A locked file (antivirus, a parallel run) throws out of the
-                    # hash helper; treat it like a mismatch and try the next root.
-                    $actualHash = ''
                     try { $actualHash = Get-FileSha256Lower -Path $filePath } catch {
                         Write-Log "  Bundled theme file $filePath could not be read: $($_.Exception.Message)." -Level 'WARN'
                         $verified = $false
@@ -6447,33 +6506,25 @@ function Module-InstallThemes { param($Config)
                 }
                 if ($verified) { $src = $candidate; break }
             }
-
             if ([string]::IsNullOrWhiteSpace($src)) {
                 throw "No verified bundled copy of '$tn' was found. Looked in: $($bundleRoots -join '; ')."
             }
 
-            $dst = Join-Path $td $tn
-            if (Test-Path -LiteralPath $dst) {
-                $null = Remove-PathSafely -Path $dst -Label "Installed bundled theme '$tn'" -Confirm:$false
-            }
-            New-Item -Path $dst -ItemType Directory -Force | Out-Null
-            # Copy only the pinned files so the installed theme is exactly what was verified.
+            New-Item -Path $stagePath -ItemType Directory -Force -ErrorAction Stop | Out-Null
             foreach ($fileName in @($bundle.Files.Keys)) {
-                Copy-Item -LiteralPath (Join-Path $src $fileName) -Destination (Join-Path $dst $fileName) -Force
+                $stageFile = Join-Path $stagePath $fileName
+                $stageParent = Split-Path -Path $stageFile -Parent
+                if (-not (Test-Path -LiteralPath $stageParent -PathType Container)) {
+                    New-Item -Path $stageParent -ItemType Directory -Force -ErrorAction Stop | Out-Null
+                }
+                Copy-Item -LiteralPath (Join-Path $src $fileName) -Destination $stageFile -Force -ErrorAction Stop
             }
-            Write-Log "Bundled theme '$tn' copied to $dst"
-        } catch {
-            Add-LibreSpotAssetInstallFailure -Kind 'Theme' -Name $tn -Reason "The bundled copy could not be installed: $($_.Exception.Message)."
-            return
-        }
-    } elseif ($isCommunity) {
-        # Community theme — download commit-pinned archive and verify hash
-        $repo = $global:CommunityThemeRepos[$tn]
-        $archiveUrl = "https://github.com/$($repo.Owner)/$($repo.Repo)/archive/$($repo.CommitSha).zip"
-        $safeName = ($tn -replace '[^a-zA-Z0-9_-]','_')
-        $tz = New-LibreSpotTempFile -Name "community-theme-$safeName.zip"
-        $tu = New-LibreSpotTempDirectory -Name "community-theme-$safeName-unpack"
-        try {
+            Write-Log "Bundled theme '$tn' copied to target-volume staging."
+        } elseif ($isCommunity) {
+            $repo = $global:CommunityThemeRepos[$tn]
+            $archiveUrl = "https://github.com/$($repo.Owner)/$($repo.Repo)/archive/$($repo.CommitSha).zip"
+            $tz = New-LibreSpotTempFile -Name "community-theme-$safeName.zip"
+            $tu = New-LibreSpotTempDirectory -Name "community-theme-$safeName-unpack"
             Write-Log "Downloading community theme from $($repo.Owner)/$($repo.Repo) @ $($repo.CommitSha.Substring(0,10))..."
             $themeHash = $repo.SHA256
             if (-not (Get-FromAssetCache -SHA256Hash $themeHash -DestinationPath $tz -Label "Community theme '$tn'")) {
@@ -6494,38 +6545,27 @@ function Module-InstallThemes { param($Config)
             if (-not (Test-Path -LiteralPath $src -PathType Container)) {
                 throw "Theme folder '$($repo.ThemeFolder)' was not found in the $($repo.Owner)/$($repo.Repo) archive."
             }
-            # Verify the archive actually contains Spicetify theme files
-            $hasColorIni = Test-Path -LiteralPath (Join-Path $src 'color.ini')
-            $hasUserCss  = Test-Path -LiteralPath (Join-Path $src 'user.css')
-            if (-not ($hasColorIni -or $hasUserCss)) {
+            if (-not (Test-Path -LiteralPath (Join-Path $src 'color.ini') -PathType Leaf) -and
+                -not (Test-Path -LiteralPath (Join-Path $src 'user.css') -PathType Leaf)) {
                 throw "Community theme '$tn' archive does not contain color.ini or user.css - not a valid Spicetify theme."
             }
-            $dst = Join-Path $td $tn
-            if (Test-Path -LiteralPath $dst) {
-                $null = Remove-PathSafely -Path $dst -Label "Installed community theme '$tn'" -Confirm:$false
-            }
-            # Copy only theme-relevant files, not repo metadata (.git, .github, etc.)
-            New-Item -Path $dst -ItemType Directory -Force | Out-Null
-            $themeFiles = @('color.ini','user.css','theme.js','theme.script.js','assets','README.md')
-            foreach ($tf in $themeFiles) {
-                $tfSrc = Join-Path $src $tf
-                if (Test-Path -LiteralPath $tfSrc) {
-                    Copy-Item $tfSrc -Destination (Join-Path $dst $tf) -Recurse -Force
+
+            New-Item -Path $stagePath -ItemType Directory -Force -ErrorAction Stop | Out-Null
+            foreach ($themeFile in @('color.ini', 'user.css', 'theme.js', 'theme.script.js', 'assets', 'README.md')) {
+                $sourceFile = Join-Path $src $themeFile
+                if (-not (Test-Path -LiteralPath $sourceFile)) { continue }
+                $stageFile = Join-Path $stagePath $themeFile
+                if ((Get-Item -LiteralPath $sourceFile -Force).PSIsContainer) {
+                    New-Item -Path $stageFile -ItemType Directory -Force -ErrorAction Stop | Out-Null
+                    Copy-Item -Path (Join-Path $sourceFile '*') -Destination $stageFile -Recurse -Force -ErrorAction Stop
+                } else {
+                    Copy-Item -LiteralPath $sourceFile -Destination $stageFile -Force -ErrorAction Stop
                 }
             }
-            Write-Log "Community theme '$tn' copied to $dst"
-        } catch {
-            Add-LibreSpotAssetInstallFailure -Kind 'Theme' -Name $tn -Reason "The download could not be installed: $($_.Exception.Message)."
-            return
-        } finally {
-            $null = Remove-PathSafely -Path $tz -Label "Temporary community theme archive '$tn'" -Confirm:$false
-            $null = Remove-PathSafely -Path $tu -Label "Temporary community theme extraction '$tn'" -Confirm:$false
-        }
-    } else {
-        # Official theme — extract from the pinned spicetify-themes archive
-        $tz = New-LibreSpotTempFile -Name 'themes.zip'
-        $tu = New-LibreSpotTempDirectory -Name 'themes-unpack'
-        try {
+            Write-Log "Community theme '$tn' copied to target-volume staging."
+        } else {
+            $tz = New-LibreSpotTempFile -Name 'themes.zip'
+            $tu = New-LibreSpotTempDirectory -Name 'themes-unpack'
             $themesHash = $global:PinnedReleases.Themes.SHA256
             if (-not (Get-FromAssetCache -SHA256Hash $themesHash -DestinationPath $tz -Label 'Themes archive')) {
                 try {
@@ -6535,42 +6575,81 @@ function Module-InstallThemes { param($Config)
                         Write-Log 'Network download failed; using verified cached copy.' -Level 'WARN'
                     } else { throw }
                 }
-                Confirm-FileHash -Path $tz -ExpectedHash $themesHash -Label "Themes archive"
+                Confirm-FileHash -Path $tz -ExpectedHash $themesHash -Label 'Themes archive'
                 Save-ToAssetCache -SourcePath $tz -SHA256Hash $themesHash -Label 'Themes archive' -SourceUrl $global:URL_THEMES_REPO
             }
             Expand-ArchiveSafely -ZipPath $tz -DestinationPath $tu -Label 'Themes archive'
             $root = Get-ChildItem -LiteralPath $tu -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
-            if (-not $root) { throw "Theme archive did not contain an unpacked root folder." }
+            if (-not $root) { throw 'Theme archive did not contain an unpacked root folder.' }
             $src = Join-Path $root.FullName $tn
             if (-not (Test-Path -LiteralPath $src -PathType Container)) {
                 throw "Theme '$tn' was not found in the pinned theme archive."
             }
-            $dst = Join-Path $td $tn
-            if (Test-Path -LiteralPath $dst) {
-                $null = Remove-PathSafely -Path $dst -Label "Installed official theme '$tn'" -Confirm:$false
+            New-Item -Path $stagePath -ItemType Directory -Force -ErrorAction Stop | Out-Null
+            Copy-Item -Path (Join-Path $src '*') -Destination $stagePath -Recurse -Force -ErrorAction Stop
+            Write-Log "Theme '$tn' copied to target-volume staging."
+        }
+
+        if (-not (Test-Path -LiteralPath $stagePath -PathType Container)) {
+            throw 'Nothing was written to the theme staging directory.'
+        }
+        $stagedEntries = @(Get-ChildItem -LiteralPath $stagePath -Force -ErrorAction Stop)
+        if ($stagedEntries.Count -eq 0) {
+            throw 'The theme staging directory is empty.'
+        }
+        if ($isBundled) {
+            foreach ($fileName in @($bundle.Files.Keys)) {
+                $stagedFile = Join-Path $stagePath $fileName
+                if (-not (Test-Path -LiteralPath $stagedFile -PathType Leaf) -or
+                    (Get-FileSha256Lower -Path $stagedFile) -ne ([string]$bundle.Files[$fileName]).ToLowerInvariant()) {
+                    throw "Bundled theme staging verification failed for '$fileName'."
+                }
             }
-            Copy-Item $src -Destination $dst -Recurse -Force
-            Write-Log "Theme copied to $dst"
-        } finally {
-            $null = Remove-PathSafely -Path $tz -Label "Temporary official theme archive '$tn'" -Confirm:$false
-            $null = Remove-PathSafely -Path $tu -Label "Temporary official theme extraction '$tn'" -Confirm:$false
+        } elseif ($isCommunity -and
+            -not (Test-Path -LiteralPath (Join-Path $stagePath 'color.ini') -PathType Leaf) -and
+            -not (Test-Path -LiteralPath (Join-Path $stagePath 'user.css') -PathType Leaf)) {
+            throw "Community theme '$tn' staging is missing color.ini and user.css."
+        }
+        $expectedFingerprint = Get-LibreSpotPackageFingerprint -Path $stagePath
+        Invoke-LibreSpotPackageTransaction `
+            -TransactionPath $transactionPath `
+            -AllowedRoots $allowedRoots `
+            -TransactionId $transactionId `
+            -Packages @(
+                [pscustomobject]@{
+                    Action = 'swap'
+                    Kind = 'directory'
+                    TargetPath = Join-Path $td $tn
+                    StagePath = $stagePath
+                    ExpectedFingerprint = $expectedFingerprint
+                },
+                [pscustomobject]@{
+                    Action = 'preserve'
+                    Kind = 'file'
+                    TargetPath = $configPath
+                }
+            ) `
+            -Commit {
+                $sc = $Config.Spicetify_Scheme
+                Write-Log "Setting theme=$tn, scheme=$sc"
+                Invoke-SpicetifyCli -Arguments @('config', 'current_theme', $tn, '--bypass-admin') -FailureMessage "Could not set Spicetify theme '$tn'."
+                if (-not [string]::IsNullOrWhiteSpace($sc)) {
+                    Invoke-SpicetifyCli -Arguments @('config', 'color_scheme', $sc, '--bypass-admin') -FailureMessage "Could not set color scheme '$sc'."
+                }
+                $needsThemeJs = $global:ThemesNeedingJS -contains $tn
+                $jsVal = if ($needsThemeJs) { '1' } else { '0' }
+                Invoke-SpicetifyCli -Arguments @('config', 'inject_css', '1', 'replace_colors', '1', 'overwrite_assets', '1', 'inject_theme_js', $jsVal, '--bypass-admin') -FailureMessage 'Could not enable the selected theme assets.'
+            } | Out-Null
+    } catch {
+        Add-LibreSpotAssetInstallFailure -Kind 'Theme' -Name $tn -Reason "The theme could not be installed: $($_.Exception.Message)."
+        return
+    } finally {
+        if ($tz) { $null = Remove-PathSafely -Path $tz -Label "Temporary theme archive '$tn'" }
+        if ($tu) { $null = Remove-PathSafely -Path $tu -Label "Temporary theme extraction '$tn'" }
+        if (-not (Test-Path -LiteralPath $transactionPath) -and (Test-Path -LiteralPath $stagePath)) {
+            try { Remove-LibreSpotPackagePathSafely -Path $stagePath | Out-Null } catch { Write-Log "Could not clean the failed theme staging directory: $($_.Exception.Message)" -Level 'WARN' }
         }
     }
-
-    if (-not (Test-Path (Join-Path $td $tn))) {
-        # The copy reported no error and still left nothing behind. Returning
-        # quietly here is what let a run with no theme report success.
-        Add-LibreSpotAssetInstallFailure -Kind 'Theme' -Name $tn -Reason 'Nothing was written to the themes directory.'
-        return
-    }
-    $sc = $Config.Spicetify_Scheme; Write-Log "Setting theme=$tn, scheme=$sc"
-    Invoke-SpicetifyCli -Arguments @('config', 'current_theme', $tn, '--bypass-admin') -FailureMessage "Could not set Spicetify theme '$tn'."
-    if (-not [string]::IsNullOrWhiteSpace($sc)) {
-        Invoke-SpicetifyCli -Arguments @('config', 'color_scheme', $sc, '--bypass-admin') -FailureMessage "Could not set color scheme '$sc'."
-    }
-    $needsThemeJs = $global:ThemesNeedingJS -contains $tn
-    $jsVal = if ($needsThemeJs) { "1" } else { "0" }
-    Invoke-SpicetifyCli -Arguments @('config', 'inject_css', '1', 'replace_colors', '1', 'overwrite_assets', '1', 'inject_theme_js', $jsVal, '--bypass-admin') -FailureMessage 'Could not enable the selected theme assets.'
 }
 
 # Guidance shown when a file LibreSpot verified moments ago has vanished, or a
@@ -7165,169 +7244,888 @@ function Repair-LibreSpotManagedCustomAppRoutes {
 }
 
 
+function Get-LibreSpotPackageFingerprint {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path,
+
+        [int]$MaxFiles = 8192,
+
+        [long]$MaxBytes = 1073741824,
+
+        [switch]$AllowReparse
+    )
+
+    $resolvedPath = [System.IO.Path]::GetFullPath($Path)
+    if (-not (Test-Path -LiteralPath $resolvedPath)) {
+        throw "Package path not found: $resolvedPath"
+    }
+
+    $entries = New-Object System.Collections.Generic.List[string]
+    $fileCount = 0
+    [long]$totalBytes = 0
+    $shaFactory = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $rootItem = Get-Item -LiteralPath $resolvedPath -Force -ErrorAction Stop
+        if (($rootItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+            if ($AllowReparse) {
+                $reparseDigest = [System.Text.Encoding]::UTF8.GetBytes(('R|root|{0}' -f [int]$rootItem.Attributes))
+                return (($shaFactory.ComputeHash($reparseDigest) | ForEach-Object { $_.ToString('x2') }) -join '')
+            }
+            throw "Refusing to fingerprint a reparse point: $resolvedPath"
+        }
+
+        if (-not $rootItem.PSIsContainer) {
+            if ([long]$rootItem.Length -gt $MaxBytes) {
+                throw "Package exceeds the $MaxBytes-byte verification limit."
+            }
+            $bytes = [System.IO.File]::ReadAllBytes($resolvedPath)
+            $digest = (($shaFactory.ComputeHash($bytes) | ForEach-Object { $_.ToString('x2') }) -join '')
+            return $digest
+        }
+
+        $entries.Add('D|.')
+        $pending = New-Object System.Collections.Generic.Stack[object]
+        $pending.Push([pscustomobject]@{ Item = $rootItem; Relative = '' })
+        while ($pending.Count -gt 0) {
+            $current = $pending.Pop()
+            $children = @(Get-ChildItem -LiteralPath $current.Item.FullName -Force -ErrorAction Stop)
+            foreach ($child in $children) {
+                $relative = if ([string]::IsNullOrWhiteSpace($current.Relative)) {
+                    [string]$child.Name
+                } else {
+                    ($current.Relative + '/' + [string]$child.Name)
+                }
+                if (($child.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+                    if ($AllowReparse) {
+                        $entries.Add(('R|{0}|{1}' -f $relative, [int]$child.Attributes))
+                        continue
+                    }
+                    throw "Refusing to fingerprint a package containing a reparse point: $($child.FullName)"
+                }
+                if ($child.PSIsContainer) {
+                    $entries.Add('D|' + $relative)
+                    $pending.Push([pscustomobject]@{ Item = $child; Relative = $relative })
+                    continue
+                }
+
+                $fileCount++
+                if ($fileCount -gt $MaxFiles) {
+                    throw "Package contains more than the $MaxFiles-file verification limit."
+                }
+                [long]$totalBytes += [long]$child.Length
+                if ($totalBytes -gt $MaxBytes) {
+                    throw "Package exceeds the $MaxBytes-byte verification limit."
+                }
+
+                $fileStream = $null
+                try {
+                    $fileStream = [System.IO.File]::Open($child.FullName, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::Read)
+                    $fileDigest = (($shaFactory.ComputeHash($fileStream) | ForEach-Object { $_.ToString('x2') }) -join '')
+                } finally {
+                    if ($null -ne $fileStream) { $fileStream.Dispose() }
+                }
+                $entries.Add(('F|{0}|{1}|{2}' -f $relative, $child.Length, $fileDigest))
+            }
+        }
+
+        $canonical = ($entries | Sort-Object) -join "`n"
+        $canonicalBytes = [System.Text.Encoding]::UTF8.GetBytes($canonical)
+        return (($shaFactory.ComputeHash($canonicalBytes) | ForEach-Object { $_.ToString('x2') }) -join '')
+    } finally {
+        $shaFactory.Dispose()
+    }
+}
+function Remove-LibreSpotPackagePathSafely {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path
+    )
+
+    if (-not (Test-Path -LiteralPath $Path)) { return $false }
+
+    function Remove-PackagePathNode {
+        param([Parameter(Mandatory = $true)][string]$NodePath)
+
+        $item = Get-Item -LiteralPath $NodePath -Force -ErrorAction Stop
+        if (($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+            # A reparse point is unlinked as one node. Never enumerate it, so a
+            # junction cannot redirect cleanup outside the transaction root.
+            if ($item.PSIsContainer) {
+                [System.IO.Directory]::Delete($item.FullName)
+            } else {
+                [System.IO.File]::Delete($item.FullName)
+            }
+            return
+        }
+
+        if ($item.PSIsContainer) {
+            foreach ($child in @(Get-ChildItem -LiteralPath $item.FullName -Force -ErrorAction Stop)) {
+                Remove-PackagePathNode -NodePath $child.FullName
+            }
+            [System.IO.Directory]::Delete($item.FullName)
+        } else {
+            [System.IO.File]::Delete($item.FullName)
+        }
+    }
+
+    Remove-PackagePathNode -NodePath $Path
+    return $true
+}
+function Test-LibreSpotPackageTransactionPath {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path,
+
+        [Parameter(Mandatory = $true)]
+        [string[]]$AllowedRoots,
+
+        [Parameter(Mandatory = $true)]
+        [string]$TransactionId,
+
+        [ValidateSet('target', 'stage', 'backup', 'marker')]
+        [string]$Role = 'target'
+    )
+
+    if ($TransactionId -notmatch '\A[0-9a-f]{32}\z') {
+        throw "Package transaction id is invalid: $TransactionId"
+    }
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        throw "Package transaction $Role path is empty."
+    }
+
+    try {
+        $fullPath = [System.IO.Path]::GetFullPath($Path)
+    } catch {
+        throw "Package transaction $Role path is invalid: $Path"
+    }
+    $fullPath = $fullPath.TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar)
+    if ([string]::IsNullOrWhiteSpace($fullPath)) {
+        throw "Package transaction $Role path is empty after normalization."
+    }
+
+    $roots = @()
+    foreach ($rootPath in @($AllowedRoots)) {
+        if ([string]::IsNullOrWhiteSpace([string]$rootPath)) { continue }
+        $root = [System.IO.Path]::GetFullPath([string]$rootPath).TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar)
+        if (-not (Test-Path -LiteralPath $root -PathType Container)) {
+            throw "Package transaction root does not exist: $root"
+        }
+        $rootItem = Get-Item -LiteralPath $root -Force -ErrorAction Stop
+        if (($rootItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+            throw "Package transaction root is a reparse point: $root"
+        }
+        $roots += $root
+    }
+    if ($roots.Count -eq 0) { throw 'Package transaction has no allowed roots.' }
+
+    $parentPath = Split-Path -Path $fullPath -Parent
+    $parent = [System.IO.Path]::GetFullPath($parentPath).TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar)
+    $matchingRoot = @($roots | Where-Object {
+        $_.Equals($parent, [System.StringComparison]::OrdinalIgnoreCase)
+    })
+    if ($Role -eq 'marker') {
+        if ($matchingRoot.Count -ne 1) {
+            throw "Package transaction marker must be directly inside an allowed root: $fullPath"
+        }
+    } elseif ($matchingRoot.Count -ne 1) {
+        throw "Package transaction $Role must be directly inside an allowed root: $fullPath"
+    }
+
+    if ($Role -in @('stage', 'backup')) {
+        $prefix = '.librespot-package-' + $TransactionId + '-'
+        $leaf = Split-Path -Path $fullPath -Leaf
+        if (-not $leaf.StartsWith($prefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+            throw "Package transaction $Role is not owned by transaction ${TransactionId}: $fullPath"
+        }
+    }
+
+    $pathRoot = [System.IO.Path]::GetPathRoot($fullPath)
+    $matchingVolume = @($roots | Where-Object {
+        [System.IO.Path]::GetPathRoot($_).Equals($pathRoot, [System.StringComparison]::OrdinalIgnoreCase)
+    })
+    if ($matchingVolume.Count -eq 0) {
+        throw "Package transaction $Role is on a different volume from its allowed root: $fullPath"
+    }
+
+    $walkPath = if (Test-Path -LiteralPath $fullPath) { $fullPath } else { $parent }
+    while (-not [string]::IsNullOrWhiteSpace($walkPath)) {
+        $walkItem = Get-Item -LiteralPath $walkPath -Force -ErrorAction Stop
+        if (($walkItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+            throw "Package transaction path crosses a reparse point: $walkPath"
+        }
+        $walkRoot = [System.IO.Path]::GetPathRoot($walkPath).TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar)
+        $walkNormalized = $walkPath.TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar)
+        if ($roots | Where-Object { $_.Equals($walkNormalized, [System.StringComparison]::OrdinalIgnoreCase) }) { break }
+        if ($walkNormalized -eq $walkRoot) { break }
+        $next = Split-Path -Path $walkNormalized -Parent
+        if ($next -eq $walkNormalized) { break }
+        $walkPath = $next
+    }
+
+    return $fullPath
+}
+function Invoke-LibreSpotPackageTransaction {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$TransactionPath,
+
+        [Parameter(Mandatory = $true)]
+        [string[]]$AllowedRoots,
+
+        [Parameter(Mandatory = $true)]
+        [object[]]$Packages,
+
+        [Parameter(Mandatory = $true)]
+        [scriptblock]$Commit,
+
+        [string]$TransactionId = ([Guid]::NewGuid().ToString('N')),
+
+        [scriptblock]$BeforeRename,
+
+        [scriptblock]$AfterRename
+    )
+
+    if ($TransactionId -notmatch '\A[0-9a-f]{32}\z') { throw "Package transaction id is invalid: $TransactionId" }
+    $marker = [System.IO.Path]::GetFullPath($TransactionPath)
+    $null = Test-LibreSpotPackageTransactionPath -Path $marker -AllowedRoots $AllowedRoots -TransactionId $TransactionId -Role 'marker'
+    if (Test-Path -LiteralPath $marker) { throw "A package transaction is already pending at $marker." }
+
+    function Write-PackageTransactionMarker {
+        param([Parameter(Mandatory = $true)][object]$Document)
+        $parent = Split-Path -Path $marker -Parent
+        $temporary = Join-Path $parent ('.librespot-package-' + $TransactionId + '-marker.tmp')
+        if (Test-Path -LiteralPath $temporary) { Remove-LibreSpotPackagePathSafely -Path $temporary | Out-Null }
+        $json = $Document | ConvertTo-Json -Depth 16
+        [System.IO.File]::WriteAllText($temporary, $json, [System.Text.UTF8Encoding]::new($false))
+        if (-not (Test-Path -LiteralPath $marker)) {
+            [System.IO.File]::Move($temporary, $marker)
+        } else {
+            try {
+                [System.IO.File]::Replace($temporary, $marker, $null, $true)
+            } catch {
+                [System.IO.File]::Copy($temporary, $marker, $true)
+                Remove-LibreSpotPackagePathSafely -Path $temporary | Out-Null
+            }
+        }
+    }
+
+    function Move-PackageTransactionPath {
+        param(
+            [Parameter(Mandatory = $true)][string]$SourcePath,
+            [Parameter(Mandatory = $true)][string]$DestinationPath,
+            [Parameter(Mandatory = $true)][string]$Kind,
+            [Parameter(Mandatory = $true)][object]$Descriptor,
+            [Parameter(Mandatory = $true)][string]$Phase
+        )
+        if ($BeforeRename) { & $BeforeRename $Descriptor $Phase }
+        if (-not (Test-Path -LiteralPath $SourcePath)) { throw "Package transaction source is missing: $SourcePath" }
+        if (Test-Path -LiteralPath $DestinationPath) { throw "Package transaction destination is occupied: $DestinationPath" }
+        $sourceItem = Get-Item -LiteralPath $SourcePath -Force -ErrorAction Stop
+        if (($sourceItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+            throw "Package transaction source is a reparse point: $SourcePath"
+        }
+        if ($Kind -eq 'directory' -and -not $sourceItem.PSIsContainer) { throw "Package transaction expected a directory: $SourcePath" }
+        if ($Kind -eq 'file' -and $sourceItem.PSIsContainer) { throw "Package transaction expected a file: $SourcePath" }
+        if ($Kind -eq 'directory') {
+            [System.IO.Directory]::Move($SourcePath, $DestinationPath)
+        } else {
+            [System.IO.File]::Move($SourcePath, $DestinationPath)
+        }
+        if ($AfterRename) { & $AfterRename $Descriptor $Phase }
+    }
+
+    $normalized = [System.Collections.Generic.List[object]]::new()
+    $targets = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    $index = 0
+    $committed = $false
+    try {
+        foreach ($package in @($Packages)) {
+            $action = [string]$package.Action
+            $kind = [string]$package.Kind
+            if ($action -notin @('swap', 'remove', 'preserve') -or $kind -notin @('directory', 'file')) {
+                throw 'Package transaction contains an invalid action or target kind.'
+            }
+            $targetPath = Test-LibreSpotPackageTransactionPath -Path ([string]$package.TargetPath) -AllowedRoots $AllowedRoots -TransactionId $TransactionId -Role 'target'
+            if (-not $targets.Add($targetPath)) { throw "Package transaction repeats target $targetPath." }
+            $targetExists = Test-Path -LiteralPath $targetPath
+            $targetItem = $null
+            $oldFingerprint = ''
+            if ($targetExists) {
+                $targetItem = Get-Item -LiteralPath $targetPath -Force -ErrorAction Stop
+                if (($targetItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) { throw "Package transaction target is a reparse point: $targetPath" }
+                if (($kind -eq 'directory' -and -not $targetItem.PSIsContainer) -or ($kind -eq 'file' -and $targetItem.PSIsContainer)) {
+                    throw "Package transaction target kind changed: $targetPath"
+                }
+                $oldFingerprint = Get-LibreSpotPackageFingerprint -Path $targetPath -AllowReparse
+            }
+
+            $stagePath = $null
+            $expectedFingerprint = [string]$package.ExpectedFingerprint
+            if ($action -eq 'swap') {
+                if ([string]::IsNullOrWhiteSpace([string]$package.StagePath)) { throw 'A package swap is missing its staging path.' }
+                $stagePath = Test-LibreSpotPackageTransactionPath -Path ([string]$package.StagePath) -AllowedRoots $AllowedRoots -TransactionId $TransactionId -Role 'stage'
+                if ([string]::Equals($stagePath, $targetPath, [System.StringComparison]::OrdinalIgnoreCase)) { throw 'Package transaction staging path equals its target.' }
+                if ($expectedFingerprint -notmatch '\A[0-9a-f]{64}\z') { throw "Package staging fingerprint is invalid for $stagePath." }
+                if (-not (Test-Path -LiteralPath $stagePath)) { throw "Package staging path is missing: $stagePath" }
+                $stageItem = Get-Item -LiteralPath $stagePath -Force -ErrorAction Stop
+                if (($stageItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) { throw "Package staging path is a reparse point: $stagePath" }
+                if (($kind -eq 'directory' -and -not $stageItem.PSIsContainer) -or ($kind -eq 'file' -and $stageItem.PSIsContainer)) {
+                    throw "Package staging path kind changed: $stagePath"
+                }
+                if ((Get-LibreSpotPackageFingerprint -Path $stagePath) -ne $expectedFingerprint) {
+                    throw "Package staging fingerprint does not match the verified package: $stagePath"
+                }
+            }
+
+            $backupName = '.librespot-package-' + $TransactionId + '-' + $index.ToString('000') + '-backup'
+            $backupPath = Test-LibreSpotPackageTransactionPath -Path (Join-Path (Split-Path -Path $targetPath -Parent) $backupName) -AllowedRoots $AllowedRoots -TransactionId $TransactionId -Role 'backup'
+            if (Test-Path -LiteralPath $backupPath) { throw "Package transaction backup path is already occupied: $backupPath" }
+            if ($action -eq 'preserve' -and $kind -ne 'file') { throw 'Only files can be preserved as package transaction configuration.' }
+
+            $normalized.Add([pscustomobject]@{
+                Action              = $action
+                Kind                = $kind
+                TargetPath          = $targetPath
+                StagePath           = $stagePath
+                BackupPath          = $backupPath
+                OldExists           = [bool]$targetExists
+                OldFingerprint      = $oldFingerprint
+                ExpectedFingerprint = $expectedFingerprint
+                Status              = 'Prepared'
+            })
+            $index++
+        }
+        if ($normalized.Count -eq 0) { throw 'Package transaction has no descriptors.' }
+
+        $transaction = [pscustomobject]@{
+            SchemaVersion = 1
+            TransactionId = $TransactionId
+            TransactionPath = $marker
+            AllowedRoots  = @($AllowedRoots | ForEach-Object { [System.IO.Path]::GetFullPath([string]$_).TrimEnd('\', '/') })
+            StartedAt     = (Get-Date).ToUniversalTime().ToString('o')
+            Status        = 'Prepared'
+            Descriptors   = @($normalized)
+        }
+
+        # Preserve configuration bytes before any package rename. A preserved
+        # configuration is copied, so the commit callback can update it and a
+        # recovery can restore the exact original bytes.
+        foreach ($descriptor in $normalized) {
+            if ($descriptor.Action -ne 'preserve' -or -not $descriptor.OldExists) { continue }
+            [System.IO.File]::Copy($descriptor.TargetPath, $descriptor.BackupPath, $false)
+            if ((Get-LibreSpotPackageFingerprint -Path $descriptor.BackupPath -AllowReparse) -ne $descriptor.OldFingerprint) {
+                throw "Package transaction configuration backup failed verification: $($descriptor.BackupPath)"
+            }
+        }
+
+        Write-PackageTransactionMarker -Document $transaction
+        $markerWritten = $true
+
+        foreach ($descriptor in $normalized) {
+            if ($descriptor.Action -eq 'preserve') { continue }
+            if ($descriptor.OldExists) {
+                Move-PackageTransactionPath -SourcePath $descriptor.TargetPath -DestinationPath $descriptor.BackupPath -Kind $descriptor.Kind -Descriptor $descriptor -Phase 'target-to-backup'
+                $descriptor.Status = 'OriginalMoved'
+                Write-PackageTransactionMarker -Document $transaction
+            }
+            if ($descriptor.Action -eq 'swap') {
+                Move-PackageTransactionPath -SourcePath $descriptor.StagePath -DestinationPath $descriptor.TargetPath -Kind $descriptor.Kind -Descriptor $descriptor -Phase 'stage-to-target'
+                $descriptor.Status = 'ReplacementMoved'
+                Write-PackageTransactionMarker -Document $transaction
+            }
+        }
+
+        & $Commit
+
+        foreach ($descriptor in $normalized) {
+            if ($descriptor.Action -eq 'swap') {
+                if (-not (Test-Path -LiteralPath $descriptor.TargetPath) -or
+                    (Get-LibreSpotPackageFingerprint -Path $descriptor.TargetPath) -ne $descriptor.ExpectedFingerprint) {
+                    throw "Package transaction replacement failed post-commit verification: $($descriptor.TargetPath)"
+                }
+            } elseif ($descriptor.Action -eq 'remove' -and (Test-Path -LiteralPath $descriptor.TargetPath)) {
+                throw "Package transaction removal failed post-commit verification: $($descriptor.TargetPath)"
+            }
+        }
+
+        # Publish the commit point before deleting rollback material. If the
+        # process ends during cleanup, the next operation can finish cleanup
+        # while keeping the verified replacement in place.
+        $transaction.Status = 'Committed'
+        Write-PackageTransactionMarker -Document $transaction
+        $committed = $true
+
+        foreach ($descriptor in $normalized) {
+            if ($descriptor.StagePath -and (Test-Path -LiteralPath $descriptor.StagePath)) {
+                Remove-LibreSpotPackagePathSafely -Path $descriptor.StagePath | Out-Null
+            }
+            if (Test-Path -LiteralPath $descriptor.BackupPath) {
+                Remove-LibreSpotPackagePathSafely -Path $descriptor.BackupPath | Out-Null
+            }
+        }
+        Remove-LibreSpotPackagePathSafely -Path $marker | Out-Null
+        return $true
+    } catch {
+        $failure = $_
+        if (Test-Path -LiteralPath $marker) {
+            try {
+                Resolve-LibreSpotPackageTransaction -TransactionPath $marker -AllowedRoots $AllowedRoots | Out-Null
+                if ($committed) { return $true }
+            } catch {
+                throw "Package transaction failed and automatic recovery also failed. The pending transaction was retained at $marker. Commit error: $($failure.Exception.Message) Recovery error: $($_.Exception.Message)"
+            }
+        } else {
+            foreach ($descriptor in @($normalized)) {
+                if (Test-Path -LiteralPath $descriptor.BackupPath) {
+                    try { Remove-LibreSpotPackagePathSafely -Path $descriptor.BackupPath | Out-Null } catch {}
+                }
+            }
+        }
+        throw $failure
+    }
+}
+function Resolve-LibreSpotPackageTransaction {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$TransactionPath,
+
+        [Parameter(Mandatory = $true)]
+        [string[]]$AllowedRoots
+    )
+
+    $marker = [System.IO.Path]::GetFullPath($TransactionPath)
+    if (-not (Test-Path -LiteralPath $marker -PathType Leaf)) {
+        return $false
+    }
+
+    $transaction = $null
+    try {
+        $null = Test-LibreSpotPackageTransactionPath -Path $marker -AllowedRoots $AllowedRoots -TransactionId ('0' * 32) -Role 'marker'
+        $transaction = Get-Content -LiteralPath $marker -Raw -Encoding UTF8 | ConvertFrom-Json -ErrorAction Stop
+    } catch {
+        throw "The pending package transaction is unreadable: $($_.Exception.Message)"
+    }
+
+    $transactionId = [string]$transaction.TransactionId
+    if ($transaction.SchemaVersion -ne 1 -or $transactionId -notmatch '\A[0-9a-f]{32}\z') {
+        throw 'The pending package transaction has an unsupported schema or transaction id.'
+    }
+    $canonicalMarker = Test-LibreSpotPackageTransactionPath -Path $marker -AllowedRoots $AllowedRoots -TransactionId $transactionId -Role 'marker'
+    if (-not [string]::Equals($canonicalMarker, [System.IO.Path]::GetFullPath($TransactionPath), [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw 'The pending package transaction path changed while it was being read.'
+    }
+    if ($null -ne $transaction.TransactionPath -and
+        -not [string]::Equals([System.IO.Path]::GetFullPath([string]$transaction.TransactionPath), $canonicalMarker, [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw 'The pending package transaction points at a different marker path.'
+    }
+
+    $descriptors = @($transaction.Descriptors)
+    if ($descriptors.Count -eq 0 -or $descriptors.Count -gt 128) {
+        throw 'The pending package transaction has an invalid descriptor count.'
+    }
+
+    function Move-PackageTransactionPath {
+        param(
+            [Parameter(Mandatory = $true)][string]$SourcePath,
+            [Parameter(Mandatory = $true)][string]$DestinationPath,
+            [Parameter(Mandatory = $true)][string]$Kind
+        )
+        if (-not (Test-Path -LiteralPath $SourcePath)) { throw "Package transaction source is missing: $SourcePath" }
+        if (Test-Path -LiteralPath $DestinationPath) { throw "Package transaction destination is occupied: $DestinationPath" }
+        $sourceItem = Get-Item -LiteralPath $SourcePath -Force -ErrorAction Stop
+        if (($sourceItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+            throw "Package transaction source is a reparse point: $SourcePath"
+        }
+        if ($Kind -eq 'directory' -and -not $sourceItem.PSIsContainer) { throw "Package transaction expected a directory: $SourcePath" }
+        if ($Kind -eq 'file' -and $sourceItem.PSIsContainer) { throw "Package transaction expected a file: $SourcePath" }
+        if ($Kind -eq 'directory') {
+            [System.IO.Directory]::Move($SourcePath, $DestinationPath)
+        } else {
+            [System.IO.File]::Move($SourcePath, $DestinationPath)
+        }
+    }
+
+    $states = [System.Collections.Generic.List[object]]::new()
+    $targets = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    foreach ($descriptor in $descriptors) {
+        $action = [string]$descriptor.Action
+        $kind = [string]$descriptor.Kind
+        if ($action -notin @('swap', 'remove', 'preserve') -or $kind -notin @('directory', 'file')) {
+            throw 'The pending package transaction contains an invalid action or target kind.'
+        }
+        $targetPath = [string]$descriptor.TargetPath
+        $canonicalTarget = Test-LibreSpotPackageTransactionPath -Path $targetPath -AllowedRoots $AllowedRoots -TransactionId $transactionId -Role 'target'
+        if (-not $targets.Add($canonicalTarget)) { throw "The pending package transaction repeats target $canonicalTarget." }
+
+        $backupPath = [string]$descriptor.BackupPath
+        $canonicalBackup = Test-LibreSpotPackageTransactionPath -Path $backupPath -AllowedRoots $AllowedRoots -TransactionId $transactionId -Role 'backup'
+        if ([string]::Equals($canonicalTarget, $canonicalBackup, [System.StringComparison]::OrdinalIgnoreCase)) {
+            throw 'The pending package transaction uses a target as its own backup.'
+        }
+
+        $stagePath = $null
+        if ($action -eq 'swap') {
+            if ([string]::IsNullOrWhiteSpace([string]$descriptor.StagePath)) { throw 'A package swap is missing its staging path.' }
+            $stagePath = Test-LibreSpotPackageTransactionPath -Path ([string]$descriptor.StagePath) -AllowedRoots $AllowedRoots -TransactionId $transactionId -Role 'stage'
+            if ([string]::Equals($canonicalTarget, $stagePath, [System.StringComparison]::OrdinalIgnoreCase) -or
+                [string]::Equals($canonicalBackup, $stagePath, [System.StringComparison]::OrdinalIgnoreCase)) {
+                throw 'The pending package transaction reuses a target or backup as its staging path.'
+            }
+            $expected = [string]$descriptor.ExpectedFingerprint
+            if ($expected -notmatch '\A[0-9a-f]{64}\z') { throw 'A package swap has an invalid expected fingerprint.' }
+        }
+
+        $oldExists = [bool]$descriptor.OldExists
+        $oldFingerprint = [string]$descriptor.OldFingerprint
+        if ($oldExists -and $oldFingerprint -notmatch '\A[0-9a-f]{64}\z') {
+            throw 'A package transaction descriptor has an invalid original fingerprint.'
+        }
+        if (-not $oldExists -and -not [string]::IsNullOrWhiteSpace($oldFingerprint)) {
+            throw 'A package transaction descriptor records a fingerprint for a missing original.'
+        }
+
+        $states.Add([pscustomobject]@{
+            Action             = $action
+            Kind               = $kind
+            TargetPath         = $canonicalTarget
+            StagePath          = $stagePath
+            BackupPath         = $canonicalBackup
+            OldExists          = $oldExists
+            OldFingerprint     = $oldFingerprint
+            ExpectedFingerprint = [string]$descriptor.ExpectedFingerprint
+        })
+    }
+
+    # Validate every existing path before making any recovery change. This keeps
+    # a tampered marker from partially walking through a junction tree.
+    foreach ($state in $states) {
+        if (Test-Path -LiteralPath $state.TargetPath) {
+            $item = Get-Item -LiteralPath $state.TargetPath -Force -ErrorAction Stop
+            if (($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+                throw "Package transaction target is a reparse point: $($state.TargetPath)"
+            }
+            if (($state.Kind -eq 'directory' -and -not $item.PSIsContainer) -or ($state.Kind -eq 'file' -and $item.PSIsContainer)) {
+                throw "Package transaction target kind changed: $($state.TargetPath)"
+            }
+        }
+        if (Test-Path -LiteralPath $state.BackupPath) {
+            $backupItem = Get-Item -LiteralPath $state.BackupPath -Force -ErrorAction Stop
+            if (($backupItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+                throw "Package transaction backup is a reparse point: $($state.BackupPath)"
+            }
+            if (($state.Kind -eq 'directory' -and -not $backupItem.PSIsContainer) -or ($state.Kind -eq 'file' -and $backupItem.PSIsContainer)) {
+                throw "Package transaction backup kind changed: $($state.BackupPath)"
+            }
+            if ($state.OldExists -and (Get-LibreSpotPackageFingerprint -Path $state.BackupPath -AllowReparse) -ne $state.OldFingerprint) {
+                throw "Package transaction backup fingerprint does not match the recorded original: $($state.BackupPath)"
+            }
+            if (-not $state.OldExists) { throw "Package transaction has an unexpected backup for a missing original: $($state.BackupPath)" }
+        } elseif ($state.OldExists -and -not (Test-Path -LiteralPath $state.TargetPath)) {
+            throw "Package transaction lost both the original target and its backup: $($state.TargetPath)"
+        }
+        if ($state.StagePath -and (Test-Path -LiteralPath $state.StagePath)) {
+            if ((Get-LibreSpotPackageFingerprint -Path $state.StagePath) -ne $state.ExpectedFingerprint) {
+                throw "Package transaction staging fingerprint changed: $($state.StagePath)"
+            }
+        }
+    }
+
+    if ([string]$transaction.Status -eq 'Committed') {
+        foreach ($state in $states) {
+            if ($state.Action -eq 'swap') {
+                if (-not (Test-Path -LiteralPath $state.TargetPath) -or
+                    (Get-LibreSpotPackageFingerprint -Path $state.TargetPath) -ne $state.ExpectedFingerprint) {
+                    throw "A committed package transaction no longer has its verified replacement: $($state.TargetPath)"
+                }
+            } elseif ($state.Action -eq 'remove' -and (Test-Path -LiteralPath $state.TargetPath)) {
+                throw "A committed package transaction has a target that should have been removed: $($state.TargetPath)"
+            }
+            if ($state.StagePath -and (Test-Path -LiteralPath $state.StagePath)) {
+                Remove-LibreSpotPackagePathSafely -Path $state.StagePath | Out-Null
+            }
+            if (Test-Path -LiteralPath $state.BackupPath) {
+                Remove-LibreSpotPackagePathSafely -Path $state.BackupPath | Out-Null
+            }
+        }
+        Remove-LibreSpotPackagePathSafely -Path $marker | Out-Null
+        return $true
+    }
+
+    foreach ($state in $states) {
+        $targetExists = Test-Path -LiteralPath $state.TargetPath
+        $backupExists = Test-Path -LiteralPath $state.BackupPath
+        if ($state.Action -eq 'preserve') {
+            if ($state.OldExists) {
+                if (-not $backupExists) { throw "Package transaction config backup is missing: $($state.BackupPath)" }
+                if ($targetExists) { Remove-LibreSpotPackagePathSafely -Path $state.TargetPath | Out-Null }
+                [System.IO.File]::Copy($state.BackupPath, $state.TargetPath, $false)
+                if ((Get-LibreSpotPackageFingerprint -Path $state.TargetPath -AllowReparse) -ne $state.OldFingerprint) {
+                    throw "Package transaction could not restore configuration: $($state.TargetPath)"
+                }
+            } elseif ($targetExists) {
+                Remove-LibreSpotPackagePathSafely -Path $state.TargetPath | Out-Null
+            }
+            if (Test-Path -LiteralPath $state.BackupPath) { Remove-LibreSpotPackagePathSafely -Path $state.BackupPath | Out-Null }
+            continue
+        }
+
+        if ($state.OldExists) {
+            if ($backupExists) {
+                if ($targetExists) {
+                    $currentFingerprint = Get-LibreSpotPackageFingerprint -Path $state.TargetPath -AllowReparse
+                    if ($currentFingerprint -eq $state.OldFingerprint) {
+                        Remove-LibreSpotPackagePathSafely -Path $state.BackupPath | Out-Null
+                    } elseif ($state.Action -eq 'swap' -and $currentFingerprint -eq $state.ExpectedFingerprint) {
+                        Remove-LibreSpotPackagePathSafely -Path $state.TargetPath | Out-Null
+                        Move-PackageTransactionPath -SourcePath $state.BackupPath -DestinationPath $state.TargetPath -Kind $state.Kind
+                    } else {
+                        throw "Package transaction target has an unexpected fingerprint: $($state.TargetPath)"
+                    }
+                } else {
+                    Move-PackageTransactionPath -SourcePath $state.BackupPath -DestinationPath $state.TargetPath -Kind $state.Kind
+                }
+            } elseif (-not (Test-Path -LiteralPath $state.TargetPath) -or
+                (Get-LibreSpotPackageFingerprint -Path $state.TargetPath -AllowReparse) -ne $state.OldFingerprint) {
+                throw "Package transaction cannot prove the original target is intact: $($state.TargetPath)"
+            }
+            if ((Get-LibreSpotPackageFingerprint -Path $state.TargetPath -AllowReparse) -ne $state.OldFingerprint) {
+                throw "Package transaction restored the wrong original bytes: $($state.TargetPath)"
+            }
+        } elseif ($targetExists) {
+            if ($state.Action -ne 'swap' -or (Get-LibreSpotPackageFingerprint -Path $state.TargetPath) -ne $state.ExpectedFingerprint) {
+                throw "Package transaction found unexpected bytes for a previously missing target: $($state.TargetPath)"
+            }
+            Remove-LibreSpotPackagePathSafely -Path $state.TargetPath | Out-Null
+        }
+
+        if ($state.StagePath -and (Test-Path -LiteralPath $state.StagePath)) {
+            Remove-LibreSpotPackagePathSafely -Path $state.StagePath | Out-Null
+        }
+        if (Test-Path -LiteralPath $state.BackupPath) { Remove-LibreSpotPackagePathSafely -Path $state.BackupPath | Out-Null }
+    }
+
+    Remove-LibreSpotPackagePathSafely -Path $marker | Out-Null
+    return $true
+}
+
 function Module-InstallCustomApps { param($Config)
     $requestedApps = @($Config.Spicetify_CustomApps | ForEach-Object { [string]$_ } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
     $managedApps = @($global:CommunityCustomApps.Keys)
     $managedCompanionExtensions = @($global:CommunityCustomApps.Values | ForEach-Object { [string]$_.CompanionExtension } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
     $integration = Get-SpicetifyIntegrationContext
-    $customAppsDirectory = $integration.CustomAppsDirectory
+    $customAppsDirectory = [string]$integration.CustomAppsDirectory
+    $extensionsDirectory = [string]$integration.ExtensionsDirectory
+    $configDirectory = if ($integration.PSObject.Properties['ConfigDirectory']) { [string]$integration.ConfigDirectory } else { Split-Path -Path $customAppsDirectory -Parent }
+    $configPath = if ($integration.PSObject.Properties['ConfigPath']) { [string]$integration.ConfigPath } else { Join-Path $configDirectory 'config-xpui.ini' }
+
+    foreach ($directory in @($configDirectory, $customAppsDirectory, $extensionsDirectory)) {
+        if (-not (Test-Path -LiteralPath $directory -PathType Container)) {
+            New-Item -Path $directory -ItemType Directory -Force -ErrorAction Stop | Out-Null
+        }
+    }
+    $allowedRoots = @($customAppsDirectory, $extensionsDirectory, $configDirectory)
+    $transactionPath = Join-Path $configDirectory '.librespot-package-custom-apps.transaction.json'
+    Resolve-LibreSpotPackageTransaction -TransactionPath $transactionPath -AllowedRoots $allowedRoots | Out-Null
 
     if ($requestedApps.Count -eq 0) {
         Write-Log 'Custom apps: none selected. Removing LibreSpot-managed custom apps if present...' -Level 'STEP'
-        foreach ($appId in $managedApps) {
-            $null = Remove-PathSafely -Path (Join-Path $customAppsDirectory $appId) -Label "Custom app $appId"
-        }
-        Sync-SpicetifyListSetting -Key 'custom_apps' -DesiredItems @() -ManagedItems $managedApps
-        foreach ($extensionName in $managedCompanionExtensions) {
-            $null = Remove-PathSafely -Path (Join-Path $integration.ExtensionsDirectory $extensionName) -Label "Companion extension $extensionName"
-        }
-        Sync-SpicetifyListSetting -Key 'extensions' -DesiredItems @() -ManagedItems $managedCompanionExtensions
-        return
+    } else {
+        Write-Log "Custom apps: $($requestedApps -join ', ')..." -Level 'STEP'
     }
 
-    Write-Log "Custom apps: $($requestedApps -join ', ')..." -Level 'STEP'
-    New-Item -Path $customAppsDirectory -ItemType Directory -Force | Out-Null
+    $transactionId = [Guid]::NewGuid().ToString('N')
     $installedApps = [System.Collections.Generic.List[string]]::new()
     $installedCompanionExtensions = [System.Collections.Generic.List[string]]::new()
+    $stagedApps = @{}
+    $stagedCompanions = @{}
+    $stagingPaths = [System.Collections.Generic.List[string]]::new()
+    $failedRequestedApps = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    $zipPaths = [System.Collections.Generic.List[string]]::new()
+    $unpackPaths = [System.Collections.Generic.List[string]]::new()
 
-    foreach ($appId in $requestedApps) {
-        if (-not $global:CommunityCustomApps.Contains($appId)) {
-            Add-LibreSpotAssetInstallFailure -Kind 'Custom app' -Name $appId -Reason 'LibreSpot does not know this custom app.'
-            continue
-        }
+    try {
+        foreach ($appId in $requestedApps) {
+            if (-not $global:CommunityCustomApps.Contains($appId)) {
+                Add-LibreSpotAssetInstallFailure -Kind 'Custom app' -Name $appId -Reason 'LibreSpot does not know this custom app.'
+                $null = $failedRequestedApps.Add($appId)
+                continue
+            }
 
-        $info = $global:CommunityCustomApps[$appId]
-        $safeName = ($appId -replace '[^a-zA-Z0-9_-]', '_')
-        $zipPath = New-LibreSpotTempFile -Name "custom-app-$safeName.zip"
-        $unpackPath = New-LibreSpotTempDirectory -Name "custom-app-$safeName-unpack"
-        $destinationPath = Join-Path $customAppsDirectory $appId
+            $info = $global:CommunityCustomApps[$appId]
+            $safeName = ($appId -replace '[^a-zA-Z0-9_-]', '_')
+            $zipPath = New-LibreSpotTempFile -Name "custom-app-$safeName.zip"
+            $unpackPath = New-LibreSpotTempDirectory -Name "custom-app-$safeName-unpack"
+            $zipPaths.Add($zipPath)
+            $unpackPaths.Add($unpackPath)
+            $destinationPath = Join-Path $customAppsDirectory $appId
+            $stagePath = Join-Path $customAppsDirectory ('.librespot-package-' + $transactionId + '-app-' + $safeName + '-stage')
 
-        try {
-            Write-Log "Installing custom app '$($info.DisplayName)' from $($info.Source)..."
-            $expectedHash = [string]$info.SHA256
-            $resolvedFromBundle = $false
-            $bundledFileName = [string]$info.BundledFileName
+            try {
+                Write-Log "Installing custom app '$($info.DisplayName)' from $($info.Source)..."
+                $expectedHash = [string]$info.SHA256
+                $resolvedFromBundle = $false
+                $bundledFileName = [string]$info.BundledFileName
 
-            # A bundled app ships with LibreSpot itself, so prefer the local copy over
-            # any download. The desktop and CLI hosts extract it and point
-            # LIBRESPOT_BUNDLED_ASSETS at the folder; the script lane looks beside
-            # itself and in a source checkout.
-            if ([bool]$info.Bundled -and -not [string]::IsNullOrWhiteSpace($bundledFileName)) {
-                # PS2EXE leaves $PSScriptRoot empty, and the install runs in a worker
-                # runspace where a script-scoped root is not visible either, so the
-                # monolith publishes $global:LibreSpotScriptRoot and exports it.
-                # Prefer it so the compiled LibreSpot.exe finds an archive sitting
-                # beside it; the backend host has no such variable and relies on
-                # LIBRESPOT_BUNDLED_ASSETS instead.
-                $bundleScriptRoot = if (-not [string]::IsNullOrWhiteSpace($global:LibreSpotScriptRoot)) {
-                    [string]$global:LibreSpotScriptRoot
-                } elseif (-not [string]::IsNullOrWhiteSpace($script:ScriptRoot)) {
-                    [string]$script:ScriptRoot
-                } elseif (-not [string]::IsNullOrWhiteSpace($PSScriptRoot)) {
-                    [string]$PSScriptRoot
-                } elseif (-not [string]::IsNullOrWhiteSpace($PSCommandPath)) {
-                    Split-Path -Parent $PSCommandPath
-                } else {
-                    try { Split-Path -Parent ([System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName) } catch { '' }
-                }
+                if ([bool]$info.Bundled -and -not [string]::IsNullOrWhiteSpace($bundledFileName)) {
+                    $bundleScriptRoot = if (-not [string]::IsNullOrWhiteSpace($global:LibreSpotScriptRoot)) {
+                        [string]$global:LibreSpotScriptRoot
+                    } elseif (-not [string]::IsNullOrWhiteSpace($script:ScriptRoot)) {
+                        [string]$script:ScriptRoot
+                    } elseif (-not [string]::IsNullOrWhiteSpace($PSScriptRoot)) {
+                        [string]$PSScriptRoot
+                    } elseif (-not [string]::IsNullOrWhiteSpace($PSCommandPath)) {
+                        Split-Path -Parent $PSCommandPath
+                    } else {
+                        try { Split-Path -Parent ([System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName) } catch { '' }
+                    }
 
-                $bundleRoots = [System.Collections.Generic.List[string]]::new()
-                if (-not [string]::IsNullOrWhiteSpace($env:LIBRESPOT_BUNDLED_ASSETS)) {
-                    $bundleRoots.Add([string]$env:LIBRESPOT_BUNDLED_ASSETS)
-                }
-                if (-not [string]::IsNullOrWhiteSpace($bundleScriptRoot)) {
-                    $bundleRoots.Add($bundleScriptRoot)
-                    $bundleRoots.Add([string](Join-Path $bundleScriptRoot 'resources\custom-apps'))
-                }
+                    $bundleRoots = [System.Collections.Generic.List[string]]::new()
+                    if (-not [string]::IsNullOrWhiteSpace($env:LIBRESPOT_BUNDLED_ASSETS)) {
+                        $bundleRoots.Add([string]$env:LIBRESPOT_BUNDLED_ASSETS)
+                    }
+                    if (-not [string]::IsNullOrWhiteSpace($bundleScriptRoot)) {
+                        $bundleRoots.Add($bundleScriptRoot)
+                        $bundleRoots.Add([string](Join-Path $bundleScriptRoot 'resources\custom-apps'))
+                    }
 
-                foreach ($bundleRoot in $bundleRoots) {
-                    # A bundled copy is an optimisation, never a requirement: any failure
-                    # reading or copying it must fall through to the cache and download
-                    # rather than abandon the app. A locked file (antivirus, a parallel
-                    # run) throws out of Get-FileSha256Lower.
-                    try {
-                        $bundlePath = Join-Path $bundleRoot $bundledFileName
-                        if (-not (Test-Path -LiteralPath $bundlePath -PathType Leaf)) { continue }
-                        $bundleHash = Get-FileSha256Lower -Path $bundlePath
-                        if ($bundleHash -ne $expectedHash.ToLowerInvariant()) {
-                            Write-Log "  Bundled archive $bundlePath does not match the pinned hash for '$appId'. Ignoring it." -Level 'WARN'
+                    foreach ($bundleRoot in $bundleRoots) {
+                        try {
+                            $bundlePath = Join-Path $bundleRoot $bundledFileName
+                            if (-not (Test-Path -LiteralPath $bundlePath -PathType Leaf)) { continue }
+                            $bundleHash = Get-FileSha256Lower -Path $bundlePath
+                            if ($bundleHash -ne $expectedHash.ToLowerInvariant()) {
+                                Write-Log "  Bundled archive $bundlePath does not match the pinned hash for '$appId'. Ignoring it." -Level 'WARN'
+                                continue
+                            }
+                            Copy-Item -LiteralPath $bundlePath -Destination $zipPath -Force -ErrorAction Stop
+                        } catch {
+                            Write-Log "  Bundled archive $bundlePath could not be read: $($_.Exception.Message). Falling back to the cache and download." -Level 'WARN'
                             continue
                         }
-                        Copy-Item -LiteralPath $bundlePath -Destination $zipPath -Force
-                    } catch {
-                        Write-Log "  Bundled archive $bundlePath could not be read: $($_.Exception.Message). Falling back to the cache and download." -Level 'WARN'
-                        continue
+                        Save-ToAssetCache -SourcePath $zipPath -SHA256Hash $expectedHash -Label "Custom app $appId archive" -SourceUrl $bundlePath
+                        Write-Log "  Using the copy bundled with LibreSpot ($bundledFileName)."
+                        $resolvedFromBundle = $true
+                        break
                     }
-                    Save-ToAssetCache -SourcePath $zipPath -SHA256Hash $expectedHash -Label "Custom app $appId archive" -SourceUrl $bundlePath
-                    Write-Log "  Using the copy bundled with LibreSpot ($bundledFileName)."
-                    $resolvedFromBundle = $true
-                    break
+                }
+
+                if (-not $resolvedFromBundle -and -not (Get-FromAssetCache -SHA256Hash $expectedHash -DestinationPath $zipPath -Label "Custom app $appId archive")) {
+                    try {
+                        Download-FileSafe -Uri $info.Url -OutFile $zipPath
+                    } catch {
+                        if (Get-FromAssetCache -SHA256Hash $expectedHash -DestinationPath $zipPath -Label "Custom app $appId archive") {
+                            Write-Log 'Network download failed; using verified cached copy.' -Level 'WARN'
+                        } else { throw }
+                    }
+                    Confirm-FileHash -Path $zipPath -ExpectedHash $expectedHash -Label "Custom app $appId"
+                    Save-ToAssetCache -SourcePath $zipPath -SHA256Hash $expectedHash -Label "Custom app $appId archive" -SourceUrl $info.Url
+                }
+
+                Expand-ArchiveSafely -ZipPath $zipPath -DestinationPath $unpackPath -Label "Custom app $appId" -MaxExpandedBytes 250MB
+                $sourcePath = Join-Path $unpackPath ([string]$info.AssetPath)
+                if (-not (Test-Path -LiteralPath $sourcePath -PathType Container)) {
+                    $candidate = Get-ChildItem -LiteralPath $unpackPath -Directory -ErrorAction SilentlyContinue |
+                        Where-Object {
+                            (Test-Path -LiteralPath (Join-Path $_.FullName 'manifest.json') -PathType Leaf) -and
+                            (Test-Path -LiteralPath (Join-Path $_.FullName 'extension.js') -PathType Leaf)
+                        } | Select-Object -First 1
+                    if ($candidate) { $sourcePath = $candidate.FullName }
+                }
+                if (-not (Test-Path -LiteralPath $sourcePath -PathType Container)) {
+                    throw "Custom app archive did not contain expected folder '$($info.AssetPath)'."
+                }
+
+                $requiredFiles = if ($info.RequiredFiles) { @($info.RequiredFiles) } else { @('manifest.json', 'extension.js') }
+                foreach ($requiredFile in $requiredFiles) {
+                    if (-not (Test-Path -LiteralPath (Join-Path $sourcePath $requiredFile) -PathType Leaf)) {
+                        throw "Custom app '$appId' is missing required file '$requiredFile'."
+                    }
+                }
+
+                New-Item -Path $stagePath -ItemType Directory -Force -ErrorAction Stop | Out-Null
+                $stagingPaths.Add($stagePath)
+                Copy-Item -Path (Join-Path $sourcePath '*') -Destination $stagePath -Recurse -Force -ErrorAction Stop
+                $expectedFingerprint = Get-LibreSpotPackageFingerprint -Path $stagePath
+
+                $companionExtension = [string]$info.CompanionExtension
+                $companionStagePath = $null
+                $companionFingerprint = $null
+                if (-not [string]::IsNullOrWhiteSpace($companionExtension)) {
+                    $safeCompanion = ($companionExtension -replace '[^a-zA-Z0-9_.-]', '_')
+                    $companionStagePath = Join-Path $extensionsDirectory ('.librespot-package-' + $transactionId + '-companion-' + $safeName + '-' + $safeCompanion + '-stage')
+                    $stagingPaths.Add($companionStagePath)
+                    $sourceCompanion = Join-Path $stagePath $companionExtension
+                    $bootstrap = New-LibreSpotEngineBootstrap -Config $Config -SourcePath $sourceCompanion -DestinationPath $companionStagePath
+                    if (-not (Test-Path -LiteralPath $companionStagePath -PathType Leaf)) { throw "Companion extension '$companionExtension' was not written to staging." }
+                    $companionFingerprint = Get-LibreSpotPackageFingerprint -Path $companionStagePath
+                    $stagedCompanions[$companionExtension] = [pscustomobject]@{ Path = $companionStagePath; Fingerprint = $companionFingerprint }
+                    $installedCompanionExtensions.Add($companionExtension)
+                    Write-Log "Companion extension '$companionExtension' staged with desktop profile $($bootstrap.Revision.Substring(0, 12))."
+                }
+
+                $stagedApps[$appId] = [pscustomobject]@{ Path = $stagePath; Fingerprint = $expectedFingerprint; Companion = $companionExtension }
+                $installedApps.Add($appId)
+                Write-Log "Custom app '$($info.DisplayName)' is verified in target-volume staging."
+            } catch {
+                $null = $failedRequestedApps.Add($appId)
+                Add-LibreSpotAssetInstallFailure -Kind 'Custom app' -Name $appId -Reason $_.Exception.Message
+            }
+        }
+
+        $descriptors = [System.Collections.Generic.List[object]]::new()
+        foreach ($appId in $managedApps) {
+            $target = Join-Path $customAppsDirectory $appId
+            if ($stagedApps.ContainsKey($appId)) {
+                $staged = $stagedApps[$appId]
+                $descriptors.Add([pscustomobject]@{ Action = 'swap'; Kind = 'directory'; TargetPath = $target; StagePath = $staged.Path; ExpectedFingerprint = $staged.Fingerprint })
+            } elseif ($requestedApps -notcontains $appId) {
+                $descriptors.Add([pscustomobject]@{ Action = 'remove'; Kind = 'directory'; TargetPath = $target })
+            }
+        }
+        foreach ($extensionName in $managedCompanionExtensions) {
+            $target = Join-Path $extensionsDirectory $extensionName
+            $owners = @($global:CommunityCustomApps.GetEnumerator() | Where-Object { [string]$_.Value.CompanionExtension -eq $extensionName } | ForEach-Object { [string]$_.Key })
+            $ownerFailed = @($owners | Where-Object { $failedRequestedApps.Contains($_) }).Count -gt 0
+            $ownerRequested = @($owners | Where-Object { $requestedApps -contains $_ }).Count -gt 0
+            if ($stagedCompanions.ContainsKey($extensionName)) {
+                $staged = $stagedCompanions[$extensionName]
+                $descriptors.Add([pscustomobject]@{ Action = 'swap'; Kind = 'file'; TargetPath = $target; StagePath = $staged.Path; ExpectedFingerprint = $staged.Fingerprint })
+            } elseif (-not $ownerRequested -and -not $ownerFailed) {
+                $descriptors.Add([pscustomobject]@{ Action = 'remove'; Kind = 'file'; TargetPath = $target })
+            }
+        }
+        $descriptors.Add([pscustomobject]@{ Action = 'preserve'; Kind = 'file'; TargetPath = $configPath })
+
+        Invoke-LibreSpotPackageTransaction `
+            -TransactionPath $transactionPath `
+            -AllowedRoots $allowedRoots `
+            -TransactionId $transactionId `
+            -Packages @($descriptors) `
+            -Commit {
+                Sync-SpicetifyListSetting -Key 'custom_apps' -DesiredItems @($installedApps) -ManagedItems $managedApps
+                Sync-SpicetifyListSetting -Key 'extensions' -DesiredItems @($installedCompanionExtensions) -ManagedItems $managedCompanionExtensions
+            } | Out-Null
+    } finally {
+        foreach ($zipPath in @($zipPaths)) { Remove-Item -LiteralPath $zipPath -Force -ErrorAction SilentlyContinue }
+        foreach ($unpackPath in @($unpackPaths)) {
+            if (Test-Path -LiteralPath $unpackPath) {
+                try { Remove-LibreSpotPackagePathSafely -Path $unpackPath | Out-Null } catch { Write-Log "Could not clean custom-app extraction $unpackPath`: $($_.Exception.Message)" -Level 'WARN' }
+            }
+        }
+        if (-not (Test-Path -LiteralPath $transactionPath)) {
+            foreach ($stagingPath in @($stagingPaths)) {
+                if (Test-Path -LiteralPath $stagingPath) {
+                    try { Remove-LibreSpotPackagePathSafely -Path $stagingPath | Out-Null } catch { Write-Log "Could not clean custom-app staging $stagingPath`: $($_.Exception.Message)" -Level 'WARN' }
                 }
             }
-
-            if (-not $resolvedFromBundle -and -not (Get-FromAssetCache -SHA256Hash $expectedHash -DestinationPath $zipPath -Label "Custom app $appId archive")) {
-                try {
-                    Download-FileSafe -Uri $info.Url -OutFile $zipPath
-                } catch {
-                    if (Get-FromAssetCache -SHA256Hash $expectedHash -DestinationPath $zipPath -Label "Custom app $appId archive") {
-                        Write-Log 'Network download failed; using verified cached copy.' -Level 'WARN'
-                    } else { throw }
-                }
-                Confirm-FileHash -Path $zipPath -ExpectedHash $expectedHash -Label "Custom app $appId"
-                Save-ToAssetCache -SourcePath $zipPath -SHA256Hash $expectedHash -Label "Custom app $appId archive" -SourceUrl $info.Url
-            }
-
-            Expand-ArchiveSafely -ZipPath $zipPath -DestinationPath $unpackPath -Label "Custom app $appId" -MaxExpandedBytes 250MB
-            $sourcePath = Join-Path $unpackPath ([string]$info.AssetPath)
-            if (-not (Test-Path -LiteralPath $sourcePath -PathType Container)) {
-                $candidate = Get-ChildItem -LiteralPath $unpackPath -Directory -ErrorAction SilentlyContinue |
-                    Where-Object {
-                        (Test-Path -LiteralPath (Join-Path $_.FullName 'manifest.json') -PathType Leaf) -and
-                        (Test-Path -LiteralPath (Join-Path $_.FullName 'extension.js') -PathType Leaf)
-                    } |
-                    Select-Object -First 1
-                if ($candidate) { $sourcePath = $candidate.FullName }
-            }
-
-            if (-not (Test-Path -LiteralPath $sourcePath -PathType Container)) {
-                throw "Custom app archive did not contain expected folder '$($info.AssetPath)'."
-            }
-
-            $requiredFiles = if ($info.RequiredFiles) { @($info.RequiredFiles) } else { @('manifest.json', 'extension.js') }
-            foreach ($requiredFile in $requiredFiles) {
-                if (-not (Test-Path -LiteralPath (Join-Path $sourcePath $requiredFile) -PathType Leaf)) {
-                    throw "Custom app '$appId' is missing required file '$requiredFile'."
-                }
-            }
-
-            $null = Remove-PathSafely -Path $destinationPath -Label "Custom app $appId"
-            New-Item -Path $destinationPath -ItemType Directory -Force | Out-Null
-            Copy-Item -Path (Join-Path $sourcePath '*') -Destination $destinationPath -Recurse -Force
-            $companionExtension = [string]$info.CompanionExtension
-            if (-not [string]::IsNullOrWhiteSpace($companionExtension)) {
-                $bootstrap = New-LibreSpotEngineBootstrap `
-                    -Config $Config `
-                    -SourcePath (Join-Path $destinationPath $companionExtension) `
-                    -DestinationPath (Join-Path $integration.ExtensionsDirectory $companionExtension)
-                $installedCompanionExtensions.Add($companionExtension)
-                Write-Log "Companion extension '$companionExtension' staged with desktop profile $($bootstrap.Revision.Substring(0, 12))."
-            }
-            $installedApps.Add($appId)
-            Write-Log "Custom app '$($info.DisplayName)' installed to $destinationPath"
-        } catch {
-            Add-LibreSpotAssetInstallFailure -Kind 'Custom app' -Name $appId -Reason $_.Exception.Message
-        } finally {
-            Remove-Item -LiteralPath $zipPath -Force -ErrorAction SilentlyContinue
-            Remove-Item -LiteralPath $unpackPath -Recurse -Force -ErrorAction SilentlyContinue
         }
     }
-
-    foreach ($extensionName in $managedCompanionExtensions) {
-        if ($installedCompanionExtensions.Contains($extensionName)) { continue }
-        $null = Remove-PathSafely -Path (Join-Path $integration.ExtensionsDirectory $extensionName) -Label "Companion extension $extensionName"
-    }
-    Sync-SpicetifyListSetting -Key 'custom_apps' -DesiredItems @($installedApps) -ManagedItems $managedApps
-    Sync-SpicetifyListSetting -Key 'extensions' -DesiredItems @($installedCompanionExtensions) -ManagedItems $managedCompanionExtensions
 }
 
 function Write-MarketplaceVisibilityEvidence {

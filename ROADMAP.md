@@ -6,13 +6,6 @@ Incomplete, implementer-actionable work only. Operator-dependent decisions remai
 
 ### P1: Now
 
-- [ ] P1: RD-232. Stage and verify installed packages before replacing working copies
-  Why: Impact 5/5. CLI, theme and custom-app installers remove working directories before extraction/copy/bootstrap has succeeded.
-  Evidence: RESEARCH.md; Module-InstallSpicetifyCLI.ps1, Module-InstallThemes.ps1 and Module-InstallCustomApps.ps1; preservation snapshots do not restore exact CLI/theme bytes.
-  Touches: Those shared installers; package staging/swap helper; installer regression fixtures; composed hosts.
-  Acceptance: After RD-227, RD-230 and RD-231, stage each pinned package and verify its complete required contents. Commit the package, companion Extensions and affected config as one recoverable operation. Inject extraction, copy, bootstrap, rename and post-rename configuration failures; the original package, companions and configuration fingerprints must remain intact, with no mixed version. Keep staging on the target volume; validate owned recovery paths and reparse boundaries before recovering abandoned commits on the next operation.
-  Complexity: M
-
 ### P2: Next
 
 - [ ] P2: RD-233. Preserve the watcher failure stage until it is recorded

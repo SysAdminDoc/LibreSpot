@@ -2500,17 +2500,17 @@ public sealed class PowerShellRegressionTests
     [InlineData("src/powershell/shared/Module-InstallThemes.ps1")]
     [InlineData("LibreSpot.ps1")]
     [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
-    public void ThemeInstaller_UsesJunctionSafeRemovalForEveryBranch(string relativePath)
+    public void ThemeInstaller_UsesRecoverablePackageSwapForEveryHost(string relativePath)
     {
         var body = ExtractFunction(ReadFile(relativePath.Split('/')), "Module-InstallThemes");
 
-        Assert.Equal(3, Regex.Matches(body, @"Remove-PathSafely\s+-Path\s+\$dst").Count);
-        Assert.Equal(2, Regex.Matches(body, @"Remove-PathSafely\s+-Path\s+\$tu").Count);
+        Assert.Contains("Resolve-LibreSpotPackageTransaction", body, StringComparison.Ordinal);
+        Assert.Contains("Invoke-LibreSpotPackageTransaction", body, StringComparison.Ordinal);
+        Assert.Contains("Get-LibreSpotPackageFingerprint", body, StringComparison.Ordinal);
+        Assert.Contains("ExpectedFingerprint", body, StringComparison.Ordinal);
+        Assert.Contains("Remove-LibreSpotPackagePathSafely", body, StringComparison.Ordinal);
         Assert.DoesNotContain("Remove-Item -LiteralPath $dst -Recurse", body, StringComparison.Ordinal);
-        Assert.DoesNotContain("Remove-Item -LiteralPath $tu -Recurse", body, StringComparison.Ordinal);
-        Assert.Contains("Installed bundled theme", body, StringComparison.Ordinal);
-        Assert.Contains("Installed community theme", body, StringComparison.Ordinal);
-        Assert.Contains("Installed official theme", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("Copy-Item $src -Destination $dst -Recurse", body, StringComparison.Ordinal);
     }
 
     [Theory]

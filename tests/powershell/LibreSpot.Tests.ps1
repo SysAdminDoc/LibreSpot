@@ -65,6 +65,11 @@ BeforeAll {
         'Get-SpotXChildFailureClassification'
         'Get-ThirdPartyPatcherReport'
         'Copy-DirectorySnapshotSafely'
+        'Get-LibreSpotPackageFingerprint'
+        'Remove-LibreSpotPackagePathSafely'
+        'Test-LibreSpotPackageTransactionPath'
+        'Invoke-LibreSpotPackageTransaction'
+        'Resolve-LibreSpotPackageTransaction'
         'Merge-DirectorySnapshotMissingFiles'
         'Get-LibreSpotTempRoot'
         'Start-LibreSpotOwnedProcess'
@@ -2243,6 +2248,16 @@ Describe 'Lane orchestration modules and primary GUI dispatch' {
             [ref]$tokens,
             [ref]$parseErrors
         )
+        $orchestrationSharedDir = Join-Path $PSScriptRoot '..\..\src\powershell\shared'
+        foreach ($transactionHelper in @(
+            'Get-LibreSpotPackageFingerprint.ps1',
+            'Remove-LibreSpotPackagePathSafely.ps1',
+            'Test-LibreSpotPackageTransactionPath.ps1',
+            'Invoke-LibreSpotPackageTransaction.ps1',
+            'Resolve-LibreSpotPackageTransaction.ps1'
+        )) {
+            . (Join-Path $orchestrationSharedDir $transactionHelper)
+        }
         @($parseErrors).Count | Should -Be 0
 
         $moduleNames = @(
@@ -2885,6 +2900,11 @@ Describe 'Module-InstallCustomApps bundled archive resolution' {
     BeforeAll {
         $sharedDir = Join-Path $PSScriptRoot '..\..\src\powershell\shared'
         . (Join-Path $sharedDir 'Module-InstallCustomApps.ps1')
+        . (Join-Path $sharedDir 'Get-LibreSpotPackageFingerprint.ps1')
+        . (Join-Path $sharedDir 'Remove-LibreSpotPackagePathSafely.ps1')
+        . (Join-Path $sharedDir 'Test-LibreSpotPackageTransactionPath.ps1')
+        . (Join-Path $sharedDir 'Invoke-LibreSpotPackageTransaction.ps1')
+        . (Join-Path $sharedDir 'Resolve-LibreSpotPackageTransaction.ps1')
         . (Join-Path $sharedDir 'Add-LibreSpotAssetInstallFailure.ps1')
         . (Join-Path $sharedDir 'Get-LibreSpotAssetInstallFailureSummary.ps1')
         . (Join-Path $sharedDir 'Expand-ArchiveSafely.ps1')
@@ -3158,7 +3178,12 @@ Describe 'Worker runspace function closure' {
                 $found += "$exported is exported to the worker but not defined"
                 continue
             }
+            $localFunctions = New-Object System.Collections.Generic.HashSet[string]
+            foreach ($local in $definition.Body.FindAll({ param($n) $n -is [System.Management.Automation.Language.FunctionDefinitionAst] }, $true)) {
+                $null = $localFunctions.Add($local.Name)
+            }
             foreach ($callee in (Get-CalledHostFunctions -Body $definition.Body)) {
+                if ($localFunctions.Contains($callee)) { continue }
                 if ($script:workerFunctionNames -notcontains $callee) {
                     $found += "$exported -> $callee"
                 }
@@ -3212,6 +3237,11 @@ Describe 'Module-InstallThemes bundled theme resolution' {
     BeforeAll {
         $sharedDir = Join-Path $PSScriptRoot '..\..\src\powershell\shared'
         . (Join-Path $sharedDir 'Module-InstallThemes.ps1')
+        . (Join-Path $sharedDir 'Get-LibreSpotPackageFingerprint.ps1')
+        . (Join-Path $sharedDir 'Remove-LibreSpotPackagePathSafely.ps1')
+        . (Join-Path $sharedDir 'Test-LibreSpotPackageTransactionPath.ps1')
+        . (Join-Path $sharedDir 'Invoke-LibreSpotPackageTransaction.ps1')
+        . (Join-Path $sharedDir 'Resolve-LibreSpotPackageTransaction.ps1')
         . (Join-Path $sharedDir 'Remove-PathSafely.ps1')
         . (Join-Path $sharedDir 'Add-LibreSpotAssetInstallFailure.ps1')
         . (Join-Path $sharedDir 'Get-LibreSpotAssetInstallFailureSummary.ps1')
@@ -4168,6 +4198,7 @@ try {
 } finally {
     Exit-LibreSpotMutationLease -Lease `$lease
 }
+
 "@
         Set-Content -LiteralPath $ownerScript -Value $ownerBody -Encoding UTF8
 
@@ -4282,6 +4313,112 @@ try {
             (Get-Content -LiteralPath $contenderResult -Raw) | Should -Be 'acquired'
         } finally {
             $owner.Dispose()
+        }
+    }
+}
+
+# =============================================================================
+# Staged package transactions
+# =============================================================================
+Describe 'Staged package transactions' {
+    It 'restores package, companion, and configuration bytes after a commit failure' {
+        $root = Join-Path $TestDrive 'package-transaction'
+        $packages = Join-Path $root 'Packages'
+        $extensions = Join-Path $root 'Extensions'
+        $config = Join-Path $root 'Config'
+        foreach ($directory in @($packages, $extensions, $config)) {
+            New-Item -Path $directory -ItemType Directory -Force | Out-Null
+        }
+
+        $packageTarget = Join-Path $packages 'librespot'
+        $packageStage = Join-Path $packages '.librespot-package-0123456789abcdef0123456789abcdef-app-stage'
+        $companionTarget = Join-Path $extensions 'librespot-engine.js'
+        $companionStage = Join-Path $extensions '.librespot-package-0123456789abcdef0123456789abcdef-companion-stage'
+        $configTarget = Join-Path $config 'config-xpui.ini'
+        New-Item -Path $packageTarget -ItemType Directory -Force | Out-Null
+        New-Item -Path $packageStage -ItemType Directory -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path $packageTarget 'manifest.json') -Value 'old-package' -Encoding ascii
+        Set-Content -LiteralPath (Join-Path $packageStage 'manifest.json') -Value 'new-package' -Encoding ascii
+        Set-Content -LiteralPath $companionTarget -Value 'old-companion' -Encoding ascii
+        Set-Content -LiteralPath $companionStage -Value 'new-companion' -Encoding ascii
+        [System.IO.File]::WriteAllText($configTarget, 'old-config', [System.Text.UTF8Encoding]::new($false))
+
+        $oldPackage = Get-LibreSpotPackageFingerprint -Path $packageTarget
+        $oldCompanion = Get-LibreSpotPackageFingerprint -Path $companionTarget
+        $oldConfig = Get-LibreSpotPackageFingerprint -Path $configTarget
+        $newPackage = Get-LibreSpotPackageFingerprint -Path $packageStage
+        $newCompanion = Get-LibreSpotPackageFingerprint -Path $companionStage
+        $marker = Join-Path $config '.librespot-package-test.transaction.json'
+        $failure = $null
+        try {
+            Invoke-LibreSpotPackageTransaction -TransactionPath $marker -AllowedRoots @($packages, $extensions, $config) -TransactionId '0123456789abcdef0123456789abcdef' -Packages @(
+                [pscustomobject]@{ Action = 'swap'; Kind = 'directory'; TargetPath = $packageTarget; StagePath = $packageStage; ExpectedFingerprint = $newPackage },
+                [pscustomobject]@{ Action = 'swap'; Kind = 'file'; TargetPath = $companionTarget; StagePath = $companionStage; ExpectedFingerprint = $newCompanion },
+                [pscustomobject]@{ Action = 'preserve'; Kind = 'file'; TargetPath = $configTarget }
+            ) -Commit {
+                [System.IO.File]::WriteAllText($configTarget, 'new-config', [System.Text.UTF8Encoding]::new($false))
+                throw 'post-rename configuration failure'
+            }
+        } catch { $failure = $_.Exception }
+
+        $failure | Should -Not -BeNullOrEmpty
+        (Get-LibreSpotPackageFingerprint -Path $packageTarget -AllowReparse) | Should -Be $oldPackage
+        (Get-LibreSpotPackageFingerprint -Path $companionTarget -AllowReparse) | Should -Be $oldCompanion
+        (Get-LibreSpotPackageFingerprint -Path $configTarget) | Should -Be $oldConfig
+        Test-Path -LiteralPath $marker | Should -BeFalse
+        Test-Path -LiteralPath $packageStage | Should -BeFalse
+        Test-Path -LiteralPath $companionStage | Should -BeFalse
+    }
+
+    It 'rejects an unverified staged copy before moving the working package' {
+        $root = Join-Path $TestDrive 'package-stage-verification'
+        $packages = Join-Path $root 'Packages'
+        $config = Join-Path $root 'Config'
+        New-Item -Path $packages -ItemType Directory -Force | Out-Null
+        New-Item -Path $config -ItemType Directory -Force | Out-Null
+        $target = Join-Path $packages 'app'
+        $stage = Join-Path $packages '.librespot-package-fedcba9876543210fedcba9876543210-app-stage'
+        New-Item -Path $target -ItemType Directory -Force | Out-Null
+        New-Item -Path $stage -ItemType Directory -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path $target 'version.txt') -Value 'old' -Encoding ascii
+        Set-Content -LiteralPath (Join-Path $stage 'version.txt') -Value 'new' -Encoding ascii
+        $old = Get-LibreSpotPackageFingerprint -Path $target
+        $marker = Join-Path $config '.librespot-package-stage.transaction.json'
+
+        { Invoke-LibreSpotPackageTransaction -TransactionPath $marker -AllowedRoots @($packages, $config) -TransactionId 'fedcba9876543210fedcba9876543210' -Packages @([pscustomobject]@{ Action = 'swap'; Kind = 'directory'; TargetPath = $target; StagePath = $stage; ExpectedFingerprint = ('0' * 64) }) -Commit { } } | Should -Throw
+        (Get-LibreSpotPackageFingerprint -Path $target) | Should -Be $old
+        Test-Path -LiteralPath $marker | Should -BeFalse
+    }
+
+    It 'restores the original package when a rename fails after the backup move' {
+        $root = Join-Path $TestDrive 'package-rename-failure'
+        $packages = Join-Path $root 'Packages'
+        $config = Join-Path $root 'Config'
+        New-Item -Path $packages -ItemType Directory -Force | Out-Null
+        New-Item -Path $config -ItemType Directory -Force | Out-Null
+        $target = Join-Path $packages 'app'
+        $stage = Join-Path $packages '.librespot-package-abcdefabcdefabcdefabcdefabcdefab-app-stage'
+        New-Item -Path $target -ItemType Directory -Force | Out-Null
+        New-Item -Path $stage -ItemType Directory -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path $target 'version.txt') -Value 'old' -Encoding ascii
+        Set-Content -LiteralPath (Join-Path $stage 'version.txt') -Value 'new' -Encoding ascii
+        $old = Get-LibreSpotPackageFingerprint -Path $target
+        $expected = Get-LibreSpotPackageFingerprint -Path $stage
+        $marker = Join-Path $config '.librespot-package-rename.transaction.json'
+
+        { Invoke-LibreSpotPackageTransaction -TransactionPath $marker -AllowedRoots @($packages, $config) -TransactionId 'abcdefabcdefabcdefabcdefabcdefab' -Packages @([pscustomobject]@{ Action = 'swap'; Kind = 'directory'; TargetPath = $target; StagePath = $stage; ExpectedFingerprint = $expected }) -BeforeRename { param($descriptor, $phase) if ($phase -eq 'stage-to-target') { throw 'rename failure' } } -Commit { } } | Should -Throw
+        (Get-LibreSpotPackageFingerprint -Path $target) | Should -Be $old
+        Test-Path -LiteralPath $stage | Should -BeFalse
+        Test-Path -LiteralPath $marker | Should -BeFalse
+    }
+
+    It 'exposes staging and transaction recovery in every package installer' {
+        foreach ($name in @('Module-InstallSpicetifyCLI.ps1', 'Module-InstallThemes.ps1', 'Module-InstallCustomApps.ps1')) {
+            $source = Get-Content -LiteralPath (Join-Path (Join-Path $PSScriptRoot '..\..\src\powershell\shared') $name) -Raw
+            $source | Should -Match 'Resolve-LibreSpotPackageTransaction'
+            $source | Should -Match 'Invoke-LibreSpotPackageTransaction'
+            $source | Should -Match 'Get-LibreSpotPackageFingerprint'
+            $source | Should -Match 'ExpectedFingerprint'
         }
     }
 }
