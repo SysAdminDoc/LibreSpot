@@ -6,13 +6,6 @@ Incomplete, implementer-actionable work only. Operator-dependent decisions remai
 
 ### P2: Next
 
-- [ ] P2: RD-245. Verify crash capture with an isolated Windows release fixture
-  Why: Impact 4/5. Mocked launches and synthetic headers cannot prove that the shipped single-file model creates the intended dump.
-  Evidence: RESEARCH.md; MinidumpSettingsServiceTests fake launch/environment; actual .NET 10.0.11 Windows createdump source supports checking platform behavior rather than guessing from generic documentation.
-  Touches: tests/LibreSpot.Core.Tests/MinidumpSettingsServiceTests.cs; isolated console crash fixture; local release verification and dump export policy.
-  Acceptance: Publish a harmless console fixture with the same win-x64 runtime/bundling settings and arm it through the production service. Record the actual flags/streams as the positive baseline for RD-226, then verify retention, disabled behavior and export eligibility under the completed policy. All settings and output remain under a temporary root; never crash Spotify, the user's running desktop, or capture their process memory.
-  Complexity: M
-
 - [ ] P2: RD-246. Reconcile public documentation with the shipped components
   Why: Impact 3/5. Redistribution, licensing, crash/privacy, navigation and validation instructions contradict the implementation.
   Evidence: RESEARCH.md, Documentation; README/SECURITY no-redistribution claims; component AGPL license/notices; current changelog contradictions and incomplete PR-template Pester command.

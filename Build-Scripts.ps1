@@ -1902,6 +1902,37 @@ function Get-LibreSpotReleaseBuildProperties {
     }
 }
 
+function Get-LibreSpotCreatedumpPath {
+    # Single-file .NET applications use the adjacent createdump helper for
+    # environment-triggered crash capture. Resolve it from the same installed
+    # runtime family used by the net10.0 release projects instead of assuming
+    # a machine-specific DOTNET_ROOT.
+    $dotnet = Get-Command dotnet -ErrorAction SilentlyContinue
+    if ($null -eq $dotnet) {
+        throw 'Cannot stage createdump.exe; dotnet was not found on PATH.'
+    }
+
+    $dotnetRoot = Split-Path -Parent $dotnet.Source
+    $runtimeRoot = Join-Path $dotnetRoot 'shared/Microsoft.NETCore.App'
+    if (-not (Test-Path -LiteralPath $runtimeRoot -PathType Container)) {
+        throw "Cannot stage createdump.exe; the .NET runtime directory was not found at $runtimeRoot."
+    }
+
+    $runtime = @(Get-ChildItem -LiteralPath $runtimeRoot -Directory -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -match '^10\.\d+\.\d+$' } |
+        Sort-Object { [Version]$_.Name } -Descending)[0]
+    if ($null -eq $runtime) {
+        throw "Cannot stage createdump.exe; no .NET 10 runtime was found under $runtimeRoot."
+    }
+
+    $createdump = Join-Path $runtime.FullName 'createdump.exe'
+    if (-not (Test-Path -LiteralPath $createdump -PathType Leaf)) {
+        throw "Cannot stage createdump.exe; the .NET 10 runtime does not contain $createdump."
+    }
+
+    return $createdump
+}
+
 function Invoke-LibreSpotReleasePublish {
     param([string]$Root)
 
@@ -1930,7 +1961,7 @@ function Invoke-LibreSpotReleasePublish {
 
     if (Test-Path -LiteralPath $Root) {
         $unexpected = @(Get-ChildItem -LiteralPath $Root -Force -ErrorAction SilentlyContinue |
-            Where-Object { $_.Name -notmatch '^(LibreSpot[-.].*|librespot-.*|checksums\.txt|dependency-health\.json|stage-.*)$' })
+            Where-Object { $_.Name -notmatch '^(LibreSpot[-.].*|createdump\.exe|librespot-.*|checksums\.txt|dependency-health\.json|stage-.*)$' })
         if ($unexpected.Count -gt 0) {
             throw ("Refusing to delete $Root because it holds files a release build did not produce: " +
                 (($unexpected | Select-Object -First 5 | ForEach-Object { $_.Name }) -join ', ') +
@@ -1942,6 +1973,9 @@ function Invoke-LibreSpotReleasePublish {
     New-Item -Path $Root -ItemType Directory -Force | Out-Null
 
     $properties = Get-LibreSpotReleaseBuildProperties
+    $createdumpSource = Get-LibreSpotCreatedumpPath
+    $createdumpDestination = Join-Path $Root 'createdump.exe'
+    Copy-Item -LiteralPath $createdumpSource -Destination $createdumpDestination -Force
     $projects = @(
         @{ Path = 'src/LibreSpot.Desktop/LibreSpot.Desktop.csproj'; Produces = 'LibreSpot.dll'; Asset = 'LibreSpot-Desktop.exe'; Built = 'LibreSpot.exe' }
         @{ Path = 'src/LibreSpot.Cli/LibreSpot.Cli.csproj';         Produces = 'LibreSpot.Cli.dll'; Asset = 'LibreSpot.Cli.exe'; Built = 'LibreSpot.Cli.exe' }
@@ -1983,7 +2017,7 @@ function Invoke-LibreSpotReleasePublish {
     Copy-Item -LiteralPath $engineArchive -Destination (Join-Path $Root 'librespot-engine.zip') -Force
     Copy-Item -LiteralPath $mainScript -Destination (Join-Path $Root 'LibreSpot.ps1') -Force
 
-    foreach ($asset in @('LibreSpot-Desktop.exe', 'LibreSpot.Cli.exe', 'librespot-engine.zip', 'LibreSpot.ps1')) {
+    foreach ($asset in @('LibreSpot-Desktop.exe', 'LibreSpot.Cli.exe', 'createdump.exe', 'librespot-engine.zip', 'LibreSpot.ps1')) {
         $path = Join-Path $Root $asset
         Write-Host ("  {0,-24} {1,12:N0} bytes  {2}" -f $asset, (Get-Item -LiteralPath $path).Length, (Get-FileSha256Lower -Path $path)) -ForegroundColor Gray
     }

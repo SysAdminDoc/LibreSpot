@@ -106,6 +106,27 @@
       ]
     },
     {
+      "name": "createdump.exe",
+      "description": ".NET 10 Windows crash-dump helper required beside the single-file executables for local triage capture",
+      "packageRole": "runtime-crash-dump-helper",
+      "runtimeIdentifier": "win-x64",
+      "buildMode": "dotnet-runtime",
+      "channels": [
+        "stable",
+        "preview",
+        "rc"
+      ],
+      "required": true,
+      "checksumEntry": true,
+      "signingRequirement": "none",
+      "attestation": "none",
+      "distributionChannels": [
+        "github-releases",
+        "github-releases-wpf",
+        "fleet-tools"
+      ]
+    },
+    {
       "name": "LibreSpot.sbom.cdx.json",
       "description": "CycloneDX SBOM for the WPF desktop shell",
       "packageRole": "sbom",
@@ -194,6 +215,7 @@
       "LibreSpot.ps1",
       "LibreSpot-Desktop.exe",
       "LibreSpot.Cli.exe",
+      "createdump.exe",
       "LibreSpot.sbom.cdx.json",
       "librespot-engine.zip"
     ],

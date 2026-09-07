@@ -21,7 +21,7 @@ LibreSpot changes the local Windows desktop client. It does not grant Spotify Pr
 
 ## Local crash dump privacy
 
-Local crash dumps are opt-in and armed for the next LibreSpot process only. Support export accepts a dump only when its header flags and stream kinds match the .NET Triage policy, and it rejects full-memory and private-memory streams before copying the binary. The .NET writer filters personal paths and passwords, but a Triage dump is still diagnostic memory that may contain sensitive process state. The flag and stream checks are policy gates, not proof that every byte is anonymous. LibreSpot never uploads a dump automatically.
+Local crash dumps are opt-in and armed for the next LibreSpot process only. Self-contained single-file builds use the adjacent .NET `createdump.exe` helper, which the local release publisher carries beside the desktop and CLI executables and covers with `checksums.txt`. Support export accepts a dump only when its header flags and stream kinds match the .NET Triage policy, and it rejects full-memory and private-memory streams before copying the binary. The .NET writer filters personal paths and passwords, but a Triage dump is still diagnostic memory that may contain sensitive process state. The flag and stream checks are policy gates, not proof that every byte is anonymous. LibreSpot never uploads a dump automatically.
 
 ## Reporting a Vulnerability
 

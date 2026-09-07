@@ -425,6 +425,25 @@ public sealed class ReleaseArtifactContractTests
     }
 
     [Fact]
+    public void ReleaseContract_ShipsTheDotNetCrashDumpHelperBesideSingleFileApps()
+    {
+        using var contract = JsonDocument.Parse(ReadFile("schemas", "release-artifact-contract.json"));
+        var artifact = contract.RootElement.GetProperty("artifacts").EnumerateArray()
+            .Single(a => a.GetProperty("name").GetString() == "createdump.exe");
+
+        Assert.True(artifact.GetProperty("required").GetBoolean());
+        Assert.True(artifact.GetProperty("checksumEntry").GetBoolean());
+        Assert.Equal("runtime-crash-dump-helper", artifact.GetProperty("packageRole").GetString());
+        Assert.Equal("win-x64", artifact.GetProperty("runtimeIdentifier").GetString());
+        Assert.Equal("dotnet-runtime", artifact.GetProperty("buildMode").GetString());
+
+        var covered = contract.RootElement.GetProperty("checksumContract").GetProperty("coveredAssets")
+            .EnumerateArray().Select(a => a.GetString()).ToArray();
+        Assert.Contains("createdump.exe", covered);
+        Assert.Contains("Get-LibreSpotCreatedumpPath", ReadFile("Build-Scripts.ps1"), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Readme_BootstrapReferencesValidReleaseAssets()
     {
         var readme = ReadFile("README.md");

@@ -1,6 +1,8 @@
 using System.Buffers.Binary;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text.Json;
 using LibreSpot.Desktop.Models;
@@ -678,6 +680,84 @@ public sealed class SupportBundleServiceTests
         Assert.DoesNotContain(archive.Entries, entry => entry.FullName.EndsWith(".dmp", StringComparison.OrdinalIgnoreCase));
     }
 
+    [Fact]
+    public async Task MinidumpSettingsService_ArmsPublishedFixtureAndSupportExportAcceptsRealTriageDump()
+    {
+        using var fixture = new SupportBundleFixture();
+        fixture.WriteStackReadyState();
+        var executablePath = PublishMinidumpFixture(fixture.Root);
+        Process? child = null;
+        var minidump = new MinidumpSettingsService(
+            fixture.ConfigDirectory,
+            fixture.CrashDirectory,
+            () => executablePath,
+            _ => null,
+            (_, _) => { },
+            startInfo =>
+            {
+                child = Process.Start(startInfo);
+                return child is not null;
+            });
+
+        minidump.SetEnabled(true);
+        for (var run = 0; run < 3; run++)
+        {
+            var existingDumpCount = WaitForMinidumps(fixture.CrashDirectory).Count;
+            child = null;
+            var launch = minidump.PrepareLaunch(["--fixture-run"]);
+            Assert.Equal(MinidumpLaunchDisposition.Relaunched, launch.Disposition);
+            Assert.NotNull(child);
+            Assert.True(child!.WaitForExit(60_000), "The isolated crash fixture did not exit in time.");
+            Assert.NotEqual(0, child.ExitCode);
+            child.Dispose();
+            Assert.Equal(existingDumpCount + 1, WaitForMinidumps(fixture.CrashDirectory, existingDumpCount + 1).Count);
+        }
+
+        // The production service prunes immediately before an armed launch or
+        // when settings are enabled. Re-enable the already enabled policy to
+        // exercise that retention boundary after the third real dump arrives.
+        minidump.SetEnabled(true);
+        var dumps = WaitForMinidumps(fixture.CrashDirectory);
+        Assert.Equal(2, dumps.Count);
+        var newest = dumps.OrderByDescending(path => File.GetLastWriteTimeUtc(path)).First();
+        var inspection = InspectMinidump(newest);
+        Assert.Equal(0xA793u, inspection.Version & ushort.MaxValue);
+        Assert.InRange(inspection.StreamCount, 1u, 4096u);
+        Assert.Equal(0x001205ACuL, inspection.Flags);
+        Assert.NotEmpty(inspection.StreamTypes);
+        Assert.All(inspection.StreamTypes, streamType => Assert.Contains(streamType, SupportedTriageStreamTypes));
+
+        minidump.SetEnabled(false);
+        var disabledStart = new ProcessStartInfo
+        {
+            FileName = executablePath,
+            UseShellExecute = false,
+            WorkingDirectory = fixture.Root
+        };
+        disabledStart.ArgumentList.Add("--fixture-disabled");
+        disabledStart.Environment.Remove(MinidumpSettingsService.EnableVariable);
+        disabledStart.Environment.Remove(MinidumpSettingsService.TypeVariable);
+        disabledStart.Environment.Remove(MinidumpSettingsService.NameVariable);
+        using (var disabledChild = Process.Start(disabledStart) ?? throw new InvalidOperationException("Could not start the disabled crash fixture."))
+        {
+            Assert.True(disabledChild.WaitForExit(30_000), "The disabled crash fixture did not exit in time.");
+            Assert.Equal(0, disabledChild.ExitCode);
+        }
+
+        Assert.Equal(2, WaitForMinidumps(fixture.CrashDirectory).Count);
+        var options = new SupportBundleOptions(
+            IncludeOperationJournal: false,
+            IncludeLogs: false,
+            IncludeCrashReports: false,
+            IncludeMinidump: true);
+        var preview = fixture.Service.CreatePreview(fixture.GetSnapshot(), options);
+        Assert.Equal(1, Assert.Single(preview.Entries, entry => entry.Id == "minidump").FileCount);
+        var result = await fixture.ExportAsync(options);
+        using var archive = ZipFile.OpenRead(result.Path);
+        var exported = Assert.Single(archive.Entries, entry => entry.FullName.EndsWith(".dmp", StringComparison.OrdinalIgnoreCase));
+        Assert.Equal(File.ReadAllBytes(newest), ReadEntryBytes(exported));
+    }
+
     private static byte[] CreateMinimalMinidump(byte payloadMarker)
     {
         var dump = new byte[48];
@@ -694,6 +774,144 @@ public sealed class SupportBundleServiceTests
     }
 
     private const ulong TriageMinidumpFlags = 0x001205AC;
+    private static readonly uint[] SupportedTriageStreamTypes = [3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17, 21, 22, 24];
+
+    private static string PublishMinidumpFixture(string root)
+    {
+        var repositoryRoot = FindRepositoryRoot();
+        var projectPath = Path.Combine(repositoryRoot, "tests", "MinidumpCrashFixture", "MinidumpCrashFixture.csproj");
+        var outputDirectory = Path.Combine(root, "minidump-fixture-publish");
+        var publish = new ProcessStartInfo
+        {
+            FileName = "dotnet",
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true,
+            WorkingDirectory = repositoryRoot
+        };
+        publish.ArgumentList.Add("publish");
+        publish.ArgumentList.Add(projectPath);
+        publish.ArgumentList.Add("-c");
+        publish.ArgumentList.Add("Release");
+        publish.ArgumentList.Add("-r");
+        publish.ArgumentList.Add("win-x64");
+        publish.ArgumentList.Add("--self-contained");
+        publish.ArgumentList.Add("true");
+        publish.ArgumentList.Add("-o");
+        publish.ArgumentList.Add(outputDirectory);
+        publish.ArgumentList.Add("-p:PublishSingleFile=true");
+        publish.ArgumentList.Add("-p:EnableCompressionInSingleFile=true");
+        publish.ArgumentList.Add("-p:IncludeNativeLibrariesForSelfExtract=true");
+        publish.ArgumentList.Add("-p:Deterministic=true");
+        publish.ArgumentList.Add("-p:ContinuousIntegrationBuild=true");
+        publish.ArgumentList.Add("-p:EmbedUntrackedSources=true");
+        publish.ArgumentList.Add("-p:PublishRepositoryUrl=true");
+        publish.ArgumentList.Add("-p:LibreSpotReleaseBuild=true");
+        publish.ArgumentList.Add("--nologo");
+        using var process = Process.Start(publish) ?? throw new InvalidOperationException("Could not start the isolated fixture publish.");
+        var standardOutput = process.StandardOutput.ReadToEndAsync();
+        var standardError = process.StandardError.ReadToEndAsync();
+        if (!process.WaitForExit(120_000))
+        {
+            try { process.Kill(entireProcessTree: true); } catch { }
+            throw new TimeoutException("The isolated minidump fixture publish timed out.");
+        }
+
+        var output = standardOutput.GetAwaiter().GetResult();
+        var error = standardError.GetAwaiter().GetResult();
+        if (process.ExitCode != 0)
+        {
+            throw new InvalidOperationException($"The isolated minidump fixture publish failed ({process.ExitCode}). {output}\n{error}");
+        }
+
+        var executablePath = Path.Combine(outputDirectory, "MinidumpCrashFixture.exe");
+        if (!File.Exists(executablePath))
+        {
+            throw new FileNotFoundException("The isolated minidump fixture publish did not produce an executable.", executablePath);
+        }
+
+        var createdumpSource = Path.Combine(RuntimeEnvironment.GetRuntimeDirectory(), "createdump.exe");
+        if (!File.Exists(createdumpSource))
+        {
+            throw new FileNotFoundException("The test runtime does not contain the createdump helper required by single-file crash capture.", createdumpSource);
+        }
+
+        File.Copy(createdumpSource, Path.Combine(outputDirectory, "createdump.exe"), overwrite: true);
+
+        return executablePath;
+    }
+
+    private static string FindRepositoryRoot()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null)
+        {
+            if (File.Exists(Path.Combine(directory.FullName, "Build-Scripts.ps1")))
+            {
+                return directory.FullName;
+            }
+
+            directory = directory.Parent;
+        }
+
+        throw new DirectoryNotFoundException("Could not locate the LibreSpot repository root for the isolated fixture.");
+    }
+
+    private static IReadOnlyList<string> WaitForMinidumps(string crashDirectory, int minimumCount = 1)
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(30);
+        string[] dumps;
+        do
+        {
+            dumps = Directory.Exists(crashDirectory)
+                ? Directory.GetFiles(crashDirectory, "*.dmp", SearchOption.TopDirectoryOnly)
+                : [];
+            if (dumps.Length >= minimumCount)
+            {
+                return dumps;
+            }
+
+            Thread.Sleep(100);
+        }
+        while (DateTime.UtcNow < deadline);
+
+        return dumps;
+    }
+
+    private static MinidumpInspection InspectMinidump(string path)
+    {
+        var bytes = File.ReadAllBytes(path);
+        Assert.True(bytes.Length >= 32, "The real fixture dump is smaller than a minidump header.");
+        Assert.Equal("MDMP"u8.ToArray(), bytes[..4]);
+        var version = BinaryPrimitives.ReadUInt32LittleEndian(bytes.AsSpan(4, 4));
+        var streamCount = BinaryPrimitives.ReadUInt32LittleEndian(bytes.AsSpan(8, 4));
+        var directoryRva = BinaryPrimitives.ReadUInt32LittleEndian(bytes.AsSpan(12, 4));
+        var flags = BinaryPrimitives.ReadUInt64LittleEndian(bytes.AsSpan(24, 8));
+        var directoryEnd = checked((long)directoryRva + (streamCount * 12L));
+        Assert.InRange(directoryRva, 32u, (uint)bytes.Length);
+        Assert.InRange(directoryEnd, 32L, bytes.Length);
+        var streamTypes = new List<uint>((int)streamCount);
+        for (var index = 0u; index < streamCount; index++)
+        {
+            var offset = checked((int)(directoryRva + (index * 12u)));
+            var streamType = BinaryPrimitives.ReadUInt32LittleEndian(bytes.AsSpan(offset, 4));
+            var dataSize = BinaryPrimitives.ReadUInt32LittleEndian(bytes.AsSpan(offset + 4, 4));
+            var dataRva = BinaryPrimitives.ReadUInt32LittleEndian(bytes.AsSpan(offset + 8, 4));
+            var dataEnd = checked((long)dataRva + dataSize);
+            Assert.InRange(dataEnd, 0L, bytes.Length);
+            if (streamType != 0)
+            {
+                Assert.True(dataSize > 0);
+                Assert.InRange(dataRva, (uint)directoryEnd, (uint)bytes.Length);
+                streamTypes.Add(streamType);
+            }
+        }
+
+        return new MinidumpInspection(version, streamCount, flags, streamTypes);
+    }
+
+    private sealed record MinidumpInspection(uint Version, uint StreamCount, ulong Flags, IReadOnlyList<uint> StreamTypes);
 
     private static IReadOnlyDictionary<string, string> ReadZipText(string path)
     {
