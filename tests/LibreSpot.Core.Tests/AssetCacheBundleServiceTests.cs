@@ -311,9 +311,10 @@ public sealed class AssetCacheBundleServiceTests
         {
             var stageRoot = Path.Combine(fixture.Root, "process-death", stage.Name);
             var cachePath = Path.Combine(stageRoot, "cache");
+            var reachedMarkerPath = Path.Combine(stageRoot, "reached.txt");
             CopyDirectory(fixture.TargetCache, cachePath);
 
-            using (var importProcess = StartRecoveryFixture("import", stage.Name, bundlePath, cachePath))
+            using (var importProcess = StartRecoveryFixture("import", stage.Name, bundlePath, cachePath, reachedMarkerPath))
             {
                 var exited = importProcess.WaitForExit(TimeSpan.FromSeconds(30));
                 if (!exited)
@@ -325,6 +326,7 @@ public sealed class AssetCacheBundleServiceTests
                 Assert.True(exited, $"The recovery fixture did not terminate at {stage.Name}.");
                 Assert.NotEqual(0, importProcess.ExitCode);
             }
+            Assert.Equal(stage.Name, File.ReadAllText(reachedMarkerPath));
 
             using (var recoveryProcess = StartRecoveryFixture(
                        "recover",

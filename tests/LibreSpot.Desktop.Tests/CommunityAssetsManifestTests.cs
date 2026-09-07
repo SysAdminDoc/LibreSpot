@@ -172,7 +172,7 @@ public sealed class CommunityAssetsManifestTests
         // both part of the contract.
         Assert.Contains("[switch]$PublishRelease,", script, StringComparison.Ordinal);
         Assert.Contains("Invoke-LibreSpotReleasePublish", script, StringComparison.Ordinal);
-        foreach (var property in new[] { "Deterministic", "ContinuousIntegrationBuild", "EmbedUntrackedSources", "PublishRepositoryUrl", "PublishSingleFile" })
+        foreach (var property in new[] { "Deterministic", "ContinuousIntegrationBuild", "EmbedUntrackedSources", "PublishRepositoryUrl", "PublishSingleFile", "RuntimeFrameworkVersion" })
         {
             Assert.Contains(property, script, StringComparison.Ordinal);
         }

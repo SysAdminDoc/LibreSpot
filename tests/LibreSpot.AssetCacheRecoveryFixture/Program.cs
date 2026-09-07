@@ -12,7 +12,7 @@ internal static class Program
             {
                 "import" => RunImport(args),
                 "recover" => RunRecovery(args),
-                _ => throw new ArgumentException("Usage: import <stage> <bundle> <cache> | recover <cache> <expected-hash> <expect-imported>")
+                _ => throw new ArgumentException("Usage: import <stage> <bundle> <cache> <reached-marker> | recover <cache> <expected-hash> <expect-imported>")
             };
         }
         catch (Exception error)
@@ -24,16 +24,20 @@ internal static class Program
 
     private static int RunImport(string[] args)
     {
-        if (args.Length != 4)
-            throw new ArgumentException("Usage: import <stage> <bundle> <cache>");
+        if (args.Length != 5)
+            throw new ArgumentException("Usage: import <stage> <bundle> <cache> <reached-marker>");
 
         var stage = ParseStage(args[1]);
         var bundlePath = Path.GetFullPath(args[2]);
         var cachePath = Path.GetFullPath(args[3]);
+        var reachedMarkerPath = Path.GetFullPath(args[4]);
         var service = new AssetCacheBundleService(observedStage =>
         {
             if (observedStage == stage)
+            {
+                File.WriteAllText(reachedMarkerPath, args[1]);
                 Environment.FailFast($"Asset-cache recovery fixture terminated at {stage}.");
+            }
         });
 
         service.Import(cachePath, bundlePath);

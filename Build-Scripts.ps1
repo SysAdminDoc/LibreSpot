@@ -1886,12 +1886,35 @@ function Test-LibreSpotStableExeIdentity {
     Write-Host "  Stable script executable identity matches LibreSpot.ps1 v$scriptVersion (file version $fileVersion)." -ForegroundColor Green
 }
 
+function Get-LibreSpotNet10RuntimeVersion {
+    $dotnet = Get-Command dotnet -ErrorAction SilentlyContinue
+    if ($null -eq $dotnet) {
+        throw 'Cannot resolve the release runtime; dotnet was not found on PATH.'
+    }
+
+    $dotnetRoot = Split-Path -Parent $dotnet.Source
+    $runtimeRoot = Join-Path $dotnetRoot 'shared/Microsoft.NETCore.App'
+    if (-not (Test-Path -LiteralPath $runtimeRoot -PathType Container)) {
+        throw "Cannot resolve the release runtime; the .NET runtime directory was not found at $runtimeRoot."
+    }
+
+    $runtime = @(Get-ChildItem -LiteralPath $runtimeRoot -Directory -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -match '^10\.\d+\.\d+$' } |
+        Sort-Object { [Version]$_.Name } -Descending)[0]
+    if ($null -eq $runtime) {
+        throw "Cannot resolve the release runtime; no .NET 10 runtime was found under $runtimeRoot."
+    }
+
+    return $runtime.Name
+}
+
 function Get-LibreSpotReleaseBuildProperties {
     # The exact property set the release build pins. Recorded in the manifest so a
     # second party can rebuild with the same inputs and compare.
     [ordered]@{
         Configuration               = 'Release'
         RuntimeIdentifier           = 'win-x64'
+        RuntimeFrameworkVersion     = Get-LibreSpotNet10RuntimeVersion
         SelfContained               = 'true'
         PublishSingleFile           = 'true'
         EnableCompressionInSingleFile = 'true'
@@ -1903,6 +1926,8 @@ function Get-LibreSpotReleaseBuildProperties {
 }
 
 function Get-LibreSpotCreatedumpPath {
+    param([string]$RuntimeVersion)
+
     # Single-file .NET applications use the adjacent createdump helper for
     # environment-triggered crash capture. Resolve it from the same installed
     # runtime family used by the net10.0 release projects instead of assuming
@@ -1918,11 +1943,14 @@ function Get-LibreSpotCreatedumpPath {
         throw "Cannot stage createdump.exe; the .NET runtime directory was not found at $runtimeRoot."
     }
 
+    if ([string]::IsNullOrWhiteSpace($RuntimeVersion)) {
+        $RuntimeVersion = Get-LibreSpotNet10RuntimeVersion
+    }
+
     $runtime = @(Get-ChildItem -LiteralPath $runtimeRoot -Directory -ErrorAction SilentlyContinue |
-        Where-Object { $_.Name -match '^10\.\d+\.\d+$' } |
-        Sort-Object { [Version]$_.Name } -Descending)[0]
+        Where-Object { $_.Name -eq $RuntimeVersion })[0]
     if ($null -eq $runtime) {
-        throw "Cannot stage createdump.exe; no .NET 10 runtime was found under $runtimeRoot."
+        throw "Cannot stage createdump.exe; .NET runtime $RuntimeVersion was not found under $runtimeRoot."
     }
 
     $createdump = Join-Path $runtime.FullName 'createdump.exe'
@@ -1973,7 +2001,7 @@ function Invoke-LibreSpotReleasePublish {
     New-Item -Path $Root -ItemType Directory -Force | Out-Null
 
     $properties = Get-LibreSpotReleaseBuildProperties
-    $createdumpSource = Get-LibreSpotCreatedumpPath
+    $createdumpSource = Get-LibreSpotCreatedumpPath -RuntimeVersion $properties.RuntimeFrameworkVersion
     $createdumpDestination = Join-Path $Root 'createdump.exe'
     Copy-Item -LiteralPath $createdumpSource -Destination $createdumpDestination -Force
     $projects = @(
@@ -1989,7 +2017,7 @@ function Invoke-LibreSpotReleasePublish {
 
         $stage = Join-Path $Root ('stage-' + [System.IO.Path]::GetFileNameWithoutExtension($project.Path))
         $arguments = @('publish', $projectPath, '-c', $properties.Configuration, '-r', $properties.RuntimeIdentifier, '--self-contained', $properties.SelfContained, '-o', $stage, '--nologo')
-        foreach ($name in @('PublishSingleFile', 'EnableCompressionInSingleFile', 'Deterministic', 'ContinuousIntegrationBuild', 'EmbedUntrackedSources', 'PublishRepositoryUrl')) {
+        foreach ($name in @('PublishSingleFile', 'EnableCompressionInSingleFile', 'Deterministic', 'ContinuousIntegrationBuild', 'EmbedUntrackedSources', 'PublishRepositoryUrl', 'RuntimeFrameworkVersion')) {
             $arguments += "-p:$name=$($properties[$name])"
         }
         # ContinuousIntegrationBuild is gated on this flag in Directory.Build.props so

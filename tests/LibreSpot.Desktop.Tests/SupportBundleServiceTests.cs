@@ -728,10 +728,13 @@ public sealed class SupportBundleServiceTests
         Assert.All(inspection.StreamTypes, streamType => Assert.Contains(streamType, SupportedTriageStreamTypes));
 
         minidump.SetEnabled(false);
+        Assert.False(minidump.IsEnabled);
         var disabledStart = new ProcessStartInfo
         {
             FileName = executablePath,
             UseShellExecute = false,
+            RedirectStandardError = true,
+            CreateNoWindow = true,
             WorkingDirectory = fixture.Root
         };
         disabledStart.ArgumentList.Add("--fixture-disabled");
@@ -741,15 +744,18 @@ public sealed class SupportBundleServiceTests
         using (var disabledChild = Process.Start(disabledStart) ?? throw new InvalidOperationException("Could not start the disabled crash fixture."))
         {
             Assert.True(disabledChild.WaitForExit(30_000), "The disabled crash fixture did not exit in time.");
-            Assert.Equal(0, disabledChild.ExitCode);
+            var disabledError = disabledChild.StandardError.ReadToEnd();
+            Assert.NotEqual(0, disabledChild.ExitCode);
+            Assert.Contains("terminating intentionally", disabledError, StringComparison.Ordinal);
         }
 
         Assert.Equal(2, WaitForMinidumps(fixture.CrashDirectory).Count);
+        minidump.SetEnabled(true);
         var options = new SupportBundleOptions(
             IncludeOperationJournal: false,
             IncludeLogs: false,
             IncludeCrashReports: false,
-            IncludeMinidump: true);
+            IncludeMinidump: minidump.IsEnabled);
         var preview = fixture.Service.CreatePreview(fixture.GetSnapshot(), options);
         Assert.Equal(1, Assert.Single(preview.Entries, entry => entry.Id == "minidump").FileCount);
         var result = await fixture.ExportAsync(options);
@@ -803,6 +809,12 @@ public sealed class SupportBundleServiceTests
         publish.ArgumentList.Add("-p:PublishSingleFile=true");
         publish.ArgumentList.Add("-p:EnableCompressionInSingleFile=true");
         publish.ArgumentList.Add("-p:IncludeNativeLibrariesForSelfExtract=true");
+        var runtimeDirectory = new DirectoryInfo(RuntimeEnvironment.GetRuntimeDirectory());
+        if (!Version.TryParse(runtimeDirectory.Name, out var runtimeVersion) || runtimeVersion.Major != 10)
+        {
+            throw new InvalidOperationException($"The test host runtime is not a supported .NET 10 runtime: {runtimeDirectory.Name}.");
+        }
+        publish.ArgumentList.Add($"-p:RuntimeFrameworkVersion={runtimeVersion}");
         publish.ArgumentList.Add("-p:Deterministic=true");
         publish.ArgumentList.Add("-p:ContinuousIntegrationBuild=true");
         publish.ArgumentList.Add("-p:EmbedUntrackedSources=true");
@@ -831,7 +843,7 @@ public sealed class SupportBundleServiceTests
             throw new FileNotFoundException("The isolated minidump fixture publish did not produce an executable.", executablePath);
         }
 
-        var createdumpSource = Path.Combine(RuntimeEnvironment.GetRuntimeDirectory(), "createdump.exe");
+        var createdumpSource = Path.Combine(runtimeDirectory.FullName, "createdump.exe");
         if (!File.Exists(createdumpSource))
         {
             throw new FileNotFoundException("The test runtime does not contain the createdump helper required by single-file crash capture.", createdumpSource);
