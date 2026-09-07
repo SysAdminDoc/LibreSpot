@@ -3,8 +3,15 @@
 BeforeAll {
     $script:RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
     . (Join-Path $script:RepoRoot 'src\powershell\shared\Get-FileSha256Lower.ps1')
+    . (Join-Path $script:RepoRoot 'src\powershell\shared\Enter-LibreSpotAssetCacheLease.ps1')
+    . (Join-Path $script:RepoRoot 'src\powershell\shared\Exit-LibreSpotAssetCacheLease.ps1')
+    . (Join-Path $script:RepoRoot 'src\powershell\shared\Write-LibreSpotAssetCacheFileAtomically.ps1')
+    . (Join-Path $script:RepoRoot 'src\powershell\shared\Update-AssetCacheIndexEntry.ps1')
+    . (Join-Path $script:RepoRoot 'src\powershell\shared\Save-ToAssetCache.ps1')
     . (Join-Path $script:RepoRoot 'src\powershell\shared\Export-LibreSpotAssetCacheBundle.ps1')
     . (Join-Path $script:RepoRoot 'src\powershell\shared\Import-LibreSpotAssetCacheBundle.ps1')
+
+    function Write-Log { param([string]$Message, [string]$Level = 'INFO') }
 
     function Write-TestCache {
         param(
@@ -129,5 +136,93 @@ Describe 'PowerShell asset-cache bundle import transaction' {
 
         @(Get-TestCacheSnapshot -CachePath $script:TargetCache) | Should -Be $before
         (Test-Path -LiteralPath (Join-Path $script:TargetCache $script:ImportHash) -PathType Leaf) | Should -BeFalse
+    }
+
+    It 'retains a parseable prior index when an atomic write is interrupted' {
+        $indexPath = Join-Path $script:TargetCache 'asset-cache-index.json'
+        $before = [System.IO.File]::ReadAllBytes($indexPath)
+
+        {
+            Write-LibreSpotAssetCacheFileAtomically -DestinationPath $indexPath -Writer {
+                param($stream)
+                $bytes = [System.Text.UTF8Encoding]::new($false).GetBytes('{"schemaVersion":1,"entries":')
+                $stream.Write($bytes, 0, $bytes.Length)
+                throw 'Simulated interrupted index write.'
+            }
+        } | Should -Throw -ExpectedMessage '*Simulated interrupted index write*'
+
+        { [System.IO.File]::ReadAllText($indexPath) | ConvertFrom-Json -ErrorAction Stop } | Should -Not -Throw
+        [System.Convert]::ToBase64String([System.IO.File]::ReadAllBytes($indexPath)) |
+            Should -Be ([System.Convert]::ToBase64String($before))
+    }
+
+    It 'retains and reports a corrupt index instead of replacing it with an empty inventory' {
+        $indexPath = Join-Path $script:TargetCache 'asset-cache-index.json'
+        [System.IO.File]::WriteAllText($indexPath, '{"schemaVersion":1,"entries":', [System.Text.UTF8Encoding]::new($false))
+        $before = [System.IO.File]::ReadAllText($indexPath)
+
+        Update-AssetCacheIndexEntry -SHA256Hash $script:ImportHash -Label 'should not replace corrupt input'
+
+        [System.IO.File]::ReadAllText($indexPath) | Should -Be $before
+    }
+
+    It 'serializes distinct concurrent saves while retaining both verified objects and entries' {
+        $concurrentRoot = Join-Path $script:TestRoot 'concurrent'
+        $concurrentCache = Join-Path $concurrentRoot 'cache'
+        New-Item -Path $concurrentCache -ItemType Directory -Force | Out-Null
+        $sourceA = Join-Path $concurrentRoot 'a.bin'
+        $sourceB = Join-Path $concurrentRoot 'b.bin'
+        [System.IO.File]::WriteAllText($sourceA, 'concurrent alpha', [System.Text.UTF8Encoding]::new($false))
+        [System.IO.File]::WriteAllText($sourceB, 'concurrent beta', [System.Text.UTF8Encoding]::new($false))
+        $hashA = Get-FileSha256Lower -Path $sourceA
+        $hashB = Get-FileSha256Lower -Path $sourceB
+        $worker = Join-Path $concurrentRoot 'save-worker.ps1'
+        $workerText = @'
+param([string]$CachePath, [string]$SourcePath, [string]$Hash, [string]$ResultPath, [string]$RepoRoot)
+$global:CACHE_DIR = $CachePath
+function Write-Log { param([string]$Message, [string]$Level = 'INFO') }
+. (Join-Path $RepoRoot 'src\powershell\shared\Enter-LibreSpotAssetCacheLease.ps1')
+. (Join-Path $RepoRoot 'src\powershell\shared\Exit-LibreSpotAssetCacheLease.ps1')
+. (Join-Path $RepoRoot 'src\powershell\shared\Write-LibreSpotAssetCacheFileAtomically.ps1')
+. (Join-Path $RepoRoot 'src\powershell\shared\Get-FileSha256Lower.ps1')
+. (Join-Path $RepoRoot 'src\powershell\shared\Update-AssetCacheIndexEntry.ps1')
+. (Join-Path $RepoRoot 'src\powershell\shared\Save-ToAssetCache.ps1')
+$lease = $null
+try {
+    $lease = Enter-LibreSpotAssetCacheLease -CacheDirectory $CachePath -Label 'concurrent fixture'
+    Start-Sleep -Milliseconds 250
+    Save-ToAssetCache -SourcePath $SourcePath -SHA256Hash $Hash -Label $Hash -SourceUrl "https://example.invalid/$Hash"
+    [System.IO.File]::WriteAllText($ResultPath, 'ok')
+} catch {
+    [System.IO.File]::WriteAllText($ResultPath, $_.Exception.Message)
+    exit 1
+} finally {
+    if ($lease) { Exit-LibreSpotAssetCacheLease -Lease $lease }
+}
+'@
+        [System.IO.File]::WriteAllText($worker, $workerText, [System.Text.UTF8Encoding]::new($false))
+        $resultA = Join-Path $concurrentRoot 'a.result'
+        $resultB = Join-Path $concurrentRoot 'b.result'
+        $powershellPath = (Get-Command powershell.exe -ErrorAction Stop).Source
+        $processA = Start-Process -FilePath $powershellPath -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-File', $worker, $concurrentCache, $sourceA, $hashA, $resultA, $script:RepoRoot) -WindowStyle Hidden -PassThru
+        $processB = Start-Process -FilePath $powershellPath -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-File', $worker, $concurrentCache, $sourceB, $hashB, $resultB, $script:RepoRoot) -WindowStyle Hidden -PassThru
+        try {
+            $processA.WaitForExit(10000) | Should -BeTrue
+            $processB.WaitForExit(10000) | Should -BeTrue
+            $processA.ExitCode | Should -Be 0
+            $processB.ExitCode | Should -Be 0
+        } finally {
+            $processA.Dispose()
+            $processB.Dispose()
+        }
+
+        [System.IO.File]::ReadAllText($resultA) | Should -Be 'ok'
+        [System.IO.File]::ReadAllText($resultB) | Should -Be 'ok'
+        (Get-FileSha256Lower -Path (Join-Path $concurrentCache $hashA)) | Should -Be $hashA
+        (Get-FileSha256Lower -Path (Join-Path $concurrentCache $hashB)) | Should -Be $hashB
+        $index = Get-Content -LiteralPath (Join-Path $concurrentCache 'asset-cache-index.json') -Raw | ConvertFrom-Json
+        @($index.entries).Count | Should -Be 2
+        @($index.entries | ForEach-Object { [string]$_.sha256 }) | Should -Contain $hashA
+        @($index.entries | ForEach-Object { [string]$_.sha256 }) | Should -Contain $hashB
     }
 }

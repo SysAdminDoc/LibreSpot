@@ -7,6 +7,8 @@ function Export-LibreSpotAssetCacheBundle {
         [string]$ProductVersion = 'unknown'
     )
 
+    $cacheLease = Enter-LibreSpotAssetCacheLease -CacheDirectory $global:CACHE_DIR -Label 'asset-cache bundle export'
+    try {
     $maxIndexBytes = 4MB
     $maxEntryCount = 2048
     $maxAssetBytes = 1GB
@@ -181,5 +183,8 @@ function Export-LibreSpotAssetCacheBundle {
                 Remove-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue
             }
         }
+    }
+    } finally {
+        Exit-LibreSpotAssetCacheLease -Lease $cacheLease
     }
 }

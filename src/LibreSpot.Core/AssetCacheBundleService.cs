@@ -42,6 +42,7 @@ public sealed class AssetCacheBundleService
         ArgumentException.ThrowIfNullOrWhiteSpace(productVersion);
 
         var cacheRoot = Path.GetFullPath(cacheDirectory);
+        using var cacheLease = AssetCacheLease.Acquire(cacheRoot);
         var indexPath = Path.Combine(cacheRoot, "asset-cache-index.json");
         var entries = ReadCompleteIndex(indexPath, cacheRoot);
         var totalBytes = entries.Sum(entry => entry.ByteSize);
@@ -181,6 +182,7 @@ public sealed class AssetCacheBundleService
                 using (var destination = new FileStream(stagedPath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
                 {
                     CopyExactly(source, destination, entry.ByteSize);
+                    destination.Flush(flushToDisk: true);
                 }
 
                 var observedHash = ComputeSha256(stagedPath);
@@ -190,6 +192,7 @@ public sealed class AssetCacheBundleService
                 }
             }
 
+            using var cacheLease = AssetCacheLease.Acquire(cacheRoot);
             var existingEntries = ReadExistingIndexForMerge(Path.Combine(cacheRoot, "asset-cache-index.json"));
             var now = DateTimeOffset.UtcNow;
             foreach (var entry in manifest.Entries)
@@ -218,7 +221,9 @@ public sealed class AssetCacheBundleService
             }
             foreach (var entry in manifest.Entries)
             {
-                File.Copy(Path.Combine(stagingRoot, entry.Sha256), Path.Combine(replacementRoot, entry.Sha256), overwrite: true);
+                CopyFileDurably(
+                    Path.Combine(stagingRoot, entry.Sha256),
+                    Path.Combine(replacementRoot, entry.Sha256));
             }
 
             WriteIndexAtomically(replacementRoot, existingEntries.Values.OrderBy(entry => entry.Sha256, StringComparer.Ordinal).ToArray(), now);
@@ -550,6 +555,14 @@ public sealed class AssetCacheBundleService
                 File.Copy(sourcePath, destinationPath, overwrite: false);
             }
         }
+    }
+
+    private static void CopyFileDurably(string sourcePath, string destinationPath)
+    {
+        using var source = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        using var destination = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None);
+        source.CopyTo(destination);
+        destination.Flush(flushToDisk: true);
     }
 
     private void CommitPreparedCache(string cacheRoot, string replacementRoot, string rollbackRoot)

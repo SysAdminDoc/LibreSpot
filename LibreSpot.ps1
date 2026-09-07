@@ -9150,6 +9150,8 @@ function Export-LibreSpotAssetCacheBundle {
         [string]$ProductVersion = 'unknown'
     )
 
+    $cacheLease = Enter-LibreSpotAssetCacheLease -CacheDirectory $global:CACHE_DIR -Label 'asset-cache bundle export'
+    try {
     $maxIndexBytes = 4MB
     $maxEntryCount = 2048
     $maxAssetBytes = 1GB
@@ -9325,6 +9327,9 @@ function Export-LibreSpotAssetCacheBundle {
             }
         }
     }
+    } finally {
+        Exit-LibreSpotAssetCacheLease -Lease $cacheLease
+    }
 }
 
 function Import-LibreSpotAssetCacheBundle {
@@ -9363,6 +9368,7 @@ function Import-LibreSpotAssetCacheBundle {
 
     $archive = $null
     $file = $null
+    $cacheLease = $null
     try {
         Add-Type -AssemblyName System.IO.Compression -ErrorAction Stop
         $file = [System.IO.File]::Open($resolvedBundle, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::Read)
@@ -9501,6 +9507,7 @@ function Import-LibreSpotAssetCacheBundle {
             $destination = [System.IO.File]::Open($stagedPath, [System.IO.FileMode]::CreateNew, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
             try {
                 $source.CopyTo($destination)
+                $destination.Flush($true)
             } finally {
                 $destination.Dispose()
                 $source.Dispose()
@@ -9511,7 +9518,8 @@ function Import-LibreSpotAssetCacheBundle {
             }
         }
 
-        $indexPath = Join-Path $global:CACHE_DIR 'asset-cache-index.json'
+        $cacheLease = Enter-LibreSpotAssetCacheLease -CacheDirectory $resolvedCache -Label 'asset-cache bundle import'
+        $indexPath = Join-Path $resolvedCache 'asset-cache-index.json'
         $existingEntries = @()
         if (Test-Path -LiteralPath $indexPath -PathType Leaf) {
             $indexInfo = Get-Item -LiteralPath $indexPath -Force
@@ -9575,7 +9583,21 @@ function Import-LibreSpotAssetCacheBundle {
         }
 
         foreach ($entry in $normalizedEntries) {
-            [System.IO.File]::Copy((Join-Path $stagingRoot $entry.sha256), (Join-Path $replacementRoot $entry.sha256), $true)
+            $sourcePath = Join-Path $stagingRoot $entry.sha256
+            $destinationPath = Join-Path $replacementRoot $entry.sha256
+            Write-LibreSpotAssetCacheFileAtomically -DestinationPath $destinationPath -Writer {
+                param($stream)
+                $source = [System.IO.File]::Open(
+                    $sourcePath,
+                    [System.IO.FileMode]::Open,
+                    [System.IO.FileAccess]::Read,
+                    [System.IO.FileShare]::Read)
+                try {
+                    $source.CopyTo($stream)
+                } finally {
+                    $source.Dispose()
+                }
+            }
         }
 
         $indexDocument = [ordered]@{
@@ -9584,7 +9606,13 @@ function Import-LibreSpotAssetCacheBundle {
             entries        = @($mergedEntries)
         }
         $replacementIndex = Join-Path $replacementRoot 'asset-cache-index.json'
-        [System.IO.File]::WriteAllText($replacementIndex, ($indexDocument | ConvertTo-Json -Depth 8), [System.Text.UTF8Encoding]::new($false))
+        $indexJson = $indexDocument | ConvertTo-Json -Depth 8
+        $utf8 = [System.Text.UTF8Encoding]::new($false)
+        Write-LibreSpotAssetCacheFileAtomically -DestinationPath $replacementIndex -Writer {
+            param($stream)
+            $bytes = $utf8.GetBytes($indexJson)
+            $stream.Write($bytes, 0, $bytes.Length)
+        }
 
         $archive.Dispose()
         $archive = $null
@@ -9629,6 +9657,9 @@ function Import-LibreSpotAssetCacheBundle {
             ExternalRequirement   = $requirement
         }
     } finally {
+        if ($cacheLease) {
+            Exit-LibreSpotAssetCacheLease -Lease $cacheLease
+        }
         if ($null -ne $archive) { $archive.Dispose() }
         if ($null -ne $file) { $file.Dispose() }
         if (Test-Path -LiteralPath $stagingRoot -PathType Container) {
@@ -9636,6 +9667,161 @@ function Import-LibreSpotAssetCacheBundle {
         }
         if (Test-Path -LiteralPath $replacementRoot -PathType Container) {
             Remove-Item -LiteralPath $replacementRoot -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
+function Enter-LibreSpotAssetCacheLease {
+    [CmdletBinding()]
+    param(
+        [string]$CacheDirectory = $global:CACHE_DIR,
+        [string]$Label = 'asset-cache',
+        [ValidateRange(1, 3600)][int]$TimeoutSeconds = 30,
+        [ValidateRange(10, 5000)][int]$RetryMilliseconds = 50
+    )
+
+    if ([string]::IsNullOrWhiteSpace($CacheDirectory)) {
+        throw 'LibreSpot could not resolve the asset-cache directory for its shared lease.'
+    }
+
+    $resolvedCache = [System.IO.Path]::GetFullPath($CacheDirectory)
+    $parent = [System.IO.Path]::GetDirectoryName($resolvedCache)
+    if ([string]::IsNullOrWhiteSpace($parent)) {
+        throw 'LibreSpot could not resolve the asset-cache parent directory for its shared lease.'
+    }
+    if (-not (Test-Path -LiteralPath $parent -PathType Container)) {
+        New-Item -Path $parent -ItemType Directory -Force -ErrorAction Stop | Out-Null
+    }
+
+    $leasePath = Join-Path $parent '.asset-cache.lock'
+    if ($null -eq $global:LibreSpotAssetCacheLeases) {
+        $global:LibreSpotAssetCacheLeases = @{}
+    }
+    $existing = $global:LibreSpotAssetCacheLeases[$leasePath]
+    if ($null -ne $existing) {
+        $existing.Depth = [int]$existing.Depth + 1
+        return [pscustomobject]@{ Key = $leasePath; Reentrant = $true; Label = $Label }
+    }
+
+    $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
+    $stream = $null
+    while ($null -eq $stream) {
+        try {
+            $stream = [System.IO.File]::Open(
+                $leasePath,
+                [System.IO.FileMode]::OpenOrCreate,
+                [System.IO.FileAccess]::ReadWrite,
+                [System.IO.FileShare]::None)
+        } catch [System.IO.IOException] {
+            if ([DateTime]::UtcNow -ge $deadline) {
+                throw "LIBRESPOT_ASSET_CACHE_BUSY: Another LibreSpot operation is using the asset cache. '$Label' was deferred without changing cached assets."
+            }
+            Start-Sleep -Milliseconds $RetryMilliseconds
+        } catch {
+            throw "LibreSpot could not open its shared asset-cache lease: $($_.Exception.Message)"
+        }
+    }
+
+    $global:LibreSpotAssetCacheLeases[$leasePath] = [pscustomobject]@{
+        Stream = $stream
+        Depth = 1
+    }
+    return [pscustomobject]@{ Key = $leasePath; Reentrant = $false; Label = $Label }
+}
+
+function Exit-LibreSpotAssetCacheLease {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)]$Lease)
+
+    if ($null -eq $global:LibreSpotAssetCacheLeases -or
+        $null -eq $Lease -or
+        [string]::IsNullOrWhiteSpace([string]$Lease.Key)) {
+        return
+    }
+
+    $state = $global:LibreSpotAssetCacheLeases[[string]$Lease.Key]
+    if ($null -eq $state) {
+        return
+    }
+
+    $state.Depth = [int]$state.Depth - 1
+    if ($state.Depth -gt 0) {
+        return
+    }
+
+    $global:LibreSpotAssetCacheLeases.Remove([string]$Lease.Key)
+    try { $state.Stream.Dispose() } catch {}
+}
+
+function Write-LibreSpotAssetCacheFileAtomically {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$DestinationPath,
+
+        [Parameter(Mandatory = $true)]
+        [scriptblock]$Writer,
+
+        [scriptblock]$Validator
+    )
+
+    if ([string]::IsNullOrWhiteSpace($DestinationPath)) {
+        throw 'The asset-cache destination path is required.'
+    }
+
+    $resolvedDestination = [System.IO.Path]::GetFullPath($DestinationPath)
+    $parent = [System.IO.Path]::GetDirectoryName($resolvedDestination)
+    if ([string]::IsNullOrWhiteSpace($parent)) {
+        throw 'The asset-cache destination path has no parent directory.'
+    }
+    if (-not (Test-Path -LiteralPath $parent -PathType Container)) {
+        New-Item -Path $parent -ItemType Directory -Force -ErrorAction Stop | Out-Null
+    }
+
+    $existingDestination = Get-Item -LiteralPath $resolvedDestination -Force -ErrorAction SilentlyContinue
+    if ($existingDestination -and (($existingDestination.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0)) {
+        throw "The asset-cache destination is a reparse point: $resolvedDestination"
+    }
+
+    $temporaryPath = Join-Path $parent ('.asset-cache-write-' + [guid]::NewGuid().ToString('N') + '.tmp')
+    $stream = $null
+    try {
+        $stream = [System.IO.File]::Open(
+            $temporaryPath,
+            [System.IO.FileMode]::CreateNew,
+            [System.IO.FileAccess]::Write,
+            [System.IO.FileShare]::None)
+        try {
+            & $Writer $stream
+            $stream.Flush($true)
+        } finally {
+            $stream.Dispose()
+            $stream = $null
+        }
+
+        if ($null -ne $Validator) {
+            & $Validator $temporaryPath
+        }
+
+        if ([System.IO.File]::Exists($resolvedDestination)) {
+            $backupPath = $temporaryPath + '.bak'
+            try {
+                [System.IO.File]::Replace($temporaryPath, $resolvedDestination, $backupPath, $true)
+            } finally {
+                if ([System.IO.File]::Exists($backupPath)) {
+                    try { [System.IO.File]::Delete($backupPath) } catch {}
+                }
+            }
+        } else {
+            [System.IO.File]::Move($temporaryPath, $resolvedDestination)
+        }
+        $temporaryPath = $null
+    } finally {
+        if ($null -ne $stream) {
+            try { $stream.Dispose() } catch {}
+        }
+        if ($temporaryPath -and [System.IO.File]::Exists($temporaryPath)) {
+            try { [System.IO.File]::Delete($temporaryPath) } catch {}
         }
     }
 }
@@ -9649,14 +9835,21 @@ function Update-AssetCacheIndexEntry {
         [string]$Status = 'present',
         [switch]$MarkUsed,
         [switch]$MarkVerified,
-        [string]$QuarantinedPath = ''
+        [string]$QuarantinedPath = '',
+        [object]$CacheLease = $null
     )
 
     if ([string]::IsNullOrWhiteSpace($SHA256Hash)) { return }
     $hash = $SHA256Hash.ToLowerInvariant()
     if ($hash.Length -ne 64) { return }
 
+    $ownsLease = $false
     try {
+        if ($null -eq $CacheLease) {
+            $CacheLease = Enter-LibreSpotAssetCacheLease -CacheDirectory $global:CACHE_DIR -Label 'asset-cache index update'
+            $ownsLease = $true
+        }
+
         if (-not (Test-Path -LiteralPath $global:CACHE_DIR -PathType Container)) {
             New-Item -Path $global:CACHE_DIR -ItemType Directory -Force | Out-Null
         }
@@ -9667,11 +9860,31 @@ function Update-AssetCacheIndexEntry {
         if (Test-Path -LiteralPath $indexPath -PathType Leaf) {
             try {
                 $existingDoc = Get-Content -LiteralPath $indexPath -Raw -Encoding UTF8 | ConvertFrom-Json -ErrorAction Stop
-                if ($existingDoc.entries) {
-                    $entries = @($existingDoc.entries)
+                if ($null -eq $existingDoc -or [int]$existingDoc.schemaVersion -ne 1) {
+                    throw 'The asset-cache index uses an unsupported schema version.'
+                }
+                $entriesProperty = $existingDoc.PSObject.Properties['entries']
+                if ($null -eq $entriesProperty -or $null -eq $entriesProperty.Value) {
+                    throw 'The asset-cache index has no entries array.'
+                }
+                $entries = @($entriesProperty.Value)
+                if ($entries.Count -gt 2048) {
+                    throw 'The asset-cache index contains too many entries.'
+                }
+                $knownHashes = @{}
+                foreach ($entry in $entries) {
+                    $entryHash = ([string]$entry.sha256).ToLowerInvariant()
+                    if ($entryHash -notmatch '\A[0-9a-f]{64}\z' -or $knownHashes.ContainsKey($entryHash)) {
+                        throw 'The asset-cache index contains an invalid or duplicate SHA256 value.'
+                    }
+                    if ([string]::IsNullOrWhiteSpace([string]$entry.label) -or ([string]$entry.label).Length -gt 256) {
+                        throw "The asset-cache index entry $entryHash has an invalid label."
+                    }
+                    $knownHashes[$entryHash] = $true
                 }
             } catch {
-                $entries = @()
+                try { Write-Log "  Asset cache index is corrupt and was retained: $($_.Exception.Message)" -Level 'WARN' } catch {}
+                return
             }
         }
 
@@ -9708,9 +9921,18 @@ function Update-AssetCacheIndexEntry {
         }
 
         $utf8 = New-Object System.Text.UTF8Encoding($false)
-        [System.IO.File]::WriteAllText($indexPath, ($doc | ConvertTo-Json -Depth 8), $utf8)
+        $json = $doc | ConvertTo-Json -Depth 8
+        Write-LibreSpotAssetCacheFileAtomically -DestinationPath $indexPath -Writer {
+            param($stream)
+            $bytes = $utf8.GetBytes($json)
+            $stream.Write($bytes, 0, $bytes.Length)
+        }
     } catch {
         try { Write-Log "  Asset cache index update failed: $($_.Exception.Message)" -Level 'WARN' } catch {}
+    } finally {
+        if ($ownsLease -and $null -ne $CacheLease) {
+            Exit-LibreSpotAssetCacheLease -Lease $CacheLease
+        }
     }
 }
 
@@ -9718,17 +9940,41 @@ function Save-ToAssetCache { param([string]$SourcePath, [string]$SHA256Hash, [st
     if ([string]::IsNullOrWhiteSpace($SHA256Hash)) { return }
     $hash = $SHA256Hash.ToLowerInvariant()
     if ($hash.Length -ne 64) { return }
+    $cacheLease = $null
     try {
+        $cacheLease = Enter-LibreSpotAssetCacheLease -CacheDirectory $global:CACHE_DIR -Label "asset-cache save: $Label"
         if (-not (Test-Path -LiteralPath $global:CACHE_DIR -PathType Container)) {
             New-Item -Path $global:CACHE_DIR -ItemType Directory -Force | Out-Null
         }
         $cachePath = Join-Path $global:CACHE_DIR $hash
-        Copy-Item -LiteralPath $SourcePath -Destination $cachePath -Force
+        Write-LibreSpotAssetCacheFileAtomically -DestinationPath $cachePath -Writer {
+            param($stream)
+            $source = [System.IO.File]::Open(
+                $SourcePath,
+                [System.IO.FileMode]::Open,
+                [System.IO.FileAccess]::Read,
+                [System.IO.FileShare]::Read)
+            try {
+                $source.CopyTo($stream)
+            } finally {
+                $source.Dispose()
+            }
+        } -Validator {
+            param($stagedPath)
+            $observedHash = Get-FileSha256Lower -Path $stagedPath
+            if ($observedHash -cne $hash) {
+                throw "Cached asset $hash failed SHA256 verification before publication. Observed $observedHash."
+            }
+        }
         $byteSize = (Get-Item -LiteralPath $cachePath).Length
-        Update-AssetCacheIndexEntry -SHA256Hash $hash -Label $Label -SourceUrl $SourceUrl -ByteSize $byteSize -Status 'present' -MarkVerified -MarkUsed
+        Update-AssetCacheIndexEntry -SHA256Hash $hash -Label $Label -SourceUrl $SourceUrl -ByteSize $byteSize -Status 'present' -MarkVerified -MarkUsed -CacheLease $cacheLease
         Write-Log "  Cached verified asset (SHA256: $hash)"
     } catch {
         Write-Log "  Asset cache save failed: $($_.Exception.Message)" -Level 'WARN'
+    } finally {
+        if ($cacheLease) {
+            Exit-LibreSpotAssetCacheLease -Lease $cacheLease
+        }
     }
 }
 
@@ -9736,12 +9982,15 @@ function Get-FromAssetCache { param([string]$SHA256Hash, [string]$DestinationPat
     if ([string]::IsNullOrWhiteSpace($SHA256Hash)) { return $false }
     $hash = $SHA256Hash.ToLowerInvariant()
     if ($hash.Length -ne 64) { return $false }
-    $cachePath = Join-Path $global:CACHE_DIR $hash
-    if (-not (Test-Path -LiteralPath $cachePath -PathType Leaf)) {
-        Write-Log "  Cache miss for $Label (SHA256: $hash)"
-        return $false
-    }
+    $cacheLease = $null
     try {
+        $cacheLease = Enter-LibreSpotAssetCacheLease -CacheDirectory $global:CACHE_DIR -Label "asset-cache read: $Label"
+        $cachePath = Join-Path $global:CACHE_DIR $hash
+        if (-not (Test-Path -LiteralPath $cachePath -PathType Leaf)) {
+            Write-Log "  Cache miss for $Label (SHA256: $hash)"
+            return $false
+        }
+
         $actual = Get-FileSha256Lower -Path $cachePath
         if ($actual -ne $hash) {
             Write-Log "  Cached asset for $Label failed re-verification (expected $hash, got $actual). Quarantining stale entry." -Level 'WARN'
@@ -9752,7 +10001,7 @@ function Get-FromAssetCache { param([string]$SHA256Hash, [string]$DestinationPat
             }
             $quarantinePath = Join-Path $corruptDirectory ("$hash-" + (Get-Date).ToUniversalTime().ToString('yyyyMMddHHmmss') + '.bad')
             Move-Item -LiteralPath $cachePath -Destination $quarantinePath -Force -ErrorAction SilentlyContinue
-            Update-AssetCacheIndexEntry -SHA256Hash $hash -Label $Label -ByteSize $byteSize -Status 'corrupt' -MarkVerified -QuarantinedPath $quarantinePath
+            Update-AssetCacheIndexEntry -SHA256Hash $hash -Label $Label -ByteSize $byteSize -Status 'corrupt' -MarkVerified -QuarantinedPath $quarantinePath -CacheLease $cacheLease
             Write-OperationJournalEntry -Phase 'cache' -Target $cachePath -SafetyDecision 'Allowed' -Result 'Quarantined' -WouldChange $true -Reversible $false -RollbackHint 'The corrupt cached asset was moved aside and will be downloaded again on demand.' -Data @{
                 label = $Label
                 expectedSha256 = $hash
@@ -9767,31 +10016,38 @@ function Get-FromAssetCache { param([string]$SHA256Hash, [string]$DestinationPat
         }
         Copy-Item -LiteralPath $cachePath -Destination $DestinationPath -Force
         $byteSize = (Get-Item -LiteralPath $cachePath).Length
-        Update-AssetCacheIndexEntry -SHA256Hash $hash -Label $Label -ByteSize $byteSize -Status 'present' -MarkVerified -MarkUsed
+        Update-AssetCacheIndexEntry -SHA256Hash $hash -Label $Label -ByteSize $byteSize -Status 'present' -MarkVerified -MarkUsed -CacheLease $cacheLease
         Write-Log "  Using verified cached copy for $Label (SHA256: $hash)"
         return $true
     } catch {
         Write-Log "  Cache retrieval failed for ${Label}: $($_.Exception.Message)" -Level 'WARN'
         return $false
+    } finally {
+        if ($cacheLease) {
+            Exit-LibreSpotAssetCacheLease -Lease $cacheLease
+        }
     }
 }
 
 function Clear-LibreSpotCache {
     [CmdletBinding(SupportsShouldProcess)]
     param()
-    if (-not (Test-Path -LiteralPath $global:CACHE_DIR -PathType Container)) {
-        Write-Log 'Asset cache directory does not exist. Nothing to clear.'
-        return
-    }
     if ($PSCmdlet.ShouldProcess($global:CACHE_DIR, 'Clear asset cache')) {
-        $cacheFiles = @(Get-ChildItem -LiteralPath $global:CACHE_DIR -File -Recurse -ErrorAction SilentlyContinue)
-        $byteMeasure = $cacheFiles | Measure-Object -Property Length -Sum
-        $totalBytes = if ($null -eq $byteMeasure.Sum) { [int64]0 } else { [int64]$byteMeasure.Sum }
-        Write-OperationJournalEntry -Phase 'cache' -Target $global:CACHE_DIR -SafetyDecision 'Allowed' -Result 'Planned' -WouldChange $true -Reversible $false -RollbackHint 'Cache will be rebuilt automatically on next download.' -Data @{
-            fileCount = $cacheFiles.Count
-            totalBytes = $totalBytes
-        }
+        $cacheLease = $null
         try {
+            $cacheLease = Enter-LibreSpotAssetCacheLease -CacheDirectory $global:CACHE_DIR -Label 'asset-cache clear'
+            if (-not (Test-Path -LiteralPath $global:CACHE_DIR -PathType Container)) {
+                Write-Log 'Asset cache directory does not exist. Nothing to clear.'
+                return
+            }
+
+            $cacheFiles = @(Get-ChildItem -LiteralPath $global:CACHE_DIR -File -Recurse -ErrorAction SilentlyContinue)
+            $byteMeasure = $cacheFiles | Measure-Object -Property Length -Sum
+            $totalBytes = if ($null -eq $byteMeasure.Sum) { [int64]0 } else { [int64]$byteMeasure.Sum }
+            Write-OperationJournalEntry -Phase 'cache' -Target $global:CACHE_DIR -SafetyDecision 'Allowed' -Result 'Planned' -WouldChange $true -Reversible $false -RollbackHint 'Cache will be rebuilt automatically on next download.' -Data @{
+                fileCount = $cacheFiles.Count
+                totalBytes = $totalBytes
+            }
             Remove-Item -LiteralPath $global:CACHE_DIR -Recurse -Force -ErrorAction Stop
             Write-OperationJournalEntry -Phase 'cache' -Target $global:CACHE_DIR -SafetyDecision 'Allowed' -Result 'Cleared' -WouldChange $true -Reversible $false -RollbackHint 'Cache will be rebuilt automatically on next download.' -Data @{
                 fileCount = $cacheFiles.Count
@@ -9800,6 +10056,10 @@ function Clear-LibreSpotCache {
             Write-Log "Asset cache cleared ($($cacheFiles.Count) file(s), $totalBytes bytes)."
         } catch {
             Write-Log "Failed to clear asset cache: $($_.Exception.Message)" -Level 'WARN'
+        } finally {
+            if ($cacheLease) {
+                Exit-LibreSpotAssetCacheLease -Lease $cacheLease
+            }
         }
     }
 }
@@ -13773,7 +14033,7 @@ function Resolve-LibreSpotPackageTransaction {
 $functionNamesForWorker = @(
     'ConvertTo-PlainHashtable','ConvertTo-ConfigBoolean','ConvertTo-ConfigInt','Get-LibreSpotConfigSchemaVersion','Assert-LibreSpotConfigSchemaSupported','Normalize-LibreSpotConfig','Move-ConfigFileToQuarantine',
     'Get-LibreSpotTempRoot','New-LibreSpotTempFile','New-SpotXCustomPatchesFile','New-LibreSpotTempDirectory',
-    'Update-UI','Write-Log','Write-OperationJournalEntry','Start-OperationJournalRun','Complete-OperationJournalRun','Download-FileSafe','Get-DownloadFailureHint','Get-NetworkDiagnosticCode','Get-NetworkPreflightStatus','Get-DownloaderCveExposure','Write-DownloaderCveWarningIfNeeded','Get-PowerShell7SecurityFloorStatus','Write-PowerShell7SecurityFloorWarningIfNeeded','Get-PowerShellSecurityContext','Write-PowerShellSecurityContext','Test-IsLanguageModeOrAppControlError','Get-QuarantineGuidance','Assert-LibreSpotExternalScriptDefenderPolicy','Open-VerifiedScriptForExecution','Get-FileSha256Lower','Confirm-FileHash','Update-AssetCacheIndexEntry','Save-ToAssetCache','Get-FromAssetCache','Clear-LibreSpotCache','Expand-ArchiveSafely','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Start-LibreSpotOwnedProcess','Read-ProcessOutputDelta','Test-NetworkReady','Invoke-GitHubApiSafe','Check-ForUpdates','Compare-LibreSpotVersions','Get-LibreSpotCurrentSpotifyTarget','Get-LibreSpotCompatibilityWarnings','Write-LibreSpotCompatibilityMatrix',
+    'Update-UI','Write-Log','Write-OperationJournalEntry','Start-OperationJournalRun','Complete-OperationJournalRun','Download-FileSafe','Get-DownloadFailureHint','Get-NetworkDiagnosticCode','Get-NetworkPreflightStatus','Get-DownloaderCveExposure','Write-DownloaderCveWarningIfNeeded','Get-PowerShell7SecurityFloorStatus','Write-PowerShell7SecurityFloorWarningIfNeeded','Get-PowerShellSecurityContext','Write-PowerShellSecurityContext','Test-IsLanguageModeOrAppControlError','Get-QuarantineGuidance','Assert-LibreSpotExternalScriptDefenderPolicy','Open-VerifiedScriptForExecution','Get-FileSha256Lower','Confirm-FileHash','Enter-LibreSpotAssetCacheLease','Exit-LibreSpotAssetCacheLease','Write-LibreSpotAssetCacheFileAtomically','Update-AssetCacheIndexEntry','Save-ToAssetCache','Get-FromAssetCache','Clear-LibreSpotCache','Expand-ArchiveSafely','Hide-SpotifyWindows','Invoke-ExternalScriptIsolated','Start-LibreSpotOwnedProcess','Read-ProcessOutputDelta','Test-NetworkReady','Invoke-GitHubApiSafe','Check-ForUpdates','Compare-LibreSpotVersions','Get-LibreSpotCurrentSpotifyTarget','Get-LibreSpotCompatibilityWarnings','Write-LibreSpotCompatibilityMatrix',
     'Get-SpotXChildFailureClassification','Get-SpotXDownloadRetryPlan','Stop-SpotifyProcesses','Unlock-SpotifyUpdateFolder','Get-DesktopPath','Test-SafeRemovalTarget','Clear-DirectoryContentsSafely','Remove-PathSafely','Enter-LibreSpotMutationLease','Exit-LibreSpotMutationLease',
     'Get-SpicetifyIntegrationContext','Get-SpicetifyV3Conflict','Get-SpicetifyConfigEntries','Get-SpicetifyConfigListValue','Get-SpicetifyApplyPlan','Get-MarketplaceHealth','ConvertTo-NativeArgumentString','Remove-ConsoleEscapeSequences','Update-SpicetifyCliProgress','Write-SpicetifyCliOutputLine','Invoke-SpicetifyCli','Sync-SpicetifyListSetting','Copy-DirectorySnapshotSafely','Get-LibreSpotPackageFingerprint','Remove-LibreSpotPackagePathSafely','Test-LibreSpotPackageTransactionPath','Invoke-LibreSpotPackageTransaction','Resolve-LibreSpotPackageTransaction',
     'Test-SpicetifyCliInstalled','Restore-SpotifyIfSpicetifyPresent','Get-SpicetifyDiagnosticSnapshot','Reapply-SavedSpicetifySetup',

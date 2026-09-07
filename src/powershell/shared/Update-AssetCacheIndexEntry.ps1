@@ -7,14 +7,21 @@ function Update-AssetCacheIndexEntry {
         [string]$Status = 'present',
         [switch]$MarkUsed,
         [switch]$MarkVerified,
-        [string]$QuarantinedPath = ''
+        [string]$QuarantinedPath = '',
+        [object]$CacheLease = $null
     )
 
     if ([string]::IsNullOrWhiteSpace($SHA256Hash)) { return }
     $hash = $SHA256Hash.ToLowerInvariant()
     if ($hash.Length -ne 64) { return }
 
+    $ownsLease = $false
     try {
+        if ($null -eq $CacheLease) {
+            $CacheLease = Enter-LibreSpotAssetCacheLease -CacheDirectory $global:CACHE_DIR -Label 'asset-cache index update'
+            $ownsLease = $true
+        }
+
         if (-not (Test-Path -LiteralPath $global:CACHE_DIR -PathType Container)) {
             New-Item -Path $global:CACHE_DIR -ItemType Directory -Force | Out-Null
         }
@@ -25,11 +32,31 @@ function Update-AssetCacheIndexEntry {
         if (Test-Path -LiteralPath $indexPath -PathType Leaf) {
             try {
                 $existingDoc = Get-Content -LiteralPath $indexPath -Raw -Encoding UTF8 | ConvertFrom-Json -ErrorAction Stop
-                if ($existingDoc.entries) {
-                    $entries = @($existingDoc.entries)
+                if ($null -eq $existingDoc -or [int]$existingDoc.schemaVersion -ne 1) {
+                    throw 'The asset-cache index uses an unsupported schema version.'
+                }
+                $entriesProperty = $existingDoc.PSObject.Properties['entries']
+                if ($null -eq $entriesProperty -or $null -eq $entriesProperty.Value) {
+                    throw 'The asset-cache index has no entries array.'
+                }
+                $entries = @($entriesProperty.Value)
+                if ($entries.Count -gt 2048) {
+                    throw 'The asset-cache index contains too many entries.'
+                }
+                $knownHashes = @{}
+                foreach ($entry in $entries) {
+                    $entryHash = ([string]$entry.sha256).ToLowerInvariant()
+                    if ($entryHash -notmatch '\A[0-9a-f]{64}\z' -or $knownHashes.ContainsKey($entryHash)) {
+                        throw 'The asset-cache index contains an invalid or duplicate SHA256 value.'
+                    }
+                    if ([string]::IsNullOrWhiteSpace([string]$entry.label) -or ([string]$entry.label).Length -gt 256) {
+                        throw "The asset-cache index entry $entryHash has an invalid label."
+                    }
+                    $knownHashes[$entryHash] = $true
                 }
             } catch {
-                $entries = @()
+                try { Write-Log "  Asset cache index is corrupt and was retained: $($_.Exception.Message)" -Level 'WARN' } catch {}
+                return
             }
         }
 
@@ -66,8 +93,17 @@ function Update-AssetCacheIndexEntry {
         }
 
         $utf8 = New-Object System.Text.UTF8Encoding($false)
-        [System.IO.File]::WriteAllText($indexPath, ($doc | ConvertTo-Json -Depth 8), $utf8)
+        $json = $doc | ConvertTo-Json -Depth 8
+        Write-LibreSpotAssetCacheFileAtomically -DestinationPath $indexPath -Writer {
+            param($stream)
+            $bytes = $utf8.GetBytes($json)
+            $stream.Write($bytes, 0, $bytes.Length)
+        }
     } catch {
         try { Write-Log "  Asset cache index update failed: $($_.Exception.Message)" -Level 'WARN' } catch {}
+    } finally {
+        if ($ownsLease -and $null -ne $CacheLease) {
+            Exit-LibreSpotAssetCacheLease -Lease $CacheLease
+        }
     }
 }

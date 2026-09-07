@@ -2,12 +2,15 @@ function Get-FromAssetCache { param([string]$SHA256Hash, [string]$DestinationPat
     if ([string]::IsNullOrWhiteSpace($SHA256Hash)) { return $false }
     $hash = $SHA256Hash.ToLowerInvariant()
     if ($hash.Length -ne 64) { return $false }
-    $cachePath = Join-Path $global:CACHE_DIR $hash
-    if (-not (Test-Path -LiteralPath $cachePath -PathType Leaf)) {
-        Write-Log "  Cache miss for $Label (SHA256: $hash)"
-        return $false
-    }
+    $cacheLease = $null
     try {
+        $cacheLease = Enter-LibreSpotAssetCacheLease -CacheDirectory $global:CACHE_DIR -Label "asset-cache read: $Label"
+        $cachePath = Join-Path $global:CACHE_DIR $hash
+        if (-not (Test-Path -LiteralPath $cachePath -PathType Leaf)) {
+            Write-Log "  Cache miss for $Label (SHA256: $hash)"
+            return $false
+        }
+
         $actual = Get-FileSha256Lower -Path $cachePath
         if ($actual -ne $hash) {
             Write-Log "  Cached asset for $Label failed re-verification (expected $hash, got $actual). Quarantining stale entry." -Level 'WARN'
@@ -18,7 +21,7 @@ function Get-FromAssetCache { param([string]$SHA256Hash, [string]$DestinationPat
             }
             $quarantinePath = Join-Path $corruptDirectory ("$hash-" + (Get-Date).ToUniversalTime().ToString('yyyyMMddHHmmss') + '.bad')
             Move-Item -LiteralPath $cachePath -Destination $quarantinePath -Force -ErrorAction SilentlyContinue
-            Update-AssetCacheIndexEntry -SHA256Hash $hash -Label $Label -ByteSize $byteSize -Status 'corrupt' -MarkVerified -QuarantinedPath $quarantinePath
+            Update-AssetCacheIndexEntry -SHA256Hash $hash -Label $Label -ByteSize $byteSize -Status 'corrupt' -MarkVerified -QuarantinedPath $quarantinePath -CacheLease $cacheLease
             Write-OperationJournalEntry -Phase 'cache' -Target $cachePath -SafetyDecision 'Allowed' -Result 'Quarantined' -WouldChange $true -Reversible $false -RollbackHint 'The corrupt cached asset was moved aside and will be downloaded again on demand.' -Data @{
                 label = $Label
                 expectedSha256 = $hash
@@ -33,11 +36,15 @@ function Get-FromAssetCache { param([string]$SHA256Hash, [string]$DestinationPat
         }
         Copy-Item -LiteralPath $cachePath -Destination $DestinationPath -Force
         $byteSize = (Get-Item -LiteralPath $cachePath).Length
-        Update-AssetCacheIndexEntry -SHA256Hash $hash -Label $Label -ByteSize $byteSize -Status 'present' -MarkVerified -MarkUsed
+        Update-AssetCacheIndexEntry -SHA256Hash $hash -Label $Label -ByteSize $byteSize -Status 'present' -MarkVerified -MarkUsed -CacheLease $cacheLease
         Write-Log "  Using verified cached copy for $Label (SHA256: $hash)"
         return $true
     } catch {
         Write-Log "  Cache retrieval failed for ${Label}: $($_.Exception.Message)" -Level 'WARN'
         return $false
+    } finally {
+        if ($cacheLease) {
+            Exit-LibreSpotAssetCacheLease -Lease $cacheLease
+        }
     }
 }

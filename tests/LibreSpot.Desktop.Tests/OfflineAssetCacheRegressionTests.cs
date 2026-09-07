@@ -212,6 +212,9 @@ $sharedRoot = Join-Path $RepoRoot 'src\powershell\shared'
 foreach ($name in @(
     'Get-FileSha256Lower',
     'Confirm-FileHash',
+    'Enter-LibreSpotAssetCacheLease',
+    'Exit-LibreSpotAssetCacheLease',
+    'Write-LibreSpotAssetCacheFileAtomically',
     'Export-LibreSpotAssetCacheBundle',
     'Import-LibreSpotAssetCacheBundle',
     'Update-AssetCacheIndexEntry',

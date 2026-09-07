@@ -2292,6 +2292,7 @@ public sealed class EnvironmentSnapshotService
     private static AssetCacheInventoryReport ReadAssetCacheInventory(string configDirectory)
     {
         var cacheDirectory = Path.Combine(configDirectory, "cache");
+        using var cacheLease = AssetCacheLease.Acquire(cacheDirectory);
         var indexPath = Path.Combine(cacheDirectory, "asset-cache-index.json");
         var entries = new List<AssetCacheEntryState>();
         var indexedHashes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

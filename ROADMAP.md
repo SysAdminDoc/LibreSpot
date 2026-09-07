@@ -8,13 +8,6 @@ Incomplete, implementer-actionable work only. Operator-dependent decisions remai
 
 ### P2: Next
 
-- [ ] P2: RD-236. Atomically publish cache objects and serialize index updates
-  Why: Impact 4/5. Direct object overwrites and unlocked whole-index writes can truncate files or lose another writer's entries.
-  Evidence: RESEARCH.md; Save-ToAssetCache.ps1 and Update-AssetCacheIndexEntry.ps1; C#/PowerShell import and cache-clear entry points.
-  Touches: Shared cache helpers; src/LibreSpot.Core/AssetCacheBundleService.cs; cache inventory/clear entry points in AppCatalog.cs and the PowerShell lanes; cache fixture tests.
-  Acceptance: Stage and flush objects before publication. Re-read and update the index under a shared cache lease used by both languages, import and clear-cache. Two distinct concurrent inserts must retain both verified objects and entries. Interrupted writes preserve a parseable prior index; corrupt input is retained/reported instead of silently replaced by an empty inventory. Respect RD-230 lock ordering.
-  Complexity: M
-
 - [ ] P2: RD-237. Recover cache directory swaps after process death
   Why: Impact 4/5. Existing catch-based rollback cannot run when the importer terminates between its two renames.
   Evidence: RESEARCH.md; AssetCacheBundleService.CommitPreparedCache; PowerShell bundle import; existing interruption tests throw exceptions rather than terminate a process.

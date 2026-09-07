@@ -6,6 +6,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Fixed
 
+- Asset-cache objects now stage to flushed temporary files before publication, and index updates re-read under a shared cache lease across the PowerShell and Core lanes. Concurrent saves retain both verified entries, interrupted index writes leave the prior JSON intact, and malformed indexes are retained and reported.
 - Marketplace backups and reset recovery now capture the owned `marketplace:` keys from IndexedDB and the legacy localStorage fallback, honor the pinned migration precedence, and restore or clear those backends without touching Spotify or LibreSpot keys.
 - Marketplace reset now keeps its IndexedDB request alive through a blocked or watchdog state. Health shows that the reset is still pending, disables duplicate requests, closes a late database connection after an open timeout, and reports success or a terminal error when the request actually finishes.
 - Auto-reapply watcher failures now retain the download, parameter, patch, or Spicetify application stage through cleanup. The stage is written into the failure diagnostics before the transient marker is cleared, while retry and hold behavior stays unchanged.

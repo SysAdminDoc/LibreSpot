@@ -34,6 +34,7 @@ function Import-LibreSpotAssetCacheBundle {
 
     $archive = $null
     $file = $null
+    $cacheLease = $null
     try {
         Add-Type -AssemblyName System.IO.Compression -ErrorAction Stop
         $file = [System.IO.File]::Open($resolvedBundle, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::Read)
@@ -172,6 +173,7 @@ function Import-LibreSpotAssetCacheBundle {
             $destination = [System.IO.File]::Open($stagedPath, [System.IO.FileMode]::CreateNew, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
             try {
                 $source.CopyTo($destination)
+                $destination.Flush($true)
             } finally {
                 $destination.Dispose()
                 $source.Dispose()
@@ -182,7 +184,8 @@ function Import-LibreSpotAssetCacheBundle {
             }
         }
 
-        $indexPath = Join-Path $global:CACHE_DIR 'asset-cache-index.json'
+        $cacheLease = Enter-LibreSpotAssetCacheLease -CacheDirectory $resolvedCache -Label 'asset-cache bundle import'
+        $indexPath = Join-Path $resolvedCache 'asset-cache-index.json'
         $existingEntries = @()
         if (Test-Path -LiteralPath $indexPath -PathType Leaf) {
             $indexInfo = Get-Item -LiteralPath $indexPath -Force
@@ -246,7 +249,21 @@ function Import-LibreSpotAssetCacheBundle {
         }
 
         foreach ($entry in $normalizedEntries) {
-            [System.IO.File]::Copy((Join-Path $stagingRoot $entry.sha256), (Join-Path $replacementRoot $entry.sha256), $true)
+            $sourcePath = Join-Path $stagingRoot $entry.sha256
+            $destinationPath = Join-Path $replacementRoot $entry.sha256
+            Write-LibreSpotAssetCacheFileAtomically -DestinationPath $destinationPath -Writer {
+                param($stream)
+                $source = [System.IO.File]::Open(
+                    $sourcePath,
+                    [System.IO.FileMode]::Open,
+                    [System.IO.FileAccess]::Read,
+                    [System.IO.FileShare]::Read)
+                try {
+                    $source.CopyTo($stream)
+                } finally {
+                    $source.Dispose()
+                }
+            }
         }
 
         $indexDocument = [ordered]@{
@@ -255,7 +272,13 @@ function Import-LibreSpotAssetCacheBundle {
             entries        = @($mergedEntries)
         }
         $replacementIndex = Join-Path $replacementRoot 'asset-cache-index.json'
-        [System.IO.File]::WriteAllText($replacementIndex, ($indexDocument | ConvertTo-Json -Depth 8), [System.Text.UTF8Encoding]::new($false))
+        $indexJson = $indexDocument | ConvertTo-Json -Depth 8
+        $utf8 = [System.Text.UTF8Encoding]::new($false)
+        Write-LibreSpotAssetCacheFileAtomically -DestinationPath $replacementIndex -Writer {
+            param($stream)
+            $bytes = $utf8.GetBytes($indexJson)
+            $stream.Write($bytes, 0, $bytes.Length)
+        }
 
         $archive.Dispose()
         $archive = $null
@@ -300,6 +323,9 @@ function Import-LibreSpotAssetCacheBundle {
             ExternalRequirement   = $requirement
         }
     } finally {
+        if ($cacheLease) {
+            Exit-LibreSpotAssetCacheLease -Lease $cacheLease
+        }
         if ($null -ne $archive) { $archive.Dispose() }
         if ($null -ne $file) { $file.Dispose() }
         if (Test-Path -LiteralPath $stagingRoot -PathType Container) {
