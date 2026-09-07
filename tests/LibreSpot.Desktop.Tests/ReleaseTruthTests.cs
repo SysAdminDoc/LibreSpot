@@ -185,6 +185,65 @@ public sealed class ReleaseTruthTests
     }
 
     [Fact]
+    public void ReadmeOpensWithReportedFailuresAndEveryAnchorResolves()
+    {
+        // The most-reported SpotX and Spicetify failures are all shipped
+        // LibreSpot features, and the README explained the mechanism 300 lines
+        // down. A section that sends readers to headings that do not exist is
+        // worse than no section, so every in-page link is resolved here.
+        var readme = Read("README.md");
+        var section = Section(readme, "## What keeps breaking, and what LibreSpot does about it");
+        Assert.False(string.IsNullOrWhiteSpace(section), "README.md no longer opens with the reported-failure section.");
+
+        // It has to come before the first instruction, or it is not positioning.
+        Assert.True(
+            readme.IndexOf("## What keeps breaking", StringComparison.Ordinal)
+                < readme.IndexOf("## Quick Start", StringComparison.Ordinal),
+            "The reported-failure section must sit above Quick Start.");
+
+        var threads = Regex.Matches(section, @"\]\((?<url>https://(?:github\.com|www\.reddit\.com)/[^)]+)\)")
+            .Select(match => match.Groups["url"].Value)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        Assert.True(threads.Length >= 5, $"The section cites {threads.Length} public threads; at least five failure modes are required.");
+
+        var headingSlugs = Regex.Matches(readme, @"(?m)^#{2,6} (?<title>.+)$")
+            .Select(match => GitHubSlug(match.Groups["title"].Value.Trim()))
+            .ToHashSet(StringComparer.Ordinal);
+
+        var anchors = Regex.Matches(section, @"\]\(#(?<anchor>[^)]+)\)")
+            .Select(match => match.Groups["anchor"].Value)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        Assert.True(anchors.Length >= 5, $"The section resolves {anchors.Length} in-page anchors; each failure mode needs one.");
+
+        foreach (var anchor in anchors)
+        {
+            Assert.True(
+                headingSlugs.Contains(anchor),
+                $"README anchor '#{anchor}' does not resolve to any heading in README.md.");
+        }
+    }
+
+    // GitHub's heading slug: lower-cased, punctuation dropped, spaces to
+    // hyphens. "Trust & risk disclosure" becomes "trust--risk-disclosure"
+    // because the ampersand leaves its spaces behind.
+    private static string GitHubSlug(string heading)
+    {
+        var lowered = heading.ToLowerInvariant();
+        var kept = new System.Text.StringBuilder(lowered.Length);
+        foreach (var character in lowered)
+        {
+            if (char.IsLetterOrDigit(character) || character == '-' || character == ' ' || character == '_')
+            {
+                kept.Append(character);
+            }
+        }
+
+        return kept.ToString().Replace(' ', '-');
+    }
+
+    [Fact]
     public void ReadmeExtensionCountMatchesTheInstallerData()
     {
         // README said 16 while the data files carry ten built in and five

@@ -29,13 +29,6 @@ Added 2026-09-07 from RESEARCH.md. IDs continue the RD scheme; RD-252 was the la
   Acceptance: WHEN run with network, the tool SHALL list, for every pinned extension, theme and custom app, the pinned commit, the upstream head, the commits between them with subjects, whether the asset still exists at head, and the SHA256 of the head asset, then run the existing archived, stale and evidence policies against the candidates and write a review file under `work/`; it SHALL change no pin; WHEN run offline it SHALL exit non-zero with the reason; a test SHALL feed a fixture where an asset was deleted upstream and require the tool to flag it.
   Complexity: M
 
-- [ ] P2: RD-262: Open the README with the community's own failure list, each mapped to the feature that prevents it
-  Why: the most-reported Spicetify and SpotX failures of 2025 to 2026 are all shipped LibreSpot features, and the maintainers of both upstreams now tell users not to combine them; the README explains the mechanism at line 316 but never states this on its first screen, and the project has 12 stars, 30 views in two weeks and 3 downloads of the current release.
-  Evidence: RESEARCH.md Reported Issues ranking with thread URLs; SpotX #892; cli #3922; Marketplace #111, #273, #12, #438; `README.md:1-30` (no positioning section); GitHub traffic read 2026-09-07.
-  Touches: `README.md`, `tests/LibreSpot.Desktop.Tests/ReleaseTruthTests.cs`.
-  Acceptance: a section above Quick Start SHALL list at least five failure modes, each with one public thread URL from the research and the LibreSpot feature and README anchor that addresses it, quoting issue text rather than characterizing the maintainers; a test SHALL fail when any listed README anchor does not resolve to a heading.
-  Complexity: M
-
 ### P3: Later
 
 - [ ] P3: RD-263: Cite the Smart App Control update that shipped, not the one that was pulled

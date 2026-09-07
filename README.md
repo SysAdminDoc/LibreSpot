@@ -15,6 +15,21 @@ The two badges now point at the same build. **Version** is what this source tree
 
 </div>
 
+## What keeps breaking, and what LibreSpot does about it
+
+These are the failures people actually report when they run SpotX and Spicetify by hand. Each one is a real thread, quoted, with the part of LibreSpot that handles it.
+
+| What people report | LibreSpot's answer |
+|---|---|
+| "SpotX-patched client drops xpui-snapshot.js, silently breaking Spicetify custom apps" ([SpotX #892](https://github.com/SpotX-Official/SpotX/issues/892), open) and "Custom app patches silently applied to a bundle the client never loads" ([spicetify/cli #3922](https://github.com/spicetify/cli/issues/3922), closed as not planned). Both were filed on 2026-09-07. Combining the two tools is what breaks the Marketplace and Store pages. | LibreSpot re-wires the custom-app route onto the bundle the patched client actually loads, after Spicetify applies. See [Spotify Compatibility](#spotify-compatibility). |
+| "Market place is not showing up (read it)" ([spicetify/cli #3816](https://github.com/spicetify/cli/issues/3816), 33 comments, closed as not planned) | Maintenance repairs Marketplace and can reset its storage from a copy it takes first. See [Three Modes](#three-modes). |
+| "Extensions are deleted every twice Spotify startup." ([spicetify/cli #3861](https://github.com/spicetify/cli/issues/3861), closed as not planned) | Auto-reapply watches for the Spotify update that removes your setup and puts it back. See [Auto-Reapply (new in v3.6.0)](#auto-reapply-new-in-v360). |
+| "Spotify version mismatch with Spicetify." ([spicetify/cli #3606](https://github.com/spicetify/cli/issues/3606), locked and closed as not planned) | The pinned tuple is one LibreSpot has verified end to end, and the compatibility matrix reports supported, degraded, or unsupported with a next step for each. See [Spotify Compatibility](#spotify-compatibility). |
+| "Windows Defender detects malware (false positive) when running a bat file" ([SpotX #741](https://github.com/SpotX-Official/SpotX/issues/741), 44 comments, closed as not planned) | Every download is pinned by SHA256 and verified before use, and LibreSpot holds a SpotX commit that adds no Defender exclusions. See [Trust & risk disclosure](#trust--risk-disclosure). |
+| A snippet or theme leaves Spotify unusable, and there is nothing to roll back to ([r/spicetify](https://www.reddit.com/r/spicetify/comments/1vtkqug/)) | Safe mode starts Spotify once without extensions or custom apps and restores the verified snapshot afterwards, and Full Reset returns the client to stock. See [Three Modes](#three-modes). |
+
+None of this makes Spotify Premium appear, and LibreSpot does not claim it does. Read the [capability boundary](#capability-boundary) for what stays on Spotify's side.
+
 ## Quick Start
 
 **1. Download the desktop app.** Get [LibreSpot-Desktop.exe](https://github.com/SysAdminDoc/LibreSpot/releases/latest/download/LibreSpot-Desktop.exe) and [checksums.txt](https://github.com/SysAdminDoc/LibreSpot/releases/latest/download/checksums.txt) from the [latest stable release](https://github.com/SysAdminDoc/LibreSpot/releases/latest). Both files come from the same release page, and the official repository is the only place to get them.
