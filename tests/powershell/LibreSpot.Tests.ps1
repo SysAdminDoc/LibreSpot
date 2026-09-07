@@ -5158,3 +5158,76 @@ Describe 'Catalog refresh proposal' {
         Test-Path -LiteralPath $fixture.OutputPath | Should -BeFalse -Because 'an unreachable run has nothing to propose'
     }
 }
+
+Describe 'Release executable version gate' {
+    BeforeAll {
+        # The function is defined in a script that runs a whole build when
+        # dot-sourced, so lift just this one out of it, the way the suite
+        # already lifts functions out of LibreSpot.ps1.
+        $buildScript = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot '..\..\Build-Scripts.ps1')
+        if ($buildScript -notmatch '(?ms)^function\s+Test-LibreSpotReleaseExecutableVersions\s*\{.+?^\}') {
+            throw 'Test-LibreSpotReleaseExecutableVersions was not found in Build-Scripts.ps1'
+        }
+        Invoke-Expression $Matches[0]
+
+        $script:releaseContract = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot '..\..\schemas\release-artifact-contract.json') | ConvertFrom-Json
+
+        # A real .NET executable with a real embedded version, not a fabricated
+        # file: the gate reads the PE version resource, so a stand-in would
+        # prove nothing about it.
+        $script:realExe = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..\..\tests\LibreSpot.Desktop.Tests\bin\Debug\net10.0-windows\LibreSpot.Cli.exe') -ErrorAction SilentlyContinue)
+        $script:realVersion = if ($script:realExe) {
+            ([System.Diagnostics.FileVersionInfo]::GetVersionInfo($script:realExe.Path)).ProductVersion
+        } else { $null }
+
+        function script:New-ReleaseRootFrom {
+            param([string]$SourceExe)
+            $root = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
+            New-Item -ItemType Directory -Path $root -Force | Out-Null
+            foreach ($name in @('LibreSpot-Desktop.exe', 'LibreSpot.Cli.exe')) {
+                Copy-Item -LiteralPath $SourceExe -Destination (Join-Path $root $name) -Force
+            }
+            return $root
+        }
+    }
+
+    It 'accepts a release root whose executables carry the claimed version' {
+        if (-not $script:realExe) {
+            Set-ItResult -Skipped -Because 'the Debug CLI executable has not been built, so there is no real version resource to read'
+        }
+        $root = New-ReleaseRootFrom -SourceExe $script:realExe.Path
+        { Test-LibreSpotReleaseExecutableVersions -Root $root -Version $script:realVersion -Contract $script:releaseContract } |
+            Should -Not -Throw
+    }
+
+    It 'refuses a release root left from a different version' {
+        if (-not $script:realExe) {
+            Set-ItResult -Skipped -Because 'the Debug CLI executable has not been built, so there is no real version resource to read'
+        }
+        # This is the state that shipped unnoticed: a complete artifact set from
+        # an earlier build sitting under a manifest that claims the new one.
+        $root = New-ReleaseRootFrom -SourceExe $script:realExe.Path
+        { Test-LibreSpotReleaseExecutableVersions -Root $root -Version '0.0.1-stale' -Contract $script:releaseContract } |
+            Should -Throw -ExpectedMessage '*does not build the version this release claims*'
+    }
+
+    It 'refuses a release root that is missing a self-contained executable' {
+        $root = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
+        New-Item -ItemType Directory -Path $root -Force | Out-Null
+        { Test-LibreSpotReleaseExecutableVersions -Root $root -Version '4.6.0' -Contract $script:releaseContract } |
+            Should -Throw -ExpectedMessage '*does not build the version this release claims*'
+    }
+
+    It 'leaves the ps2exe and runtime artifacts out of the comparison' {
+        # LibreSpot.exe carries the 3.12.0 script version and createdump.exe the
+        # .NET runtime's. Pulling either into this gate would make every release
+        # fail for a reason that is correct by design.
+        $names = @($script:releaseContract.artifacts |
+            Where-Object { [string]$_.buildMode -eq 'dotnet-self-contained' } |
+            ForEach-Object { [string]$_.name })
+        $names | Should -Contain 'LibreSpot-Desktop.exe'
+        $names | Should -Contain 'LibreSpot.Cli.exe'
+        $names | Should -Not -Contain 'LibreSpot.exe'
+        $names | Should -Not -Contain 'createdump.exe'
+    }
+}

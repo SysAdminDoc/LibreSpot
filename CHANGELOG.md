@@ -10,6 +10,8 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Fixed
 
+- Generating a release manifest now reads the version inside the executables instead of trusting the number it was handed. A `publish/` folder left from an earlier build used to produce a manifest and checksums claiming the new version over the old binaries, and nothing objected. The two self-contained executables are checked; the compiled script and the .NET crash helper are left out because they carry the script and runtime versions on purpose.
+
 - Context menus are readable on Prism's light schemes. Spotify's own stylesheet hard-codes white with alpha for menu text, disabled rows and hover fills, and Spicetify's colour replacement cannot touch a literal, so on a light scheme those were white on near-white. Prism now maps them to the scheme's own text colour at the same alpha, which looks identical on Dark.
 - README screenshots now record the version the navigation rail actually rendered, read from the control itself rather than from the value the process happened to hold. A capture whose picture disagrees with the build or the README badge is refused.
 - The offscreen accessibility scan now also checks that a control you can focus is not completely hidden behind something else, which is what WCAG 2.2 asks for and what Axe.Windows does not check. The Settings apply bar turned out not to be an overlay at all, so the contract file records which surfaces may cover content and which only look like they do.

@@ -2067,6 +2067,57 @@ function Test-LibreSpotStableExeIdentity {
     Write-Host "  Stable script executable identity matches LibreSpot.ps1 v$scriptVersion (file version $fileVersion)." -ForegroundColor Green
 }
 
+function Test-LibreSpotReleaseExecutableVersions {
+    # The manifest takes the release version as an argument and writes it over
+    # whatever happens to be sitting in the release root. Nothing read the
+    # version inside the executables, so a publish/ left from an earlier build
+    # produced a manifest and checksums claiming the new version over the old
+    # binaries. Only the .NET self-contained artifacts are checked here:
+    # LibreSpot.exe carries the script version (Test-LibreSpotStableExeIdentity
+    # owns that one) and createdump.exe carries the .NET runtime's.
+    param(
+        [Parameter(Mandatory)][string]$Root,
+        [Parameter(Mandatory)][string]$Version,
+        [Parameter(Mandatory)]$Contract
+    )
+
+    $checked = 0
+    $failures = @()
+    foreach ($artifact in @($Contract.artifacts | Where-Object { [string]$_.buildMode -eq 'dotnet-self-contained' })) {
+        $name = [string]$artifact.name
+        $path = Join-Path $Root $name
+        if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+            $failures += "$name is missing from the release root, so its version could not be checked."
+            continue
+        }
+
+        $productVersion = [string]([System.Diagnostics.FileVersionInfo]::GetVersionInfo($path).ProductVersion)
+        if ([string]::IsNullOrWhiteSpace($productVersion)) {
+            $failures += "$name has no product version resource."
+            continue
+        }
+
+        # Build metadata after '+' is not part of the released version.
+        $normalized = ($productVersion -split '\+', 2)[0]
+        $checked++
+        if ($normalized -ne $Version) {
+            $failures += "$name reports product version '$productVersion' but this release claims '$Version'; rebuild the release root with Build-Scripts.ps1 -PublishRelease."
+        }
+    }
+
+    if ($checked -eq 0 -and $failures.Count -eq 0) {
+        throw 'No dotnet-self-contained artifacts were checked, so the release executable version gate proved nothing.'
+    }
+
+    if ($failures.Count -gt 0) {
+        Write-Host '=== RELEASE EXECUTABLE VERSION MISMATCH ===' -ForegroundColor Red
+        foreach ($failure in $failures) { Write-Host "  $failure" -ForegroundColor Red }
+        throw 'The release root does not build the version this release claims.'
+    }
+
+    Write-Host "  $checked self-contained executables report product version $Version." -ForegroundColor Green
+}
+
 function Get-LibreSpotNet10RuntimeVersion {
     $dotnet = Get-Command dotnet -ErrorAction SilentlyContinue
     if ($null -eq $dotnet) {
@@ -2499,6 +2550,12 @@ function New-LibreSpotReleaseManifest {
         $Version = Get-LibreSpotProjectVersion
     }
     $Channel = Resolve-LibreSpotReleaseChannel -Version $Version -ExplicitChannel $Channel
+    # Same switch as the stable-exe check above, and for the same reason: it
+    # means this release root holds stand-ins rather than built executables,
+    # so their embedded identity says nothing. A real release never passes it.
+    if (-not $SkipStableExeIdentity) {
+        Test-LibreSpotReleaseExecutableVersions -Root $Root -Version $Version -Contract $contract
+    }
 
     $checksumsPath = Join-Path $Root 'checksums.txt'
     $checksumMap = Get-ReleaseChecksumMap -ChecksumsPath $checksumsPath
