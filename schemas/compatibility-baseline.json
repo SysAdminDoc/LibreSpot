@@ -44,5 +44,24 @@
   "themes": {
     "commit": "df033493a7dae30ca6e371de9cec1897871dbb0c",
     "sha256": "c837828c71d7a938898f87965b1fe9e5812cec831bd9cb1619bd8feb6020fdc3"
+  },
+  "routeWiring": {
+    "$comment": "Spotify builds where Repair-SpicetifyCustomAppWiring was run against a real extracted xpui bundle rather than a synthetic fixture. Every build the README names for route re-wiring must appear in verified, and Build-Scripts.ps1 -Validate fails otherwise. To re-run the proof, point LIBRESPOT_XPUI_FIXTURES at a directory holding <build>/xpui/ copies (index.html, the pre-repair xpui.js, and the spicetify-routes-*.js chunks); the bundles are Spotify's and stay outside the repository, so the Pester tests skip when the variable is unset. anchors are the five injection points the repair needs in the live bundle.",
+    "anchors": [
+      "reactLazy",
+      "settingsRoute",
+      "chunkUrlMap",
+      "miniCssUrlMap",
+      "miniCssGate"
+    ],
+    "verified": [
+      {
+        "build": "1.2.93.667",
+        "verifiedDate": "2026-09-07",
+        "spotxCommit": "550bc72c",
+        "spicetifyCli": "2.44.0",
+        "evidence": "Repairing the pre-repair SpotX bundle (xpui.js.librespot.bak) reproduced the live repaired xpui.js byte for byte, SHA256 38c04695a9f5ea8977f7746281222da99e45cf418d6cd25de0833e865d6993a8. All five anchors matched and the second pass reported Wired without writing."
+      }
+    ]
   }
 }

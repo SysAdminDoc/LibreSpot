@@ -4910,3 +4910,86 @@ $exposure = Get-DownloaderCveExposure
         $verdict.Reason | Should -Match '2026-07-14 cumulative update'
     }
 }
+
+Describe 'Custom-app route wiring against real xpui bundles' {
+    # Discovery-time read: the baseline is the list of builds whose route repair
+    # has actually been run against an extracted Spotify bundle, and every one
+    # of them has to still hold. Synthetic anchors live in the Describe above.
+    $routeWiringBaseline = (Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot '..\..\schemas\compatibility-baseline.json') | ConvertFrom-Json).routeWiring
+    $routeWiringCases = @($routeWiringBaseline.verified | ForEach-Object { @{ Build = [string]$_.build } })
+
+    BeforeAll {
+        $sharedRoot = Join-Path $PSScriptRoot '..\..\src\powershell\shared'
+        . (Join-Path $sharedRoot 'Test-SpicetifyCustomAppRouteWiring.ps1')
+        . (Join-Path $sharedRoot 'Repair-SpicetifyCustomAppWiring.ps1')
+        $script:routeWiringSkipReason = 'LIBRESPOT_XPUI_FIXTURES is not set. Extracted xpui bundles are Spotify''s bytes and stay outside the repository. Point the variable at a directory holding <build>/xpui/ copies (index.html, the pre-repair xpui.js, and the spicetify-routes-*.js chunks) to run this proof.'
+        function global:Write-Log {
+            param([string]$Message, [string]$Level = 'INFO')
+            if ($null -ne $global:LibreSpotWiringLog) { [void]$global:LibreSpotWiringLog.Add("$Level|$Message") }
+        }
+    }
+
+    It 'repairs the real <Build> bundle through every recorded anchor' -ForEach $routeWiringCases {
+        if ([string]::IsNullOrWhiteSpace($env:LIBRESPOT_XPUI_FIXTURES)) {
+            Set-ItResult -Skipped -Because $script:routeWiringSkipReason
+        }
+
+        $source = Join-Path (Join-Path $env:LIBRESPOT_XPUI_FIXTURES $Build) 'xpui'
+        if (-not (Test-Path -LiteralPath $source -PathType Container)) {
+            throw "The compatibility baseline records route wiring verified on Spotify $Build, but no fixture exists at $source. Restore the fixture or drop the claim."
+        }
+
+        $work = Join-Path $TestDrive "$Build\xpui"
+        New-Item -ItemType Directory -Path $work -Force | Out-Null
+        Copy-Item -Path (Join-Path $source '*') -Destination $work -Force
+        $apps = Split-Path $work -Parent
+        $bundle = Join-Path $work 'xpui.js'
+
+        # Pick a managed app the fixture bundle has not been wired for yet.
+        $probe = $null
+        foreach ($candidate in @('librespot', 'marketplace', 'stats')) {
+            $state = Test-SpicetifyCustomAppRouteWiring -AppName $candidate -AppsDirectory $apps
+            if ($state.State -eq 'NotWired' -and $state.RouteBundlePresent) { $probe = $candidate; break }
+        }
+        $probe | Should -Not -BeNullOrEmpty -Because 'the fixture must hold the pre-repair bundle and at least one unwired route chunk'
+
+        $global:LibreSpotWiringLog = New-Object System.Collections.Generic.List[string]
+        $beforeHash = (Get-FileHash -LiteralPath $bundle -Algorithm SHA256).Hash
+        $result = Repair-SpicetifyCustomAppWiring -AppName $probe -AppsDirectory $apps
+
+        # reactLazy and settingsRoute: the repair reports AnchorsMissing instead
+        # of writing when either regex fails against this build's bundle.
+        $result.Status | Should -Be 'Patched' -Because "the React lazy and /settings route anchors must still match Spotify $Build"
+
+        $patched = [System.IO.File]::ReadAllText($bundle)
+        $chunk = "spicetify-routes-$probe"
+        # chunkUrlMap and miniCssUrlMap: one chunk-name entry inserted into each.
+        ([regex]::Matches($patched, [regex]::Escape('"' + $chunk + '":"' + $chunk + '",'))).Count |
+            Should -Be 2 -Because 'the .u and .miniCssF chunk maps both need the route entry'
+        # miniCssGate: without it the store route loads with no stylesheet.
+        $patched.Contains(',"' + $chunk + '":1') | Should -BeTrue -Because 'the miniCss chunk gate must carry the route'
+        @($global:LibreSpotWiringLog | Where-Object { $_ -like 'WARN|*' }) |
+            Should -BeNullOrEmpty -Because 'a missing miniCss gate only warns, so it has to be asserted here'
+
+        Test-Path -LiteralPath "$bundle.librespot.bak" -PathType Leaf | Should -BeTrue
+        (Test-SpicetifyCustomAppRouteWiring -AppName $probe -AppsDirectory $apps).State | Should -Be 'Wired'
+
+        $afterHash = (Get-FileHash -LiteralPath $bundle -Algorithm SHA256).Hash
+        $afterHash | Should -Not -Be $beforeHash
+
+        # Idempotent: a second pass reports the wired state without rewriting.
+        (Repair-SpicetifyCustomAppWiring -AppName $probe -AppsDirectory $apps).Status | Should -Be 'Wired'
+        (Get-FileHash -LiteralPath $bundle -Algorithm SHA256).Hash | Should -Be $afterHash
+    }
+
+    It 'records every locally proven build in the compatibility baseline' {
+        if ([string]::IsNullOrWhiteSpace($env:LIBRESPOT_XPUI_FIXTURES)) {
+            Set-ItResult -Skipped -Because $script:routeWiringSkipReason
+        }
+
+        $recorded = @((Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot '..\..\schemas\compatibility-baseline.json') | ConvertFrom-Json).routeWiring.verified | ForEach-Object { [string]$_.build })
+        foreach ($fixture in Get-ChildItem -LiteralPath $env:LIBRESPOT_XPUI_FIXTURES -Directory) {
+            $recorded | Should -Contain $fixture.Name -Because 'a build proven on this machine has to be recorded before the README may claim it'
+        }
+    }
+}

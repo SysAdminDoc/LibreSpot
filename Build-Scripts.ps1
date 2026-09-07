@@ -748,6 +748,54 @@ function Test-PinnedCompatibilityBaseline {
         $failures += 'Compatibility baseline contains an invalid Spotify or Spicetify version range.'
     }
 
+    # The custom-app route repair only holds where it has been run against a
+    # real extracted xpui bundle. The README states which build that is, and
+    # the claim has to match what routeWiring records.
+    $routeWiring = $baseline.routeWiring
+    $verifiedBuilds = @()
+    if ($null -eq $routeWiring -or $null -eq $routeWiring.verified) {
+        $failures += 'Compatibility baseline is missing the routeWiring.verified list.'
+    } else {
+        $verifiedBuilds = @($routeWiring.verified | ForEach-Object { [string]$_.build })
+        foreach ($entry in $routeWiring.verified) {
+            if ([string]::IsNullOrWhiteSpace([string]$entry.build) -or [string]::IsNullOrWhiteSpace([string]$entry.evidence)) {
+                $failures += 'Every routeWiring.verified entry needs a build and the evidence that proved it.'
+                continue
+            }
+            try {
+                $entryDate = [DateTimeOffset]::Parse("$([string]$entry.verifiedDate)T00:00:00Z")
+                if ($entryDate -gt [DateTimeOffset]::UtcNow) {
+                    $failures += "Route wiring verification date '$($entry.verifiedDate)' for build '$($entry.build)' is in the future."
+                }
+            } catch {
+                $failures += "Route wiring entry '$($entry.build)' needs a yyyy-MM-dd verifiedDate."
+            }
+        }
+    }
+
+    $readmePath = Join-Path $PSScriptRoot 'README.md'
+    if (-not (Test-Path -LiteralPath $readmePath -PathType Leaf)) {
+        $failures += 'README.md is missing, so the route re-wiring claim cannot be checked.'
+    } else {
+        $readmeSource = [System.IO.File]::ReadAllText($readmePath, [System.Text.Encoding]::UTF8)
+        # Stop at the first period that is not part of a version number, so the
+        # window covers every build the sentence names and nothing after it.
+        $claim = [regex]::Match($readmeSource, 'route re-wiring is verified against Spotify (?<builds>(?:[^.]|\.(?=\d))*)')
+        if (-not $claim.Success) {
+            $failures += 'README.md no longer states which Spotify build the post-apply route re-wiring is verified against.'
+        } else {
+            $claimedBuilds = @([regex]::Matches($claim.Groups['builds'].Value, '`(?<build>\d+(?:\.\d+)+)`') | ForEach-Object { $_.Groups['build'].Value })
+            if ($claimedBuilds.Count -eq 0) {
+                $failures += 'The README route re-wiring sentence names no Spotify build in backticks.'
+            }
+            foreach ($claimed in $claimedBuilds) {
+                if ($verifiedBuilds -notcontains $claimed) {
+                    $failures += "README claims route re-wiring on Spotify '$claimed', which is not in routeWiring.verified. Run the LIBRESPOT_XPUI_FIXTURES proof for that build and record it."
+                }
+            }
+        }
+    }
+
     if ($failures.Count -gt 0) {
         Write-Host '=== PINNED COMPATIBILITY BASELINE DRIFT ===' -ForegroundColor Red
         foreach ($failure in $failures) { Write-Host "  $failure" -ForegroundColor Red }

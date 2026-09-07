@@ -10,6 +10,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Fixed
 
+- The README no longer claims the post-apply route re-wiring works on a Spotify build nobody checked. It names 1.2.93.667, the build the repair was actually run against, and `Build-Scripts.ps1 -Validate` now fails when that sentence names a build missing from the new `routeWiring` list in the compatibility baseline. Setting `LIBRESPOT_XPUI_FIXTURES` to a directory of extracted bundles re-runs the proof against real Spotify bytes. Without it those tests skip with the reason instead of passing quietly.
 - Shared Spotify controls now expose their explanatory text through `aria-describedby`, including live versus desktop application limits. Store filtering announces one result or empty-state message through a polite status region.
 - Built-in preset cards now compare the settings they own instead of the profile name. Editing an applied preset returns its action to Apply, and a custom profile with the same title does not get mistaken for the built-in.
 - Dynamic artwork accents now use request generations, so a late result from an older track cannot replace the current colors. Material palettes survive route changes, previews, and timer reapplication until the effective scheme or accent inputs change, then scheduled light and dark transitions derive a fresh palette.

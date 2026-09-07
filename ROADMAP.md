@@ -6,15 +6,6 @@ Incomplete, implementer-actionable work only. Operator-dependent decisions remai
 
 Added 2026-09-07 from RESEARCH.md. IDs continue the RD scheme; RD-252 was the last used.
 
-### P1: Now
-
-- [ ] P1: RD-253: Prove the custom-app route repair against real xpui bundles and record the verdict per Spotify build
-  Why: both upstreams said on 2026-09-07 that SpotX and Spicetify should not be combined and neither will fix the collision; LibreSpot's `Repair-SpicetifyCustomAppWiring` is the reason the combination works, yet its Pester coverage writes synthetic `index.html` and `xpui.js` strings, the live verification on 1.2.93 is a changelog sentence, and the README's "works on 1.2.94" claim has no machine-readable record while SpotX now installs 1.2.99 by default.
-  Evidence: SpotX #892 and cli #3922 (2026-09-07); Spicetify 2.44.0 `src/apply/apply.go` L215-221, L310-328, L62-68; cli PR #3883 (1.2.93 moved to rspack); `tests/powershell/LibreSpot.Tests.ps1:2058-2060` (synthetic fixture); `CHANGELOG.md:475`; `README.md:316`; `schemas/compatibility-baseline.json` has no route-wiring field; Spotify 1.2.99.317 winget manifest dated 2026-09-07.
-  Touches: `src/powershell/shared/Test-SpicetifyCustomAppRouteWiring.ps1`, `src/powershell/shared/Repair-SpicetifyCustomAppWiring.ps1`, `tests/powershell/LibreSpot.Tests.ps1`, `schemas/compatibility-baseline.json`, `Build-Scripts.ps1` (`Test-LocalReleaseTruth`), `README.md`.
-  Acceptance: WHEN `LIBRESPOT_XPUI_FIXTURES` points at a local directory holding extracted `xpui.spa` contents for 1.2.93.667 and 1.2.99.317 after a SpotX conversion, the Pester suite SHALL run the detector and the repair against both and SHALL fail on any anchor that does not match; the baseline SHALL carry a `routeWiringVerified` list of builds with the date and anchor set, `-Validate` SHALL fail when the README names a build absent from that list, and WHEN the fixture variable is unset the tests SHALL skip with a message rather than pass. A committed Spotify bundle is not acceptable; the fixture stays outside the repository.
-  Complexity: M
-
 ### P2: Next
 
 - [ ] P2: RD-255: Check WCAG 2.2 Focus Not Obscured in the offscreen scan, starting with the Settings action bar
