@@ -1,8 +1,8 @@
 # Default owner for everything
 * @SysAdminDoc
 
-# Release and signing
-.github/workflows/ @SysAdminDoc
+# Release and signing. There is no .github/workflows/ rule because the
+# repository intentionally tracks no workflows; releases are built locally.
 SIGNPATH.md @SysAdminDoc
 
 # PowerShell scripts

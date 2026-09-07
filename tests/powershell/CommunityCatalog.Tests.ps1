@@ -1,9 +1,11 @@
 Describe 'Community catalog cross-edition output' {
     BeforeAll {
-        # Moves whenever schemas/community-assets.json changes, because the page
-        # publishes that manifest's hash as trust evidence. Recompute with
-        # tools\Build-CommunityCatalog.ps1 -GeneratedDate 2026-09-04.
-        $script:reviewedCatalogSha256 = '07e70e29655f0be52f53a7667f75fd56956b713b7d081bfc728d270d0179bb47'
+        # Moves whenever schemas/community-assets.json or
+        # schemas/theme-preview-manifest.json changes, because the page
+        # publishes both manifests' hashes as trust evidence. Recompute with
+        # tools\Build-CommunityCatalog.ps1 -GeneratedDate 2026-09-04, and
+        # republish gh-pages in the same pass or -Validate stays red.
+        $script:reviewedCatalogSha256 = 'fb33c128217d6bb0a795f19535d03213df32e488a5818955f157fc4351f13822'
         $script:catalogGenerator = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..\..\tools\Build-CommunityCatalog.ps1')).Path
         $script:catalogTestRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("librespot-catalog-editions-{0}" -f ([guid]::NewGuid().ToString('N')))
         $script:windowsPowerShellOutput = Join-Path $script:catalogTestRoot 'windows-powershell'

@@ -185,6 +185,27 @@ public sealed class ReleaseTruthTests
     }
 
     [Fact]
+    public void ReadmeCitesTheSmartAppControlUpdateThatShipped()
+    {
+        // KB5079391 was withdrawn for install failure 0x80073712 and replaced
+        // by out-of-band KB5086672 on 2026-03-31. A reader who searched for the
+        // cited update found a removed one.
+        var readme = Read("README.md");
+
+        Assert.Contains("KB5086672", readme, StringComparison.Ordinal);
+        Assert.Contains("2026-03-31", readme, StringComparison.Ordinal);
+        Assert.Contains("26200.8117 and 26100.8117", readme, StringComparison.Ordinal);
+        Assert.Contains("No clean install is needed.", readme, StringComparison.Ordinal);
+
+        // The withdrawn update may still be named, but only as the one that was
+        // pulled, never as the update to install.
+        foreach (Match mention in Regex.Matches(readme, @"[^.]*KB5079391[^.]*\."))
+        {
+            Assert.Contains("withdrawn", mention.Value, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    [Fact]
     public void ReadmeOpensWithReportedFailuresAndEveryAnchorResolves()
     {
         // The most-reported SpotX and Spicetify failures are all shipped
@@ -465,6 +486,31 @@ public sealed class ReleaseTruthTests
             {
                 Assert.Equal(expectedSchemes, claimed);
             }
+        }
+    }
+
+    [Fact]
+    public void ThemesRetainedAfterUpstreamRemovalSaySoInBothPlaces()
+    {
+        // Blackout was deleted from spicetify-themes on 2026-07-14, after the
+        // commit LibreSpot pins. It still ships, which is a deliberate choice,
+        // so the README has to say that rather than imply it is current
+        // upstream. The manifest date and the README note move together.
+        var readme = Read("README.md");
+        using var manifest = System.Text.Json.JsonDocument.Parse(Read("schemas/theme-preview-manifest.json"));
+
+        var retained = manifest.RootElement.GetProperty("themes").EnumerateArray()
+            .Where(theme => theme.TryGetProperty("retainedAfterUpstreamRemoval", out _))
+            .ToArray();
+        Assert.NotEmpty(retained);
+
+        foreach (var theme in retained)
+        {
+            var id = theme.GetProperty("id").GetString()!;
+            var removed = theme.GetProperty("retainedAfterUpstreamRemoval").GetString()!;
+            Assert.Matches(@"^\d{4}-\d{2}-\d{2}$", removed);
+            Assert.Contains($"{id} is retained deliberately.", readme, StringComparison.Ordinal);
+            Assert.Contains($"Upstream removed it from `spicetify-themes` on {removed}", readme, StringComparison.Ordinal);
         }
     }
 

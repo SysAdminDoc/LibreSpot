@@ -7,7 +7,8 @@
 Installs, configures, and maintains Spotify with themes, extensions, custom apps, and the LibreSpot Store inside the client. No command-line knowledge required. v4 ships a Windows desktop app and a fleet CLI alongside the original single-file PowerShell script, so you can run whichever suits the machine in front of you.
 
 [![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-blue?logo=powershell&logoColor=white)](https://github.com/PowerShell/PowerShell)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![License](https://img.shields.io/badge/Hosts-MIT-green.svg)](LICENSE)
+[![In-Spotify engine](https://img.shields.io/badge/In--Spotify%20engine-AGPL--3.0--only-green.svg)](src/LibreSpot.App/LICENSE)
 [![Version](https://img.shields.io/badge/Version-4.5.1-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
 [![Stable](https://img.shields.io/badge/Stable-4.5.1-blue.svg)](https://github.com/SysAdminDoc/LibreSpot/releases/latest)
 
@@ -482,6 +483,8 @@ When a theme is replaced, LibreSpot walks only the installed tree and unlinks ne
 
 **16 official themes:** Sleek, Dribbblish, Ziro, text, StarryNight, Turntable, Blackout, Blossom, BurntSienna, Default, Dreary, Flow, Matte, Nightlight, Onepunch, and SharkBlue.
 
+Blackout is retained deliberately. Upstream removed it from `spicetify-themes` on 2026-07-14, after the `df033493` commit LibreSpot pins, so LibreSpot still ships the last published version rather than dropping a theme people have applied. Advancing the theme pin would remove it, which is why that advance is a recorded decision rather than a routine bump.
+
 **5 community themes:** Catppuccin (4 flavors), Comfy, Bloom (Fluent Design), Lucid (dynamic album-art backgrounds), and Hazy (glassmorphism). Downloaded directly from their GitHub repos.
 
 Each theme ships with its full set of color schemes. **Live theme previews** load inline when selecting a theme in Custom Install. Or skip the theme and use the Marketplace to browse and install themes from within Spotify.
@@ -608,7 +611,7 @@ LibreSpot ships unsigned by design and is not code-signed. [SignPath Foundation]
 Expect the warning again on the next release. SmartScreen builds reputation per file, and an unsigned artifact starts from nothing every time, so a version you have run happily for months earns no credit for the one that replaces it. That is not a sign something changed for the worse.
 
 **Smart App Control blocks LibreSpot from running.**
-This applies to everything LibreSpot ships, not just the script: `LibreSpot-Desktop.exe`, `LibreSpot.Cli.exe`, `LibreSpot.exe` and `LibreSpot.ps1` are all blocked while Smart App Control is on, because it refuses unsigned code and none of them is signed. There is no per-app allowance, no "run anyway", and no exclusion list: the feature is on, in evaluation, or off for the whole device. Turning it off used to mean reinstalling Windows. Since [KB5079391](https://support.microsoft.com/en-us/topic/march-27-2026-kb5079391-os-builds-26100-8116-and-26200-8116-preview) (2026-03-27), Windows 11 24H2 and 25H2 can switch it off from Settings > Privacy & security > Windows Security > App & browser control, and switch it back on later.
+This applies to everything LibreSpot ships, not just the script: `LibreSpot-Desktop.exe`, `LibreSpot.Cli.exe`, `LibreSpot.exe` and `LibreSpot.ps1` are all blocked while Smart App Control is on, because it refuses unsigned code and none of them is signed. There is no per-app allowance, no "run anyway", and no exclusion list: the feature is on, in evaluation, or off for the whole device. Turning it off used to mean reinstalling Windows. The preview update that changed this, KB5079391, was withdrawn after it failed to install with error 0x80073712. The update that actually shipped is out-of-band [KB5086672](https://support.microsoft.com/en-us/servicing/os/windows-11/2026/03/march-31-2026-kb5086672-os-builds-26200-8117-and-26100-8117-out-of-band) (2026-03-31), builds 26200.8117 and 26100.8117. On it, Windows 11 24H2 and 25H2 can switch Smart App Control off from Settings > Privacy & security > Windows Security > App & browser control, and switch it back on later. No clean install is needed.
 
 Leave Smart App Control enabled. LibreSpot does not provide or recommend a bypass, and turning a security feature off to run one unsigned program is a decision only you can make. The supported answer is to run LibreSpot on a device where Smart App Control is off or still in evaluation mode. If you do decide to turn it off on a recent Windows 11 build, confirm the file's SHA256 against `checksums.txt` from the same release first, because that check is the only identity evidence left once the platform stops doing it for you. On a managed device, ask the administrator whether an approved LibreSpot artifact is allowed.
 

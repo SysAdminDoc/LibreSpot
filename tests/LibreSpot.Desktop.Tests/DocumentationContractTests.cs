@@ -31,6 +31,48 @@ public sealed class DocumentationContractTests
         Assert.DoesNotContain("doesn't host or redistribute any code", readme, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("Bundle, host, or redistribute Spotify binaries or any upstream project code", readme, StringComparison.Ordinal);
         Assert.DoesNotContain("LibreSpot is MIT-licensed, uses no Spotify API", security, StringComparison.Ordinal);
+
+        // The badge line is what a reader sees first and what other tools
+        // scrape, and a single MIT badge hid the AGPL engine inside the same
+        // executable. Both badges stay while the two LICENSE files differ.
+        var hostLicense = ReadFile("LICENSE");
+        var engineLicense = ReadFile("src", "LibreSpot.App", "LICENSE");
+        Assert.NotEqual(hostLicense, engineLicense);
+        Assert.Contains("[![License](https://img.shields.io/badge/Hosts-MIT-green.svg)](LICENSE)", readme, StringComparison.Ordinal);
+        Assert.Contains(
+            "[![In-Spotify engine](https://img.shields.io/badge/In--Spotify%20engine-AGPL--3.0--only-green.svg)](src/LibreSpot.App/LICENSE)",
+            readme,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RepositoryDocs_DoNotAssignOwnersToPathsThatDoNotExist()
+    {
+        // CODEOWNERS assigned .github/workflows/ while the repository
+        // intentionally tracks no workflows, so the rule was dead and
+        // contradicted the no-CI statement it sat next to.
+        var codeowners = ReadFile(".github", "CODEOWNERS");
+
+        foreach (var line in codeowners.Split('\n'))
+        {
+            var trimmed = line.Trim();
+            if (trimmed.Length == 0 || trimmed.StartsWith('#'))
+            {
+                continue;
+            }
+
+            var pattern = trimmed.Split(' ', StringSplitOptions.RemoveEmptyEntries)[0];
+            if (pattern == "*")
+            {
+                continue;
+            }
+
+            var relative = pattern.TrimEnd('/').Replace('/', Path.DirectorySeparatorChar);
+            var candidate = Path.Combine(RepoRoot, relative);
+            Assert.True(
+                File.Exists(candidate) || Directory.Exists(candidate),
+                $".github/CODEOWNERS assigns '{pattern}', which does not exist in the tree.");
+        }
     }
 
     [Fact]

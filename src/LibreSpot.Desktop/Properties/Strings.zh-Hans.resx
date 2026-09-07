@@ -1816,7 +1816,7 @@
   <data name="Vm_CustomApplyAdmin" xml:space="preserve"><value>LibreSpot 在接触 Spotify 之前以管理员权限重新启动。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_CustomApplyConflict" xml:space="preserve"><value>关闭隐藏右侧边栏或清除右侧边栏样式；当两者都选择时，隐藏获胜。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_CustomApplyPatchJson" xml:space="preserve"><value>在 LibreSpot 将自定义补丁 JSON 暂存到 SpotX 之前修复该 JSON。</value><comment>MainViewModel localized runtime text.</comment></data>
-  <data name="Vm_CustomApplyReady" xml:space="preserve"><value>LibreSpot 将此配置文件保存到 config.json，然后通过原始后端应用它。</value><comment>MainViewModel localized runtime text.</comment></data>
+  <data name="Vm_CustomApplyReady" xml:space="preserve"><value>LibreSpot 会保存此配置文件，然后为 Spotify 打补丁并应用你的 Spicetify 设置。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_CustomApplyRecovery" xml:space="preserve"><value>LibreSpot 使用此配置文件替换不可读的 config.json，并将恢复的副本保留在 LibreSpot 文件夹中。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_CustomAppsSectionDescription" xml:space="preserve"><value>从固定发布 ZIP 安装的可选 Spicetify 应用程序。这些显示为 Spotify 应用程序，而不是普通扩展程序。</value><comment>MainViewModel localized runtime text.</comment></data>
   <data name="Vm_CustomAppsSectionTitle" xml:space="preserve"><value>自定义应用程序</value><comment>MainViewModel localized runtime text.</comment></data>

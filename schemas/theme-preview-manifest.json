@@ -200,6 +200,7 @@
       "source": "official",
       "sourceRepo": "spicetify/spicetify-themes",
       "commitSha": "df033493a7dae30ca6e371de9cec1897871dbb0c",
+      "retainedAfterUpstreamRemoval": "2026-07-14",
       "schemes": ["def"],
       "requiresJs": false,
       "marketplaceOnly": false,

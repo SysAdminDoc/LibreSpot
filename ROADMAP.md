@@ -31,41 +31,6 @@ Added 2026-09-07 from RESEARCH.md. IDs continue the RD scheme; RD-252 was the la
 
 ### P3: Later
 
-- [ ] P3: RD-263: Cite the Smart App Control update that shipped, not the one that was pulled
-  Why: the README names KB5079391 for the Smart App Control toggle, and Microsoft withdrew that preview update for install failure 0x80073712 and replaced it with out-of-band KB5086672 on 2026-03-31; a reader searching for the cited update finds a removed one.
-  Evidence: `README.md:592`; KB5079391 (2026-03-26, builds 26200.8116 and 26100.8116) superseded by KB5086672 (2026-03-31, builds 26200.8117 and 26100.8117); Microsoft's consumer Smart App Control article now states no clean install is required.
-  Touches: `README.md`.
-  Acceptance: the FAQ SHALL name KB5086672 as the shipping update and the two builds, and SHALL keep the statement that a clean install is no longer needed; the sentence SHALL carry the 2026-03-31 date.
-  Complexity: S
-
-- [ ] P3: RD-264: State that Blackout is retained from the pinned commit after upstream removed it
-  Why: the README lists Blackout among the sixteen official themes, upstream deleted it on 2026-07-14, and the pin advance that would drop it is a blocked decision (RD-208); until that decision the README should say the theme is retained deliberately rather than imply it is current upstream.
-  Evidence: `README.md:464`; spicetify/spicetify-themes #1283 and commit `33ab071b`; `Roadmap_Blocked.md` RD-208; `schemas/theme-preview-manifest.json:199-208` (Blackout at the pinned commit).
-  Touches: `README.md`, `schemas/theme-preview-manifest.json`.
-  Acceptance: the theme list SHALL mark Blackout as retained from the pinned `df033493` snapshot after its upstream removal on 2026-07-14, and the preview manifest entry SHALL carry a `retainedAfterUpstreamRemoval` date that a test requires to match the README note.
-  Complexity: S
-
-- [ ] P3: RD-265: Show both licenses on the badge line
-  Why: the License badge says MIT while the desktop executable embeds the AGPL-3.0-only in-Spotify engine; the prose explains the split three times, but the badge is what a reader sees first and what other tools scrape.
-  Evidence: `README.md:10` (badge) against `:246`, `:581`, `:872`; `src/LibreSpot.App/package.json` (`AGPL-3.0-only`); `src/LibreSpot.App/LICENSE`.
-  Touches: `README.md`, `tests/LibreSpot.Desktop.Tests/DocumentationContractTests.cs`.
-  Acceptance: the badge line SHALL show MIT for the hosts and AGPL-3.0-only for the in-client engine, each linking to its LICENSE file, and the documentation contract test SHALL require both badges while `LICENSE` and `src/LibreSpot.App/LICENSE` differ.
-  Complexity: S
-
-- [ ] P3: RD-266: Remove the CODEOWNERS rule for a workflows directory that does not exist
-  Why: `.github/CODEOWNERS` assigns `.github/workflows/` while the repository intentionally tracks no workflows; the rule is dead and contradicts the no-CI statement in the README and the footprint budget.
-  Evidence: `.github/CODEOWNERS` line 5; `schemas/publish-footprint-budget.json` ("This repository has no build CI"); no `.github/workflows/` in the tree.
-  Touches: `.github/CODEOWNERS`.
-  Acceptance: the rule SHALL be removed and a test SHALL fail when CODEOWNERS names a path that does not exist in the tree.
-  Complexity: S
-
-- [ ] P3: RD-267: Delete the four remaining Dependabot branches on the remote
-  Why: the repository policy is no Dependabot, the configuration is gone and no PRs are open, but four `dependabot/*` branches still exist on origin and reappear in every `git branch -r`.
-  Evidence: `git branch -r` on 2026-09-07 lists `origin/dependabot/github_actions/github/codeql-action/analyze-...`, `.../init-...`, `.../workflow-actions-major-ac9b5ffc60`, `origin/dependabot/nuget/tests/LibreSpot.Desktop.Tests/test-dependencies-407341980e`; global policy in `CLAUDE.md`.
-  Touches: remote branches only.
-  Acceptance: `git ls-remote --heads origin 'dependabot/*'` SHALL return nothing, and the eight local `dependabot/*` branches SHALL be pruned.
-  Complexity: S
-
 - [ ] P3: RD-268: Reproduce the light-scheme context-menu defect on the pinned client and mitigate it in Prism if it shows
   Why: Spicetify 2.44.0's `replace_colors` leaves Spotify's alpha whites untouched, giving light schemes white-on-white context menus; the fix merged upstream is past the pin, and Prism's Light and HighContrast schemes are the ones that would show it.
   Evidence: spicetify/cli #3918 (2026-09-05) and PR #3917; `resources/themes/Prism/color.ini` `[Light]` section; `README.md:149` (Recommended uses Dark).
@@ -78,11 +43,4 @@ Added 2026-09-07 from RESEARCH.md. IDs continue the RD scheme; RD-252 was the la
   Evidence: `assets/screenshots/wpf-custom.png`; commit `ca619e7` (RD-186, 2026-09-04); `CHANGELOG.md` entry "The theme gallery in Settings no longer scrolls inside the page".
   Touches: `src/LibreSpot.Desktop/MainWindow.xaml`, `tests/LibreSpot.Desktop.Tests/WpfUiAutomationSmokeTests.cs`.
   Acceptance: WHEN the custom smoke state renders at 1440 by 1024 logical pixels, every theme card's bounding rectangle SHALL lie fully inside the gallery's rectangle and no inner scroll viewer SHALL be scrollable; the UIA smoke SHALL assert both. Needs live validation.
-  Complexity: S
-
-- [ ] P3: RD-270: Rewrite the Settings footer line that leaks an implementation term
-  Why: the Settings action footer reads "LibreSpot saves this profile to config.json, then applies it through the original backend"; "the original backend" means nothing to a user and names a component the README never mentions.
-  Evidence: `src/LibreSpot.Desktop/Properties/Strings.resx:560` (`Vm_CustomApplyReady`); `assets/screenshots/wpf-custom.png` footer.
-  Touches: `src/LibreSpot.Desktop/Properties/Strings.resx` and its four satellites, `tools/Sync-Localization.ps1`.
-  Acceptance: the string SHALL say what happens in user terms (the profile is saved, then Spotify is patched and Spicetify applied) with no reference to a backend; all five locales SHALL carry the reviewed translation and `-Validate`'s localization check SHALL pass.
   Complexity: S
