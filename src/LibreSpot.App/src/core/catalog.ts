@@ -103,6 +103,13 @@ export type CatalogAsset = {
   supportState?: string;
   lastVerifiedSpotify: string;
   liveToggle?: boolean;
+  knownIssues?: CatalogKnownIssue[];
+};
+
+export type CatalogKnownIssue = {
+  url: string;
+  openedDate: string;
+  summary: string;
 };
 
 export type CustomizationCatalog = {

@@ -15,13 +15,6 @@ Added 2026-09-07 from RESEARCH.md. IDs continue the RD scheme; RD-252 was the la
   Acceptance: WHEN the offscreen scan tabs through Settings at the default and minimum window sizes, every focused element's bounding rectangle SHALL not be fully covered by the sticky action bar or any other always-on-top surface, with the scroll viewer brought into view as WPF does for a user; the check SHALL be planted red once by pinning a focusable control under the bar; the contract file SHALL name the surfaces that may overlay content.
   Complexity: M
 
-- [ ] P2: RD-256: Record the bundled Stats app's open upstream defects and show them where the app is chosen
-  Why: Stats 1.1.3 ships as a verified custom app, but upstream has a 429 rate-limit failure with a full rewrite unmerged for months and a report of its auto-install removing themes, and its repository has had no push since 2026-02-26; the catalog entry's notes and review evidence mention none of it.
-  Evidence: harbassan/spicetify-apps #236, #242, #247; `schemas/community-assets.json` customApps entry (`notes`, `catalogReview`); `src/powershell/data/CommunityCustomApps.ps1:2-9`.
-  Touches: `schemas/community-assets.json`, `schemas/librespot-customization.json`, `src/LibreSpot.App/src/panels/store.ts`, `tests/LibreSpot.Desktop.Tests/CommunityAssetsManifestTests.cs`.
-  Acceptance: the Stats entry SHALL carry a `knownIssues` list with the three issue URLs and their open dates; the Store card and the Custom Install description SHALL show a one-line notice when an entry has open known issues; a test SHALL fail when a custom app with `knownIssues` is an Easy-mode default; `-CatalogTruth` SHALL re-read the issue states and report which have closed.
-  Complexity: S
-
 - [ ] P2: RD-257: Recapture the README screenshots after the version bump and gate what the reader sees, not only the metadata
   Why: the three WPF captures committed on 2026-09-07 render "v4.5.0" in the navigation rail while carrying `LibreSpotCaptureAssemblyVersion` 4.5.1, and the gate passes because it reads the PNG text chunk; the in-client captures date from 2026-09-04 and predate the 4.5.1 companion status, error boundaries and control descriptions; the Store hero publishes the maintainer's real library and a face.
   Evidence: `assets/screenshots/wpf-recommended.png`, `wpf-custom.png`, `wpf-maintenance.png` (rail text versus embedded chunk, read 2026-09-07); `Build-Scripts.ps1:1316-1405` (`Test-ReadmeWpfScreenshotMetadata`); `src/LibreSpot.Desktop/MainWindow.xaml.cs:1079` (stamp) and `ViewModels/MainViewModel.cs:546-550` (rail); capture mtime 05:02 against bump commit `cc4fb16` at 05:06; `assets/screenshots/spotify-librespot-*.png` mtimes 2026-09-04.

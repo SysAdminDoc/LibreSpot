@@ -8,6 +8,7 @@ import {
 } from "../src/core/index.ts";
 import {
   countInstalledManagedAssets,
+  knownIssueNotice,
   STORE_THEMES,
   storeResultAnnouncement,
   themeDescription,
@@ -179,6 +180,56 @@ describe("LibreSpot surface contract", () => {
       expect(controlDescriptionId("Scheme", "Controls the active palette.")).toMatch(
         /^librespot-description-scheme-/,
       );
+    } finally {
+      if (previous === undefined) {
+        Reflect.deleteProperty(globalThis, "Spicetify");
+      } else {
+        Object.defineProperty(globalThis, "Spicetify", {
+          configurable: true,
+          value: previous,
+        });
+      }
+    }
+  });
+
+  it("warns on the Store card when the catalog records open upstream issues", () => {
+    type FakeNode = {
+      type: unknown;
+      props: Record<string, unknown> | null;
+      children: unknown[];
+    };
+    const globals = globalThis as unknown as { Spicetify?: unknown };
+    const previous = globals.Spicetify;
+    Object.defineProperty(globalThis, "Spicetify", {
+      configurable: true,
+      value: {
+        React: {
+          createElement: (
+            type: unknown,
+            props: Record<string, unknown> | null,
+            ...children: unknown[]
+          ): FakeNode => ({ type, props, children }),
+        },
+      },
+    });
+    try {
+      const stats = CUSTOMIZATION_CATALOG.customApps.find((app) => app.id === "stats");
+      if (!stats) throw new Error("The Stats custom app is missing from the catalog.");
+      const issues = stats.knownIssues ?? [];
+      expect(issues.length).toBeGreaterThan(0);
+
+      const notice = knownIssueNotice(stats) as FakeNode;
+      expect(notice.type).toBe("p");
+      const line = String(notice.children[0]);
+      expect(line).toContain(`${issues.length} open issues`);
+      // The oldest report date is what tells a reader how long this has stood.
+      const oldest = [...issues].map((issue) => issue.openedDate).sort()[0];
+      expect(line).toContain(oldest);
+
+      // Everything without recorded issues renders nothing at all.
+      const clean = CUSTOMIZATION_CATALOG.extensions.find((asset) => !asset.knownIssues?.length);
+      if (!clean) throw new Error("Every extension records known issues, so the empty case is untested.");
+      expect(knownIssueNotice(clean)).toBeNull();
     } finally {
       if (previous === undefined) {
         Reflect.deleteProperty(globalThis, "Spicetify");

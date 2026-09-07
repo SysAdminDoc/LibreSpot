@@ -1274,6 +1274,74 @@ function Test-CommunityCatalogTruth {
     throw 'The published community catalog has drifted from the reviewed asset manifest.'
 }
 
+function Test-CommunityKnownIssueStates {
+    # A knownIssues entry claims an upstream defect is open. Once upstream
+    # closes it the claim is wrong, and nothing else in the repository would
+    # notice, so re-read the states whenever the network lane runs.
+    $assetsPath = Join-Path $PSScriptRoot 'schemas/community-assets.json'
+    $assets = Get-Content -Raw -LiteralPath $assetsPath | ConvertFrom-Json
+    $headers = @{ 'User-Agent' = 'LibreSpot-CatalogTruth-Validator' }
+
+    $tracked = @()
+    foreach ($group in @('extensions', 'themes', 'customApps')) {
+        foreach ($asset in @($assets.$group)) {
+            foreach ($issue in @($asset.knownIssues)) {
+                if ($null -eq $issue -or [string]::IsNullOrWhiteSpace([string]$issue.url)) { continue }
+                # Windows PowerShell 5.1 has no null-coalescing operator.
+                $assetId = [string]$asset.appId
+                if ([string]::IsNullOrWhiteSpace($assetId)) { $assetId = [string]$asset.themeId }
+                if ([string]::IsNullOrWhiteSpace($assetId)) { $assetId = [string]$asset.filename }
+                $tracked += [pscustomobject]@{
+                    Asset = $assetId
+                    Url   = [string]$issue.url
+                }
+            }
+        }
+    }
+
+    if ($tracked.Count -eq 0) {
+        Write-Host 'No catalog entry records a known upstream issue.' -ForegroundColor Green
+        return
+    }
+
+    $closed = @()
+    $unreadable = @()
+    foreach ($entry in $tracked) {
+        $apiUrl = $entry.Url -replace '^https://github\.com/([^/]+)/([^/]+)/issues/(\d+)$', 'https://api.github.com/repos/$1/$2/issues/$3'
+        if ($apiUrl -eq $entry.Url) {
+            $unreadable += "$($entry.Asset): $($entry.Url) is not a GitHub issue URL."
+            continue
+        }
+
+        try {
+            $issue = Invoke-RestMethod -Uri $apiUrl -Headers $headers -TimeoutSec 20 -ErrorAction Stop
+        } catch {
+            $unreadable += "$($entry.Asset): could not read $($entry.Url) ($($_.Exception.Message))."
+            continue
+        }
+
+        if ([string]$issue.state -eq 'open') {
+            Write-Host "  open   $($entry.Asset): $($entry.Url)" -ForegroundColor Yellow
+        } else {
+            $closed += "$($entry.Asset): $($entry.Url) closed upstream on $([string]$issue.closed_at). Remove it from knownIssues or replace it."
+            Write-Host "  closed $($entry.Asset): $($entry.Url)" -ForegroundColor Green
+        }
+    }
+
+    if ($unreadable.Count -gt 0) {
+        foreach ($problem in $unreadable) { Write-Host "  $problem" -ForegroundColor Red }
+        throw 'Recorded known-issue evidence could not be re-read, so the catalog claims are unverified.'
+    }
+
+    if ($closed.Count -gt 0) {
+        Write-Host '=== KNOWN ISSUES CLOSED UPSTREAM ===' -ForegroundColor Red
+        foreach ($item in $closed) { Write-Host "  $item" -ForegroundColor Red }
+        throw 'The catalog still lists upstream issues that have been closed.'
+    }
+
+    Write-Host "All $($tracked.Count) recorded upstream issues are still open." -ForegroundColor Green
+}
+
 function Test-CustomizationCatalogTruth {
     $catalogTool = Join-Path $PSScriptRoot 'src/LibreSpot.App/scripts/catalog-tool.mjs'
     if (-not (Test-Path -LiteralPath $catalogTool -PathType Leaf)) {
@@ -3344,6 +3412,7 @@ if ($ReleaseTruth) {
 
 if ($CatalogTruth) {
     Test-CommunityCatalogTruth -FetchRemote
+    Test-CommunityKnownIssueStates
     Test-CustomizationCatalogTruth
     exit 0
 }

@@ -460,6 +460,12 @@
           </Border>
           <TextBlock Text="{Binding Description}"
                      Style="{StaticResource CaptionTextStyle}" />
+          <TextBlock Text="{Binding KnownIssueNotice}"
+                     Style="{StaticResource CaptionTextStyle}"
+                     Foreground="{DynamicResource WarningBrush}"
+                     TextWrapping="Wrap"
+                     Margin="0,6,0,0"
+                     Visibility="{Binding HasKnownIssues, Converter={StaticResource BoolToVisibilityConverter}}" />
         </StackPanel>
       </CheckBox>
     </DataTemplate>

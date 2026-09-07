@@ -2663,6 +2663,7 @@
   <data name="LiveCustomizationSnippetsDescription" xml:space="preserve"><value>这些选择器已针对固定的 Spotify 版本检查，并可在面板中实时切换。</value><comment>CSS snippet catalog description.</comment></data>
   <data name="LiveCustomizationLiveBadge" xml:space="preserve"><value>实时</value><comment>Live-capable snippet badge.</comment></data>
   <data name="LiveCustomizationSourceFormat" xml:space="preserve"><value>来源：{0}</value><comment>Format parameter: {0} snippet source.</comment></data>
+  <data name="CustomApp_KnownIssuesNotice" xml:space="preserve"><value>上游未解决的问题：{0}。最早报告于 {1}。安装此应用前请先阅读。</value><comment>Custom Install notice when the catalog records open upstream issues for an asset. {0} is the issue count, {1} the oldest report date.</comment></data>
   <data name="CustomApp_librespot_Title" xml:space="preserve"><value>LibreSpot</value><comment>LibreSpot custom app title.</comment></data>
   <data name="CustomApp_librespot_Description" xml:space="preserve"><value>在 Spotify 内使用实时主题、片段、Spotify 标志、预设和健康检查。</value><comment>LibreSpot custom app description.</comment></data>
   <data name="HealthNameLibreSpotEngine" xml:space="preserve"><value>LibreSpot 实时引擎</value><comment>Health component name.</comment></data>

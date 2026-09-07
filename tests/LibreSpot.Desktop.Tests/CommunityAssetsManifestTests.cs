@@ -1099,6 +1099,66 @@ public sealed class CommunityAssetsManifestTests
     }
 
     [Fact]
+    public void KnownIssues_AreWellFormedAndNeverShipAsAnEasyModeDefault()
+    {
+        // The Stats app has carried an unfixed upstream rate-limit failure since
+        // December 2025 and nothing in the catalog said so. An asset with open
+        // defects may still be offered, but never chosen for the user.
+        using var catalog = JsonDocument.Parse(
+            File.ReadAllText(Path.Combine(RepoRoot, "schemas", "librespot-customization.json")));
+
+        var checkedAssets = 0;
+        foreach (var group in new[] { "extensions", "themes", "customApps" })
+        {
+            foreach (var asset in Manifest.RootElement.GetProperty(group).EnumerateArray())
+            {
+                if (!asset.TryGetProperty("knownIssues", out var issues) ||
+                    issues.ValueKind != JsonValueKind.Array ||
+                    issues.GetArrayLength() == 0)
+                {
+                    continue;
+                }
+
+                checkedAssets++;
+                var id = asset.TryGetProperty("appId", out var appId) ? appId.GetString()
+                    : asset.TryGetProperty("themeId", out var themeId) ? themeId.GetString()
+                    : asset.GetProperty("filename").GetString();
+
+                Assert.False(
+                    asset.TryGetProperty("easyModeDefault", out var easy) && easy.ValueKind == JsonValueKind.True,
+                    $"Asset '{id}' has open upstream issues recorded, so it must not be an Easy-mode default.");
+
+                foreach (var issue in issues.EnumerateArray())
+                {
+                    var url = issue.GetProperty("url").GetString()!;
+                    Assert.Matches(@"^https://github\.com/[^/]+/[^/]+/issues/\d+$", url);
+                    Assert.True(
+                        DateTimeOffset.TryParse(issue.GetProperty("openedDate").GetString(), out var opened),
+                        $"Known issue {url} needs a parseable openedDate.");
+                    Assert.True(opened <= DateTimeOffset.UtcNow, $"Known issue {url} is dated in the future.");
+                    Assert.False(
+                        string.IsNullOrWhiteSpace(issue.GetProperty("summary").GetString()),
+                        $"Known issue {url} needs a summary the Store can show.");
+                }
+
+                // The generated catalog is what both surfaces read. If it drops
+                // the list, the notice silently disappears from the UI.
+                var generated = catalog.RootElement.GetProperty(group).EnumerateArray()
+                    .FirstOrDefault(entry => string.Equals(entry.GetProperty("id").GetString(), id, StringComparison.OrdinalIgnoreCase));
+                Assert.True(
+                    generated.ValueKind == JsonValueKind.Object,
+                    $"Asset '{id}' is missing from the generated customization catalog.");
+                Assert.True(
+                    generated.TryGetProperty("knownIssues", out var mirrored) &&
+                        mirrored.GetArrayLength() == issues.GetArrayLength(),
+                    $"The generated catalog does not carry the {issues.GetArrayLength()} known issues recorded for '{id}'.");
+            }
+        }
+
+        Assert.True(checkedAssets > 0, "No asset records known issues, so this gate checked nothing.");
+    }
+
+    [Fact]
     public void CatalogRefreshChecklist_StaysCurrentAndAgreesWithTheManifest()
     {
         // Six of the seven evaluations still carried 2026-06-06 dates against

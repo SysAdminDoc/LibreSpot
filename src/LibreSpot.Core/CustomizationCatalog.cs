@@ -143,6 +143,14 @@ public sealed class CustomizationAssetDefinition
     public string? SupportState { get; init; }
     public string LastVerifiedSpotify { get; init; } = string.Empty;
     public bool LiveToggle { get; init; }
+    public List<CustomizationKnownIssue> KnownIssues { get; init; } = [];
+}
+
+public sealed class CustomizationKnownIssue
+{
+    public string Url { get; init; } = string.Empty;
+    public string OpenedDate { get; init; } = string.Empty;
+    public string Summary { get; init; } = string.Empty;
 }
 
 public static class CustomizationCatalogLoader

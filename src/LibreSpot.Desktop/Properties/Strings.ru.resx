@@ -2663,6 +2663,7 @@
   <data name="LiveCustomizationSnippetsDescription" xml:space="preserve"><value>Эти селекторы проверены с закрепленной сборкой Spotify. Их можно переключать в панели без перезапуска.</value><comment>CSS snippet catalog description.</comment></data>
   <data name="LiveCustomizationLiveBadge" xml:space="preserve"><value>Сразу</value><comment>Live-capable snippet badge.</comment></data>
   <data name="LiveCustomizationSourceFormat" xml:space="preserve"><value>Источник: {0}</value><comment>Format parameter: {0} snippet source.</comment></data>
+  <data name="CustomApp_KnownIssuesNotice" xml:space="preserve"><value>Открытых проблем у разработчика: {0}. Самая ранняя от {1}. Прочитайте их перед установкой этого приложения.</value><comment>Custom Install notice when the catalog records open upstream issues for an asset. {0} is the issue count, {1} the oldest report date.</comment></data>
   <data name="CustomApp_librespot_Title" xml:space="preserve"><value>LibreSpot</value><comment>LibreSpot custom app title.</comment></data>
   <data name="CustomApp_librespot_Description" xml:space="preserve"><value>Темы, фрагменты, флаги Spotify, профили и проверки состояния внутри Spotify.</value><comment>LibreSpot custom app description.</comment></data>
   <data name="HealthNameLibreSpotEngine" xml:space="preserve"><value>Движок LibreSpot в реальном времени</value><comment>Health component name.</comment></data>

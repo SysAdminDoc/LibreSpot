@@ -679,6 +679,18 @@
   margin: 14px 0;
 }
 
+.librespot-store-asset-card__known-issues {
+  background: var(--ls-surface-2);
+  border: 1px solid var(--ls-border);
+  border-left: 3px solid var(--ls-danger);
+  border-radius: 5px;
+  color: var(--ls-text);
+  font-size: 10px;
+  line-height: 1.5;
+  margin: 0 0 12px;
+  padding: 7px 9px;
+}
+
 .librespot-store-asset-card__facts {
   display: flex;
   flex-wrap: wrap;

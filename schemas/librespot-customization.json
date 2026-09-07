@@ -6501,7 +6501,24 @@
       "sha256": "c5611ff8caafe9c673ed43de07fbae77296d42fbd14fab868e9cbeac5d2b6cb7",
       "license": "MIT",
       "supportState": "active",
-      "lastVerifiedSpotify": "1.2.93"
+      "lastVerifiedSpotify": "1.2.93",
+      "knownIssues": [
+        {
+          "url": "https://github.com/harbassan/spicetify-apps/issues/236",
+          "openedDate": "2025-12-25",
+          "summary": "Spotify rate-limits the app's requests and the page shows \"Failed to fetch the info from the server\"."
+        },
+        {
+          "url": "https://github.com/harbassan/spicetify-apps/issues/242",
+          "openedDate": "2026-02-17",
+          "summary": "A rewrite adding request queueing, caching and backoff has been open since February without being merged."
+        },
+        {
+          "url": "https://github.com/harbassan/spicetify-apps/issues/247",
+          "openedDate": "2026-04-03",
+          "summary": "Installing the app removes the active theme and other custom apps until another spicetify apply runs."
+        }
+      ]
     }
   ]
 }

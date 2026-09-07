@@ -238,6 +238,23 @@ function AssetIcon(properties: { kind: "extension" | "app" }): UiNode {
   return SvgIcon({ source: properties.kind === "extension" ? puzzleIcon : appWindowIcon });
 }
 
+// One line, not a list. The card has to say the upstream defect exists before
+// someone picks the app; the catalog entry carries the issue links.
+export function knownIssueNotice(asset: CatalogAsset): UiNode {
+  const issues = asset.knownIssues ?? [];
+  if (issues.length === 0) return null;
+  const oldest = issues
+    .map((issue) => issue.openedDate)
+    .sort()
+    .at(0);
+  const count = issues.length === 1 ? "1 open issue" : `${issues.length} open issues`;
+  return h(
+    "p",
+    { className: "librespot-store-asset-card__known-issues", role: "note" },
+    `Upstream has ${count} against this app, the oldest from ${oldest}. Check them before installing.`,
+  );
+}
+
 function AssetCard(properties: {
   asset: CatalogAsset;
   kind: "extension" | "app";
@@ -265,6 +282,7 @@ function AssetCard(properties: {
         : null,
     ),
     h("p", null, itemDescription(asset, properties.kind)),
+    knownIssueNotice(asset),
     h(
       "div",
       { className: "librespot-store-asset-card__facts" },

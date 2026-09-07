@@ -1404,6 +1404,7 @@
   <data name="LiveCustomizationSnippetsDescription" xml:space="preserve"><value>These selectors were checked against the pinned Spotify version and can be toggled live in the panel.</value><comment>CSS snippet catalog description.</comment></data>
   <data name="LiveCustomizationLiveBadge" xml:space="preserve"><value>Live</value><comment>Live-capable snippet badge.</comment></data>
   <data name="LiveCustomizationSourceFormat" xml:space="preserve"><value>Source: {0}</value><comment>Format parameter: {0} snippet source.</comment></data>
+  <data name="CustomApp_KnownIssuesNotice" xml:space="preserve"><value>Open upstream issues: {0}. Oldest reported {1}. Read them before you install this app.</value><comment>Custom Install notice when the catalog records open upstream issues for an asset. {0} is the issue count, {1} the oldest report date.</comment></data>
   <data name="CustomApp_librespot_Title" xml:space="preserve"><value>LibreSpot</value><comment>LibreSpot custom app title.</comment></data>
   <data name="CustomApp_librespot_Description" xml:space="preserve"><value>Live themes, snippets, Spotify flags, presets, and health checks inside Spotify.</value><comment>LibreSpot custom app description.</comment></data>
   <data name="HealthNameLibreSpotEngine" xml:space="preserve"><value>LibreSpot live engine</value><comment>Health component name.</comment></data>

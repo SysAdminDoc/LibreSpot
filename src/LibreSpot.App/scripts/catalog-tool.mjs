@@ -295,6 +295,9 @@ function populateAssetCatalog(catalog) {
     license: app.spdxLicense,
     supportState: app.supportState,
     lastVerifiedSpotify: catalog.pins.spotifyVersion,
+    // Open upstream defects travel with the entry so the Store card and the
+    // desktop's Custom Install list can warn before the app is chosen.
+    ...(app.knownIssues?.length ? { knownIssues: app.knownIssues } : {}),
   }));
   catalog.customApps = uniqueById([...catalog.customApps, ...communityApps]);
 }

@@ -415,6 +415,23 @@
       "webApiUse": "platform-api",
       "webApiDetail": "Calls api.spotify.com endpoints, but every request goes through Spicetify.CosmosAsync (stats/index.js apiFetch), which uses the signed-in client's own session. There is no registered client ID anywhere in the archive, so the five-user Development Mode cap does not apply.",
       "networkDetail": "Stats can contact Last.fm when users open Last.fm-backed views inside Spotify.",
+      "knownIssues": [
+        {
+          "url": "https://github.com/harbassan/spicetify-apps/issues/236",
+          "openedDate": "2025-12-25",
+          "summary": "Spotify rate-limits the app's requests and the page shows \"Failed to fetch the info from the server\"."
+        },
+        {
+          "url": "https://github.com/harbassan/spicetify-apps/issues/242",
+          "openedDate": "2026-02-17",
+          "summary": "A rewrite adding request queueing, caching and backoff has been open since February without being merged."
+        },
+        {
+          "url": "https://github.com/harbassan/spicetify-apps/issues/247",
+          "openedDate": "2026-04-03",
+          "summary": "Installing the app removes the active theme and other custom apps until another spicetify apply runs."
+        }
+      ],
       "easyModeDefault": false,
       "notes": "Custom app installs via Spicetify config custom_apps. Release asset verified from stats-v1.1.3; upstream main at c39fef2 contains projects/stats and no projects/new-releases."
     }

@@ -52,6 +52,24 @@
         <TextBlock Text="{Binding Description}"
                    Style="{StaticResource CaptionTextStyle}"
                    Margin="0,6,0,0" />
+        <!-- App.xaml declares BoolToVisibilityConverter after it merges this
+             dictionary, so a StaticResource lookup for it fails here. Use a
+             trigger instead of adding a second converter instance. -->
+        <TextBlock Text="{Binding KnownIssueNotice}"
+                   Foreground="{DynamicResource WarningBrush}"
+                   TextWrapping="Wrap"
+                   Margin="0,6,0,0">
+          <TextBlock.Style>
+            <Style TargetType="TextBlock" BasedOn="{StaticResource CaptionTextStyle}">
+              <Setter Property="Visibility" Value="Collapsed" />
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding HasKnownIssues}" Value="True">
+                  <Setter Property="Visibility" Value="Visible" />
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </TextBlock.Style>
+        </TextBlock>
       </StackPanel>
     </CheckBox>
   </DataTemplate>

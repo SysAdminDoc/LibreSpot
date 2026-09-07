@@ -44,7 +44,8 @@ public sealed class CustomOptionEditorStateViewModel : ObservableObject
                 definition.Key,
                 definition.Title,
                 definition.Description,
-                recommendedBaseline.Spicetify_CustomApps.Contains(definition.Key, StringComparer.OrdinalIgnoreCase))));
+                recommendedBaseline.Spicetify_CustomApps.Contains(definition.Key, StringComparer.OrdinalIgnoreCase),
+                DescribeKnownIssues(definition.Key))));
         CustomizationFeatures = new ObservableCollection<CustomizationFeatureOptionViewModel>(
             AppCatalog.CustomizationCatalog.SpotifyFeatures.Select(definition => new CustomizationFeatureOptionViewModel(definition)));
         CustomizationSnippets = new ObservableCollection<CustomizationSnippetToggleViewModel>(
@@ -189,7 +190,8 @@ public sealed class CustomOptionEditorStateViewModel : ObservableObject
             var resourceKey = ToCustomAppResourceKey(customApp.Key);
             customApp.RefreshText(
                 Strings.ResourceManager.GetString($"{resourceKey}_Title", Strings.Culture) ?? customApp.Title,
-                Strings.ResourceManager.GetString($"{resourceKey}_Description", Strings.Culture) ?? customApp.Description);
+                Strings.ResourceManager.GetString($"{resourceKey}_Description", Strings.Culture) ?? customApp.Description,
+                DescribeKnownIssues(customApp.Key));
         }
 
         var selectedTheme = SelectedTheme;
@@ -252,6 +254,31 @@ public sealed class CustomOptionEditorStateViewModel : ObservableObject
 
     private static string ToCustomAppResourceKey(string key) =>
         $"CustomApp_{key.Replace("-", "_", StringComparison.Ordinal)}";
+
+    // The catalog is the only place that knows an asset has open upstream
+    // defects. Empty means none recorded, which is what most assets carry.
+    private static string DescribeKnownIssues(string key)
+    {
+        var issues = AppCatalog.CustomizationCatalog.CustomApps
+            .FirstOrDefault(app => string.Equals(app.Id, key, StringComparison.OrdinalIgnoreCase))
+            ?.KnownIssues ?? [];
+        if (issues.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        var oldest = issues
+            .Select(issue => issue.OpenedDate)
+            .Where(date => !string.IsNullOrWhiteSpace(date))
+            .OrderBy(date => date, StringComparer.Ordinal)
+            .FirstOrDefault() ?? string.Empty;
+
+        // Most resx keys have no designer property; the rest of this class
+        // reads them through the resource manager the same way.
+        var template = Strings.ResourceManager.GetString("CustomApp_KnownIssuesNotice", Strings.Culture)
+            ?? "Open upstream issues: {0}. Oldest reported {1}.";
+        return string.Format(Strings.Culture, template, issues.Count, oldest);
+    }
 
     private void RebuildFeatureGroups()
     {

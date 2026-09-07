@@ -2663,6 +2663,7 @@
   <data name="LiveCustomizationSnippetsDescription" xml:space="preserve"><value>Estes seletores foram verificados com a versão fixada do Spotify e podem ser alternados ao vivo no painel.</value><comment>CSS snippet catalog description.</comment></data>
   <data name="LiveCustomizationLiveBadge" xml:space="preserve"><value>Ao vivo</value><comment>Live-capable snippet badge.</comment></data>
   <data name="LiveCustomizationSourceFormat" xml:space="preserve"><value>Fonte: {0}</value><comment>Format parameter: {0} snippet source.</comment></data>
+  <data name="CustomApp_KnownIssuesNotice" xml:space="preserve"><value>Problemas abertos no projeto original: {0}. O mais antigo é de {1}. Leia antes de instalar este aplicativo.</value><comment>Custom Install notice when the catalog records open upstream issues for an asset. {0} is the issue count, {1} the oldest report date.</comment></data>
   <data name="CustomApp_librespot_Title" xml:space="preserve"><value>LibreSpot</value><comment>LibreSpot custom app title.</comment></data>
   <data name="CustomApp_librespot_Description" xml:space="preserve"><value>Temas ao vivo, trechos, sinalizadores do Spotify, predefinições e verificações de integridade dentro do Spotify.</value><comment>LibreSpot custom app description.</comment></data>
   <data name="HealthNameLibreSpotEngine" xml:space="preserve"><value>Motor ao vivo do LibreSpot</value><comment>Health component name.</comment></data>
