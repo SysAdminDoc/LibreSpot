@@ -1098,6 +1098,65 @@ public sealed class CommunityAssetsManifestTests
             "Hazy policyOverride approvedDate must be YYYY-MM-DD.");
     }
 
+    [Fact]
+    public void CatalogRefreshChecklist_StaysCurrentAndAgreesWithTheManifest()
+    {
+        // Six of the seven evaluations still carried 2026-06-06 dates against
+        // assets whose own verification had moved to September, and no gate read
+        // the checklist at all, so it could only rot. The June snapshot also
+        // recorded MIT for four repositories that are WTFPL, AGPL-3.0-only, or
+        // carry no licence file, which is why the licence has to agree with the
+        // manifest rather than just being present.
+        using var checklist = JsonDocument.Parse(
+            File.ReadAllText(Path.Combine(RepoRoot, "schemas", "catalog-refresh-checklist.json")));
+        using var baseline = JsonDocument.Parse(
+            File.ReadAllText(Path.Combine(RepoRoot, "schemas", "compatibility-baseline.json")));
+
+        var pinnedRelease = DateTimeOffset.Parse(
+            baseline.RootElement.GetProperty("spotify").GetProperty("releasedDate").GetString()!);
+
+        var manifestLicences = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var group in new[] { "themes", "extensions", "customApps" })
+        {
+            foreach (var asset in Manifest.RootElement.GetProperty(group).EnumerateArray())
+            {
+                if (!asset.TryGetProperty("owner", out var owner) || !asset.TryGetProperty("repo", out var repo))
+                {
+                    continue;
+                }
+
+                manifestLicences[$"{owner.GetString()}/{repo.GetString()}"] =
+                    asset.GetProperty("spdxLicense").GetString()!;
+            }
+        }
+
+        var candidates = checklist.RootElement.GetProperty("evaluatedCandidates").EnumerateArray().ToArray();
+        Assert.NotEmpty(candidates);
+
+        var matched = 0;
+        foreach (var candidate in candidates)
+        {
+            var name = candidate.GetProperty("candidate").GetString()!;
+            var evaluated = DateTimeOffset.Parse(candidate.GetProperty("evaluatedDate").GetString()!);
+            Assert.True(
+                evaluated >= pinnedRelease,
+                $"Checklist evaluation for '{name}' is dated {evaluated:yyyy-MM-dd}, older than the pinned Spotify "
+                    + $"build released {pinnedRelease:yyyy-MM-dd}. Re-review it or remove the entry.");
+
+            if (!manifestLicences.TryGetValue(name, out var spdx))
+            {
+                continue;
+            }
+
+            matched++;
+            Assert.Equal(spdx, candidate.GetProperty("license").GetString());
+        }
+
+        // Without this the licence half becomes a no-op the moment the checklist
+        // and the manifest stop naming the same repositories.
+        Assert.True(matched > 0, "No checklist candidate matched a manifest asset, so no licence was checked.");
+    }
+
     private static JsonDocument LoadManifest()
     {
         var path = Path.Combine(RepoRoot, "schemas", "community-assets.json");
