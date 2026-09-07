@@ -3517,6 +3517,29 @@ function Import-LibreSpotAssetCacheBundle {
     $requirement = "Spotify itself is not stored in LibreSpot's asset cache. SpotX's Spotify installer chain still needs access to Spotify's vendor download."
     $resolvedBundle = [System.IO.Path]::GetFullPath($BundlePath)
     $resolvedCache = [System.IO.Path]::GetFullPath($global:CACHE_DIR).TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar)
+    function Assert-AssetCachePathBoundaries {
+        param([Parameter(Mandatory = $true)][string]$Path)
+
+        $currentBoundary = [System.IO.Path]::GetFullPath($Path)
+        while (-not [string]::IsNullOrWhiteSpace($currentBoundary)) {
+            $boundaryItem = Get-Item -LiteralPath $currentBoundary -Force -ErrorAction SilentlyContinue
+            if ($boundaryItem) {
+                if (($boundaryItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+                    throw "The asset-cache path boundary is a reparse point and cannot be used safely: $currentBoundary"
+                }
+                if (-not $boundaryItem.PSIsContainer) {
+                    throw "The asset-cache path boundary is a file, not a directory: $currentBoundary"
+                }
+            }
+            $nextBoundary = [System.IO.Path]::GetDirectoryName($currentBoundary)
+            if ([string]::IsNullOrWhiteSpace($nextBoundary) -or $nextBoundary -eq $currentBoundary) {
+                break
+            }
+            $currentBoundary = $nextBoundary
+        }
+    }
+    Assert-AssetCachePathBoundaries -Path $resolvedCache
+    Assert-AssetCachePathBoundaries -Path $global:CONFIG_DIR
     $cacheItem = Get-Item -LiteralPath $resolvedCache -Force -ErrorAction SilentlyContinue
     if ($cacheItem) {
         if (($cacheItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
@@ -3540,6 +3563,9 @@ function Import-LibreSpotAssetCacheBundle {
     $stagingRoot = Join-Path $global:CONFIG_DIR ('.asset-cache-import-' + [guid]::NewGuid().ToString('N'))
     $replacementRoot = Join-Path $global:CONFIG_DIR ('.asset-cache-ready-' + [guid]::NewGuid().ToString('N'))
     $rollbackRoot = Join-Path $global:CONFIG_DIR ('.asset-cache-rollback-' + [guid]::NewGuid().ToString('N'))
+    Assert-AssetCachePathBoundaries -Path $stagingRoot
+    Assert-AssetCachePathBoundaries -Path $replacementRoot
+    Assert-AssetCachePathBoundaries -Path $rollbackRoot
     New-Item -Path $stagingRoot -ItemType Directory -Force | Out-Null
     $transactionStarted = $false
 
@@ -3920,6 +3946,23 @@ function Enter-LibreSpotAssetCacheLease {
     }
 
     $resolvedCache = [System.IO.Path]::GetFullPath($CacheDirectory)
+    $currentBoundary = $resolvedCache
+    while (-not [string]::IsNullOrWhiteSpace($currentBoundary)) {
+        $boundaryItem = Get-Item -LiteralPath $currentBoundary -Force -ErrorAction SilentlyContinue
+        if ($boundaryItem) {
+            if (($boundaryItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+                throw "The asset-cache path boundary is a reparse point and cannot be used safely: $currentBoundary"
+            }
+            if (-not $boundaryItem.PSIsContainer) {
+                throw "The asset-cache path boundary is a file, not a directory: $currentBoundary"
+            }
+        }
+        $nextBoundary = [System.IO.Path]::GetDirectoryName($currentBoundary)
+        if ([string]::IsNullOrWhiteSpace($nextBoundary) -or $nextBoundary -eq $currentBoundary) {
+            break
+        }
+        $currentBoundary = $nextBoundary
+    }
     $cacheItem = Get-Item -LiteralPath $resolvedCache -Force -ErrorAction SilentlyContinue
     if ($cacheItem) {
         if (($cacheItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
@@ -3935,6 +3978,10 @@ function Enter-LibreSpotAssetCacheLease {
     }
     if (-not (Test-Path -LiteralPath $parent -PathType Container)) {
         New-Item -Path $parent -ItemType Directory -Force -ErrorAction Stop | Out-Null
+    }
+    $parentItem = Get-Item -LiteralPath $parent -Force -ErrorAction Stop
+    if (($parentItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+        throw "The asset-cache parent is a reparse point and cannot be used safely: $parent"
     }
 
     $leasePath = Join-Path $parent '.asset-cache.lock'

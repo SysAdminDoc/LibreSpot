@@ -215,6 +215,36 @@ Describe 'PowerShell asset-cache bundle import transaction' {
         }
     }
 
+    It 'rejects a cache-parent junction before creating a lease or staging directory' {
+        $external = Join-Path $script:TestRoot 'external-config'
+        $sentinel = Join-Path $external 'sentinel.txt'
+        New-Item -Path $external -ItemType Directory -Force | Out-Null
+        [System.IO.File]::WriteAllText($sentinel, 'leave me', [System.Text.UTF8Encoding]::new($false))
+        Remove-Item -LiteralPath $script:TargetConfig -Recurse -Force
+        $null = & cmd.exe /d /c "mklink /J `"$($script:TargetConfig)`" `"$external`""
+        $LASTEXITCODE | Should -Be 0
+
+        try {
+            { Import-LibreSpotAssetCacheBundle -BundlePath $script:BundlePath } |
+                Should -Throw -ExpectedMessage '*reparse*'
+            $source = Join-Path $script:TestRoot 'parent-junction-source.bin'
+            [System.IO.File]::WriteAllText($source, 'source bytes', [System.Text.UTF8Encoding]::new($false))
+            $hash = Get-FileSha256Lower -Path $source
+            Save-ToAssetCache -SourcePath $source -SHA256Hash $hash -Label 'parent junction guard'
+            (Test-Path -LiteralPath (Join-Path $external $hash) -PathType Leaf) | Should -BeFalse
+            (Test-Path -LiteralPath (Join-Path $external '.asset-cache.lock')) | Should -BeFalse
+            [System.IO.File]::ReadAllText($sentinel) | Should -BeExactly 'leave me'
+            @(Get-ChildItem -LiteralPath $external -Directory -Filter '.asset-cache-*' -Force).Count | Should -Be 0
+        } finally {
+            if (Test-Path -LiteralPath $script:TargetConfig) {
+                $junction = Get-Item -LiteralPath $script:TargetConfig -Force
+                if (($junction.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+                    $junction.Delete()
+                }
+            }
+        }
+    }
+
     It 'serializes distinct concurrent saves while retaining both verified objects and entries' {
         $concurrentRoot = Join-Path $script:TestRoot 'concurrent'
         $concurrentCache = Join-Path $concurrentRoot 'cache'

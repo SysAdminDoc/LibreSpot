@@ -132,10 +132,14 @@ public sealed class AssetCacheBundleService
 
         var configRoot = Path.GetDirectoryName(cacheRoot)
             ?? throw new AssetCacheBundleException("The asset-cache directory has no parent directory.");
+        AssetCacheLease.ValidatePathParents(configRoot);
         Directory.CreateDirectory(configRoot);
         var stagingRoot = Path.Combine(configRoot, $".asset-cache-import-{Guid.NewGuid():N}");
         var replacementRoot = Path.Combine(configRoot, $".asset-cache-ready-{Guid.NewGuid():N}");
         var rollbackRoot = Path.Combine(configRoot, $".asset-cache-rollback-{Guid.NewGuid():N}");
+        AssetCacheLease.ValidatePathParents(stagingRoot);
+        AssetCacheLease.ValidatePathParents(replacementRoot);
+        AssetCacheLease.ValidatePathParents(rollbackRoot);
         using var cacheLease = AssetCacheLease.Acquire(cacheRoot);
         AssetCacheTransactionRecovery.Recover(cacheRoot);
         Directory.CreateDirectory(stagingRoot);

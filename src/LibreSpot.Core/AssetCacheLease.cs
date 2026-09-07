@@ -25,10 +25,13 @@ internal sealed class AssetCacheLease : IDisposable
         ArgumentException.ThrowIfNullOrWhiteSpace(cacheDirectory);
 
         var cacheRoot = Path.GetFullPath(cacheDirectory);
+        ValidatePathParents(cacheRoot);
         ValidateCacheRoot(cacheRoot);
         var parent = Path.GetDirectoryName(cacheRoot)
             ?? throw new IOException("The asset-cache directory has no parent directory.");
+        ValidatePathParents(parent);
         Directory.CreateDirectory(parent);
+        ValidatePathParents(parent);
         var lockPath = Path.Combine(parent, LockFileName);
         var deadline = DateTime.UtcNow + (timeout ?? TimeSpan.FromMilliseconds(DefaultTimeoutMilliseconds));
 
@@ -72,6 +75,41 @@ internal sealed class AssetCacheLease : IDisposable
         }
         catch (DirectoryNotFoundException)
         {
+        }
+    }
+
+    internal static void ValidatePathParents(string directory)
+    {
+        var current = Path.GetFullPath(directory);
+        while (!string.IsNullOrWhiteSpace(current))
+        {
+            try
+            {
+                var attributes = File.GetAttributes(current);
+                if ((attributes & FileAttributes.ReparsePoint) != 0)
+                {
+                    throw new AssetCacheBundleException($"The asset-cache path boundary is a reparse point and cannot be used safely: {current}");
+                }
+
+                if ((attributes & FileAttributes.Directory) == 0)
+                {
+                    throw new AssetCacheBundleException($"The asset-cache path boundary is a file, not a directory: {current}");
+                }
+            }
+            catch (FileNotFoundException)
+            {
+            }
+            catch (DirectoryNotFoundException)
+            {
+            }
+
+            var parent = Path.GetDirectoryName(current);
+            if (string.IsNullOrWhiteSpace(parent) || string.Equals(parent, current, StringComparison.OrdinalIgnoreCase))
+            {
+                break;
+            }
+
+            current = parent;
         }
     }
 

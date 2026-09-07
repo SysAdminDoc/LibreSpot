@@ -12,6 +12,23 @@ function Enter-LibreSpotAssetCacheLease {
     }
 
     $resolvedCache = [System.IO.Path]::GetFullPath($CacheDirectory)
+    $currentBoundary = $resolvedCache
+    while (-not [string]::IsNullOrWhiteSpace($currentBoundary)) {
+        $boundaryItem = Get-Item -LiteralPath $currentBoundary -Force -ErrorAction SilentlyContinue
+        if ($boundaryItem) {
+            if (($boundaryItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+                throw "The asset-cache path boundary is a reparse point and cannot be used safely: $currentBoundary"
+            }
+            if (-not $boundaryItem.PSIsContainer) {
+                throw "The asset-cache path boundary is a file, not a directory: $currentBoundary"
+            }
+        }
+        $nextBoundary = [System.IO.Path]::GetDirectoryName($currentBoundary)
+        if ([string]::IsNullOrWhiteSpace($nextBoundary) -or $nextBoundary -eq $currentBoundary) {
+            break
+        }
+        $currentBoundary = $nextBoundary
+    }
     $cacheItem = Get-Item -LiteralPath $resolvedCache -Force -ErrorAction SilentlyContinue
     if ($cacheItem) {
         if (($cacheItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
@@ -27,6 +44,10 @@ function Enter-LibreSpotAssetCacheLease {
     }
     if (-not (Test-Path -LiteralPath $parent -PathType Container)) {
         New-Item -Path $parent -ItemType Directory -Force -ErrorAction Stop | Out-Null
+    }
+    $parentItem = Get-Item -LiteralPath $parent -Force -ErrorAction Stop
+    if (($parentItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+        throw "The asset-cache parent is a reparse point and cannot be used safely: $parent"
     }
 
     $leasePath = Join-Path $parent '.asset-cache.lock'

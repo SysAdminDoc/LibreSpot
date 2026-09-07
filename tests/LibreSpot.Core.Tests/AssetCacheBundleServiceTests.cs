@@ -156,6 +156,38 @@ public sealed class AssetCacheBundleServiceTests
     }
 
     [Fact]
+    public void Import_RejectsCacheParentReparsePointBeforeCreatingLeaseOrStaging()
+    {
+        using var fixture = new Fixture();
+        fixture.AddSourceAsset("Alpha", "https://example.invalid/alpha", "alpha bytes");
+        var bundlePath = Path.Combine(fixture.Root, "parent-reparse.zip");
+        new AssetCacheBundleService().Export(fixture.SourceCache, bundlePath, "4.5.0");
+
+        var external = Path.Combine(fixture.Root, "external-config");
+        var sentinel = Path.Combine(external, "sentinel.txt");
+        Directory.CreateDirectory(external);
+        File.WriteAllText(sentinel, "leave me");
+        var targetConfig = Path.GetDirectoryName(fixture.TargetCache)!;
+        Directory.Delete(targetConfig, recursive: true);
+        CreateDirectoryJunction(targetConfig, external);
+
+        try
+        {
+            var error = Assert.Throws<AssetCacheBundleException>(() =>
+                new AssetCacheBundleService().Import(fixture.TargetCache, bundlePath));
+
+            Assert.Contains("reparse", error.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal("leave me", File.ReadAllText(sentinel));
+            Assert.False(File.Exists(Path.Combine(external, AssetCacheLease.LockFileName)));
+            Assert.Empty(Directory.EnumerateDirectories(external, ".asset-cache-*", SearchOption.TopDirectoryOnly));
+        }
+        finally
+        {
+            DeleteDirectoryJunction(targetConfig);
+        }
+    }
+
+    [Fact]
     public void Import_FlushesCopiedPreExistingFilesBeforePublication()
     {
         using var fixture = new Fixture();

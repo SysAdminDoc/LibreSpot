@@ -2703,6 +2703,19 @@ public sealed class PowerShellRegressionTests
     }
 
     [Theory]
+    [InlineData("src/powershell/shared/Enter-LibreSpotAssetCacheLease.ps1")]
+    [InlineData("src/powershell/shared/Import-LibreSpotAssetCacheBundle.ps1")]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void AssetCacheWrites_CheckEveryExistingParentBeforeCreatingLeaseOrStaging(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+
+        Assert.Contains("GetDirectoryName($currentBoundary)", script, StringComparison.Ordinal);
+        Assert.Contains("The asset-cache path boundary is a reparse point", script, StringComparison.Ordinal);
+    }
+
+    [Theory]
     [InlineData("MinimizeBtn", "Minimize window")]
     [InlineData("CloseTitleBtn", "Close window")]
     [InlineData("ModeEasy", "Recommended setup")]

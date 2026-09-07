@@ -117,7 +117,7 @@ Pinned [Marketplace Storage.ts](https://raw.githubusercontent.com/spicetify/mark
 
 **Implemented and exercised (RD-247):** PowerShell and Core cache index readers now require `entries` to be a real array. Missing, null, or scalar values are rejected before an import or export can replace the index, and the PowerShell fixture proves the existing files and malformed index remain unchanged.
 
-**Implemented and exercised (RD-248):** Cache leases, recovery, atomic destination parents and bundle imports reject cache-root or destination-parent reparse points before writing. Windows junction fixtures prove an external sentinel remains untouched while ordinary cache directories continue to work in both lanes.
+**Implemented and exercised (RD-248):** Cache leases, recovery, atomic destination parents and bundle imports reject cache-root or every existing cache and configuration parent reparse point before writing a lock or staging directory. Windows junction fixtures prove an external sentinel remains untouched while ordinary cache directories continue to work in both lanes.
 
 **Implemented and exercised (RD-249):** Existing files copied into a replacement cache now use the same flushed durable-copy path as imported objects. A Core observer fixture proves the pre-existing object copy reaches the durable path before publication, and PowerShell source and transaction coverage keep the two hosts aligned.
 
