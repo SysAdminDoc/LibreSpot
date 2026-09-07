@@ -14,7 +14,7 @@ Priority order:
 4. Make backup restoration and Marketplace reset preserve recoverable data (RD-228, RD-229).
 5. Serialize mutations across hosts, own installer descendants, and replace installed assets through staging and rollback (RD-230 through RD-232).
 6. Repair Marketplace storage lifecycle and migration handling, then make cache writes survive concurrent work and process death (RD-234 through RD-237, RD-247 through RD-249).
-7. Recovery and accessibility inside Spotify are implemented through RD-242; a real process-death cache fixture now closes RD-250, with callable companion readiness and startup integration tracked as RD-251 and RD-252.
+7. Recovery and accessibility inside Spotify are implemented through RD-242; a real process-death cache fixture now closes RD-250, and callable companion readiness is covered by RD-251 while startup integration remains in RD-252.
 8. Make diagnostics observable and test the Windows crash artifact itself (RD-233, RD-243 through RD-245); correct contradictory public documentation (RD-246).
 
 The remaining entries are recommendations unless an implemented item is called out below. Findings marked **Verified** were traced in source; exercised findings identify their synthetic reproduction. **Likely** describes a failure consequence not reproduced on a real installation. **Needs live validation** means a fixture or static check cannot establish the installed-client result.
@@ -121,7 +121,9 @@ Pinned [Marketplace Storage.ts](https://raw.githubusercontent.com/spicetify/mark
 
 **Implemented and exercised (RD-249):** Existing files copied into a replacement cache now use the same flushed durable-copy path as imported objects. A Core observer fixture proves the pre-existing object copy reaches the durable path before publication, and PowerShell source and transaction coverage keep the two hosts aligned.
 
-**Fresh verification findings (RD-251 and RD-252):** Companion readiness accepts truthy objects whose bootstrap methods are missing, and lifecycle coverage relies on source assertions instead of a staged companion integration fixture. These remain recorded in `ROADMAP.md` with reproductions, affected files and acceptance tests.
+**Implemented and exercised (RD-251):** Companion readiness now checks the callable React hooks, history pathname and navigation, local storage accessors, and player event registration that bootstrap uses. The staged publication fixture remains false until the complete surface is present, while the existing fully initialized companion still passes without optional ReactDOM or history-listener methods.
+
+**Fresh verification finding (RD-252):** Lifecycle coverage still relies on source assertions instead of a staged companion integration fixture. It remains recorded in `ROADMAP.md` with the reproduction, affected files and acceptance tests.
 
 **Dependency assessment on 2026-09-06:** pnpm's complete installed lockfile audit and the desktop NuGet direct/transitive vulnerability query both returned no advisories. The .NET 10.0.11 and PowerShell 7.6.5 floors already exist. Primary changelogs were checked for the .NET UI/logging packages and the TypeScript toolchain. New TypeScript 7 and Vitest 5 releases do not alone justify an upgrade: TypeScript 7 lacks the compiler API used by existing tooling, while [Vitest 5](https://vitest.dev/blog/vitest-5.html) offers browser tracing that can be evaluated when a browser fixture needs it. Keep React aligned with the host ABI. Sources: `src/LibreSpot.App/package.json`, `eslint.config.js`, `schemas/dependency-health-allowlist.json`, [TypeScript release](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/).
 
