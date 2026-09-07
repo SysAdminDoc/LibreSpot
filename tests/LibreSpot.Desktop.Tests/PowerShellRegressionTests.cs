@@ -1371,6 +1371,7 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("MaxRemainderCharacters", body);
         Assert.Contains("maxOutputLines", body);
         Assert.Contains("reader batch bounded", body);
+        Assert.Contains("replacementUtf8", body);
         Assert.Contains("$stream.Read", body);
         Assert.Contains("output truncated: oversized line", body);
         Assert.Contains("[regex]::Split", body);

@@ -2753,6 +2753,7 @@ function Read-ProcessOutputDelta {
     $maxOutputLines = 256
     $maxOutputCharacters = 262144
     $strictUtf8 = New-Object System.Text.UTF8Encoding($false, $true)
+    $replacementUtf8 = New-Object System.Text.UTF8Encoding($false, $false)
     $result = @{
         Offset = $Offset
         Remainder = if ($Remainder.Length -le $maxRemainderCharacters) { $Remainder } else { $Remainder.Substring($Remainder.Length - $maxRemainderCharacters) }
@@ -2790,7 +2791,14 @@ function Read-ProcessOutputDelta {
                         $decodedBytes--
                     }
                 }
-                if ($null -eq $chunk) { $chunk = '' }
+                if ($null -eq $chunk) {
+                    # Never leave the offset unchanged for a code-page byte or
+                    # another malformed sequence. Consume one byte with the
+                    # replacement decoder so polling can continue and classify
+                    # later output instead of stalling until the timeout.
+                    $chunk = $replacementUtf8.GetString($buffer, 0, 1)
+                    $decodedBytes = 1
+                }
                 $result.Offset = $result.Offset + $decodedBytes
                 if ($result.Offset -eq $decodedBytes -and $decodedBytes -ge 3 -and
                     $buffer[0] -eq 0xEF -and $buffer[1] -eq 0xBB -and $buffer[2] -eq 0xBF) {

@@ -4284,6 +4284,14 @@ Describe 'Bounded process output capture' {
         @($batchRead.Lines).Count | Should -BeLessOrEqual 256
         @($batchRead.Lines) -join "`n" | Should -Match 'output truncated: reader batch bounded'
         $batchRead.Remainder.Length | Should -BeLessOrEqual 32768
+
+        $invalidPath = Join-Path $TestDrive 'invalid-utf8.log'
+        [System.IO.File]::WriteAllBytes($invalidPath, [byte[]](0xFF, 0x0A, 0x66, 0x61, 0x69, 0x6C, 0x75, 0x72, 0x65, 0x0A))
+        $invalidFirst = Read-ProcessOutputDelta -Path $invalidPath -MaxChunkBytes 64
+        $invalidFirst.Offset | Should -BeGreaterThan 0
+        $invalidSecond = Read-ProcessOutputDelta -Path $invalidPath -Offset $invalidFirst.Offset -Remainder $invalidFirst.Remainder -MaxChunkBytes 64
+        $invalidSecond.Offset | Should -Be ([System.IO.FileInfo]$invalidPath).Length
+        ($invalidSecond.Lines -join "`n") | Should -Match 'failure'
     }
 
     It 'keeps redirected disk capture bounded and emits a disk marker' {
@@ -4341,6 +4349,7 @@ $($classMatch.Value)
             $lines.Count | Should -BeLessOrEqual ([LibreSpotNativeOutputCollector]::MaxQueuedLines + 1)
             ($lines | ForEach-Object Length | Measure-Object -Maximum).Maximum | Should -BeLessOrEqual ([LibreSpotNativeOutputCollector]::MaxLineCharacters)
             ($lines -match 'output truncated').Count | Should -BeGreaterThan 0
+            ($lines -match 'collector queue bounded').Count | Should -BeGreaterThan 0
             ($lines -join "`n") | Should -Match 'failure-signature'
         } finally {
             try { $collector.Detach($process) } catch {}
