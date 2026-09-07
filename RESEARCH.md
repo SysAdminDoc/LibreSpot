@@ -4,7 +4,7 @@ Date: 2026-09-07. Replaces all prior research.
 
 ## Executive Summary
 
-LibreSpot is a Windows Spotify customization manager with a WPF desktop, fleet CLI, PowerShell host, and an in-client Store and live engine. The strongest direction is dependable recovery around its curated, pinned integrations. Source v4.5.1 is prepared; the immutable public release is v4.4.0. The previous compatibility, update-status and WPF accessibility findings have been addressed. This plan instead concentrates on reproduced failures in profile persistence and support-export privacy, followed by interruptions and concurrent operations. Sources: `README.md`, `CHANGELOG.md`, `schemas/release-artifact-contract.json`, [published release](https://github.com/SysAdminDoc/LibreSpot/releases/tag/v4.4.0).
+LibreSpot is a Windows Spotify customization manager with a WPF desktop, fleet CLI, PowerShell host, and an in-client Store and live engine. The strongest direction is dependable recovery around its curated, pinned integrations. Source v4.5.1 is published as the current public release. The previous compatibility, update-status and WPF accessibility findings have been addressed. This plan instead concentrates on reproduced failures in profile persistence and support-export privacy, followed by interruptions and concurrent operations. Sources: `README.md`, `CHANGELOG.md`, `schemas/release-artifact-contract.json`, [published release](https://github.com/SysAdminDoc/LibreSpot/releases/tag/v4.5.1).
 
 Priority order:
 
@@ -129,7 +129,7 @@ Pinned [Marketplace Storage.ts](https://raw.githubusercontent.com/spicetify/mark
 
 **Testing strategy:** retain local builds and fixture isolation. Use real parser/store/worker code with synthetic malformed values, delayed callbacks and process termination at commit boundaries. The [Pathfinder research](https://arxiv.org/abs/2503.01390) supports selecting representative interruption states; its POSIX/MMIO implementation is not a Windows dependency recommendation. Avoid tests that only look for source strings or model a killed process by throwing an exception.
 
-**Implemented and exercised (RD-246):** Public docs now distinguish the MIT root hosts from the AGPL-3.0-only in-Spotify app, name the bundled engine and Prism assets, and identify SpotX, Spicetify CLI, Marketplace, and the official theme archive as fetched dependencies. They list the three user-facing executables plus adjacent `createdump.exe`, use the full configured Pester suite, describe Prism's `Menu.Item` and `PopupModal.display` APIs, document Store navigation and the UIA capture-path exception, keep v4.5.0 explicitly unpublished beside stable v4.4.0, and distinguish raw profile recovery from the complete Health backup. `DocumentationContractTests` pins those facts while versioned changelog records remain historical.
+**Implemented and exercised (RD-246):** Public docs now distinguish the MIT root hosts from the AGPL-3.0-only in-Spotify app, name the bundled engine and Prism assets, and identify SpotX, Spicetify CLI, Marketplace, and the official theme archive as fetched dependencies. They list the three user-facing executables plus adjacent `createdump.exe`, use the full configured Pester suite, describe Prism's `Menu.Item` and `PopupModal.display` APIs, document Store navigation and the UIA capture-path exception, record the v4.5.1 release, and distinguish raw profile recovery from the complete Health backup. `DocumentationContractTests` pins those facts while versioned changelog records remain historical.
 
 ## Rejected Ideas
 
@@ -146,7 +146,7 @@ Pinned [Marketplace Storage.ts](https://raw.githubusercontent.com/spicetify/mark
 
 ### Product, trackers and comparison
 
-https://github.com/SysAdminDoc/LibreSpot/releases/tag/v4.4.0
+https://github.com/SysAdminDoc/LibreSpot/releases/tag/v4.5.1
 https://github.com/SysAdminDoc/LibreSpot/issues
 https://github.com/SysAdminDoc/LibreSpot/discussions/21
 https://github.com/spicetify/cli/releases/tag/v3.0.0-beta.14
