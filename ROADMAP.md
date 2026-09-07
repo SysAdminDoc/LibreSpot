@@ -29,13 +29,6 @@ Added 2026-09-07 from RESEARCH.md. IDs continue the RD scheme; RD-252 was the la
   Acceptance: the capture path SHALL stamp `LibreSpotCaptureRailVersion` from the value the rail's `SimpleShellVersionLabel` actually exposes through UI Automation at capture time; the gate SHALL fail when that value differs from the assembly version or from the README's Version badge; all eleven captures SHALL be retaken from the released 4.5.1 build with a synthetic Spotify library (Open Questions in RESEARCH.md), and the seven in-client captures SHALL show the 4.5.1 companion status surface.
   Complexity: S
 
-- [ ] P2: RD-258: Gate every theme and scheme count in the README, not only the "supported themes" phrasing
-  Why: the heading "22 Themes, 200+ Color Schemes" contradicts the body's 24, and the RD-209 gate matches only `N supported themes`, so the heading and the scheme count are ungated exactly where RD-190 and RD-209 were meant to stop this.
-  Evidence: `README.md:455` against `:137` and `:147`; `tests/LibreSpot.Desktop.Tests/ReleaseTruthTests.cs` (`ReadmeThemeCountMatchesThePreviewManifest` regex); `schemas/theme-preview-manifest.json` (25 entries less one placeholder); `schemas/librespot-customization.json` (`builtInThemes` 3, `themes` 23).
-  Touches: `README.md`, `tests/LibreSpot.Desktop.Tests/ReleaseTruthTests.cs`.
-  Acceptance: the heading SHALL state the same theme count the body states; the gate SHALL match every `<number> Themes` and `<number> supported themes` occurrence case-insensitively and SHALL compute the scheme count from the manifest's per-theme scheme lists, failing when the README's scheme figure is not that count or a "<count>+" floor the count still satisfies.
-  Complexity: S
-
 - [ ] P2: RD-259: Reconcile the extension count between the README, the Store header and the gate
   Why: the Store counts 16 extensions because it includes the first-party companion `librespot-engine.js`, the README's gated sentence says 15 (ten built in and five community), and the README places the Store screenshot showing 16 three lines from that prose; the gate pins 15 against a source that excludes the companion, so it endorses the mismatch.
   Evidence: `schemas/librespot-customization.json` extensions (16, including `librespot-engine.js`); `README.md:326`; `tests/LibreSpot.Desktop.Tests/ReleaseTruthTests.cs:206`; `assets/screenshots/spotify-librespot-store.png` header pills.

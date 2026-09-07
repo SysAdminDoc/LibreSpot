@@ -10,6 +10,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Fixed
 
+- The theme section heading said "22 Themes, 200+ Color Schemes" two lines above a body that said 24. It now says 24 and 152, both read off the preview manifest, and Compact and Accessibility are named alongside Prism so the list adds up to what the heading claims. The gate reads every theme, per-source and scheme figure in the README instead of only the phrase "supported themes", and a "+" floor is allowed only while the manifest still meets it.
 - The README no longer claims the post-apply route re-wiring works on a Spotify build nobody checked. It names 1.2.93.667, the build the repair was actually run against, and `Build-Scripts.ps1 -Validate` now fails when that sentence names a build missing from the new `routeWiring` list in the compatibility baseline. Setting `LIBRESPOT_XPUI_FIXTURES` to a directory of extracted bundles re-runs the proof against real Spotify bytes. Without it those tests skip with the reason instead of passing quietly.
 - Shared Spotify controls now expose their explanatory text through `aria-describedby`, including live versus desktop application limits. Store filtering announces one result or empty-state message through a polite status region.
 - Built-in preset cards now compare the settings they own instead of the profile name. Editing an applied preset returns its action to Apply, and a custom profile with the same title does not get mistaken for the built-in.

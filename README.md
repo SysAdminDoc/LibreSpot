@@ -452,7 +452,7 @@ The desktop app and the fleet CLI run their own cleanup and report it as progres
 
 Custom Install exposes all 27 SpotX static lyrics color options: spotify, blueberry, blue, discord, forest, fresh, github, lavender, orange, pumpkin, purple, red, strawberry, turquoise, yellow, oceano, royal, krux, pinkle, zing, radium, sandbar, postlight, relish, drot, default, and spotify#2.
 
-### 22 Themes, 200+ Color Schemes
+### 24 Themes, 152 Color Schemes
 
 **Prism, the bundled theme.** LibreSpot's own Spicetify theme. It travels inside the package, so it installs from disk with nothing to download and no pinned release asset that can go stale. Four schemes: Dark, Light, OLED, and HighContrast.
 
@@ -460,6 +460,8 @@ Prism does three things the wider theme ecosystem has not shipped. It switches b
 
 Every file is pinned by SHA256 in all three hosts, so a truncated or edited copy is refused instead of half-installed. The theme is UI customization only: nothing in it touches ads, Premium state, telemetry, or any Spotify binary, and removing the theme reverses all of it.
 When a theme is replaced, LibreSpot walks only the installed tree and unlinks nested junctions before copying the new files. An old or malformed theme tree cannot redirect that cleanup into another folder.
+
+**Compact and Accessibility, also bundled.** Compact is a dense layout for large libraries and small Spotify windows. Accessibility gives large targets, a readable font option, strong focus rings, and no transparency. Both carry the same four schemes as Prism, and both preview live in Custom Install.
 
 **16 official themes:** Sleek, Dribbblish, Ziro, text, StarryNight, Turntable, Blackout, Blossom, BurntSienna, Default, Dreary, Flow, Matte, Nightlight, Onepunch, and SharkBlue.
 

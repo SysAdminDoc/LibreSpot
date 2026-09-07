@@ -328,13 +328,53 @@ public sealed class ReleaseTruthTests
             $"Expected exactly one Marketplace-only placeholder in the preview manifest, found {placeholders.Length}. "
                 + "If the placeholder was renamed, update this test rather than the count.");
 
-        var expected = entries.Length - placeholders.Length;
-        var matches = Regex.Matches(readme, @"(?<count>\d+) supported themes");
-        Assert.True(matches.Count > 0, "README.md no longer states a supported theme count.");
+        var themes = entries.Except(placeholders).ToArray();
+        var expected = themes.Length;
+
+        // "22 Themes, 200+ Color Schemes" sat two lines above a body that said
+        // 24, because the old regex only matched "N supported themes". Match
+        // the bare "<n> themes" heading form too, but not "27 Lyrics Color
+        // Themes", which counts SpotX lyrics options rather than themes.
+        var matches = Regex.Matches(readme, @"\b(?<count>\d+) (?:supported )?themes\b", RegexOptions.IgnoreCase);
+        Assert.True(matches.Count > 1, "README.md no longer states a theme count in both the heading and the body.");
 
         foreach (Match match in matches)
         {
             Assert.Equal(expected, int.Parse(match.Groups["count"].Value, System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        // The named per-source lists have to add up to that total, otherwise a
+        // reader counting the names lands somewhere else than the heading.
+        foreach (var source in new[] { "official", "community" })
+        {
+            var sourceCount = themes.Count(entry =>
+                string.Equals(entry.GetProperty("source").GetString(), source, StringComparison.Ordinal));
+            var listed = Regex.Matches(readme, $@"\b(?<count>\d+) {source} themes\b", RegexOptions.IgnoreCase);
+            Assert.True(listed.Count > 0, $"README.md no longer states how many {source} themes ship.");
+            foreach (Match match in listed)
+            {
+                Assert.Equal(sourceCount, int.Parse(match.Groups["count"].Value, System.Globalization.CultureInfo.InvariantCulture));
+            }
+        }
+
+        // Scheme totals drift the same way. "200+" outran the manifest by 48.
+        var expectedSchemes = themes.Sum(entry => entry.GetProperty("schemes").GetArrayLength());
+        var schemeMatches = Regex.Matches(readme, @"\b(?<count>\d+)(?<floor>\+)? color schemes\b", RegexOptions.IgnoreCase);
+        Assert.True(schemeMatches.Count > 0, "README.md no longer states a color scheme count.");
+
+        foreach (Match match in schemeMatches)
+        {
+            var claimed = int.Parse(match.Groups["count"].Value, System.Globalization.CultureInfo.InvariantCulture);
+            if (match.Groups["floor"].Success)
+            {
+                Assert.True(
+                    expectedSchemes >= claimed,
+                    $"README claims {claimed}+ color schemes but the preview manifest carries {expectedSchemes}.");
+            }
+            else
+            {
+                Assert.Equal(expectedSchemes, claimed);
+            }
         }
     }
 
