@@ -5,10 +5,10 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <TargetLatestRuntimePatch>true</TargetLatestRuntimePatch>
-    <Version>4.5.1</Version>
-    <AssemblyVersion>4.5.1.0</AssemblyVersion>
-    <FileVersion>4.5.1.0</FileVersion>
-    <InformationalVersion>4.5.1</InformationalVersion>
+    <Version>4.6.0</Version>
+    <AssemblyVersion>4.6.0.0</AssemblyVersion>
+    <FileVersion>4.6.0.0</FileVersion>
+    <InformationalVersion>4.6.0</InformationalVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <RestorePackagesWithLockFile>false</RestorePackagesWithLockFile>
   </PropertyGroup>

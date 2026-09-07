@@ -1,4 +1,4 @@
-using Xunit;
+﻿using Xunit;
 
 namespace LibreSpot.Desktop.Tests;
 
@@ -93,7 +93,7 @@ public sealed class DocumentationContractTests
         Assert.Contains("\"name\": \"createdump.exe\"", contract, StringComparison.Ordinal);
         Assert.Contains("`createdump.exe` helper", ReadFile("CHANGELOG.md"), StringComparison.Ordinal);
 
-        Assert.Contains("Version** is what this source tree builds, 4.5.1", readme, StringComparison.Ordinal);
+        Assert.Contains("Version** is what this source tree builds, 4.6.0", readme, StringComparison.Ordinal);
         Assert.Contains("public latest stable release, v4.5.1", readme, StringComparison.Ordinal);
     }
 

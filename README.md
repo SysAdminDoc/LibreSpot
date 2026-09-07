@@ -9,10 +9,10 @@ Installs, configures, and maintains Spotify with themes, extensions, custom apps
 [![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-blue?logo=powershell&logoColor=white)](https://github.com/PowerShell/PowerShell)
 [![License](https://img.shields.io/badge/Hosts-MIT-green.svg)](LICENSE)
 [![In-Spotify engine](https://img.shields.io/badge/In--Spotify%20engine-AGPL--3.0--only-green.svg)](src/LibreSpot.App/LICENSE)
-[![Version](https://img.shields.io/badge/Version-4.5.1-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
+[![Version](https://img.shields.io/badge/Version-4.6.0-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
 [![Stable](https://img.shields.io/badge/Stable-4.5.1-blue.svg)](https://github.com/SysAdminDoc/LibreSpot/releases/latest)
 
-The two badges now point at the same build. **Version** is what this source tree builds, 4.5.1. **Stable** is 4.5.1, the newest release on GitHub and what every download link below gives you.
+The two badges say different things on purpose. **Version** is what this source tree builds, 4.6.0, which is prepared and has not been published. **Stable** is 4.5.1, the newest release on GitHub and what every download link below gives you.
 
 </div>
 
@@ -121,6 +121,16 @@ Do not use Telegram links, rehosted files, or builds copied to another site. Nev
 </div>
 
 ---
+
+## What's New in v4.6.0
+
+This is what the next release will contain. It is built from this tree and has not been published yet, so the download links above still give you v4.5.1.
+
+- Context menus are readable on Prism's light schemes. Spotify's own stylesheet hard-codes white with alpha for menu text, which no colour replacement can reach, so Prism maps those to the scheme's own text colour.
+- The Store and Custom Install say when a custom app has open upstream defects, starting with the bundled Stats app.
+- `Build-Scripts.ps1 -ProposeCatalogRefresh` reports what advancing every community pin would mean, and applies none of it.
+- The downloader's patch-level check tracks all three Windows PowerShell advisories that reach it, not just the December 2025 one.
+- The README opens with the failures people hit running SpotX and Spicetify by hand, each next to the feature that handles it.
 
 ## What's New in v4.5.1
 
@@ -316,7 +326,7 @@ Built-in preset cards compare the controls they own. Editing an applied profile 
 >
 > If you manually update Spotify and patches stop working, use **Maintenance > Reapply After Update** to re-patch. The WPF Maintenance dashboard also flags **After Spotify update** drift and recommends targeted recovery steps before a full reset.
 
-Current source script version: **v3.12.0**. This tree builds desktop and CLI **v4.5.1**. Public latest stable release: **v4.5.1**.
+Current source script version: **v3.12.0**. This tree builds desktop and CLI **v4.6.0**, which is prepared and not yet published. Public latest stable release: **v4.5.1**.
 
 **Pinned dependency versions in the current source script:**
 

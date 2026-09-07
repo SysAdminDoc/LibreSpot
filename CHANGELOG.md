@@ -87,6 +87,10 @@ All notable changes to LibreSpot will be documented in this file.
 - Running a setup by hand from the standalone LibreSpot window now clears an auto-reapply hold, the same as the desktop app already did.
 - Health has a Reset Marketplace storage action for the case where a removed theme keeps coming back. It copies a backup to the clipboard first and stops if that fails, then clears Marketplace's own database.
 
+## [v4.6.0] (2026-09-07)
+
+Everything listed under Unreleased is built from this tree and has not been published yet.
+
 ## [v4.5.1] (2026-09-07)
 
 The companion readiness, startup rollback, crash capture, cache recovery, documentation, and test fixtures listed under Unreleased are included in this release.
