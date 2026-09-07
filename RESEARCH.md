@@ -14,7 +14,7 @@ Priority order:
 4. Make backup restoration and Marketplace reset preserve recoverable data (RD-228, RD-229).
 5. Serialize mutations across hosts, own installer descendants, and replace installed assets through staging and rollback (RD-230 through RD-232).
 6. Repair Marketplace storage lifecycle and migration handling, then make cache writes survive concurrent work and process death (RD-234 through RD-237, RD-247 through RD-249).
-7. Recovery and accessibility inside Spotify are implemented through RD-242; a real process-death cache fixture now closes RD-250, and callable companion readiness is covered by RD-251 while startup integration remains in RD-252.
+7. Recovery and accessibility inside Spotify are implemented through RD-242; a real process-death cache fixture now closes RD-250, and companion readiness plus startup recovery are covered by RD-251 and RD-252.
 8. Make diagnostics observable and test the Windows crash artifact itself (RD-233, RD-243 through RD-245); correct contradictory public documentation (RD-246).
 
 The remaining entries are recommendations unless an implemented item is called out below. Findings marked **Verified** were traced in source; exercised findings identify their synthetic reproduction. **Likely** describes a failure consequence not reproduced on a real installation. **Needs live validation** means a fixture or static check cannot establish the installed-client result.
@@ -123,7 +123,7 @@ Pinned [Marketplace Storage.ts](https://raw.githubusercontent.com/spicetify/mark
 
 **Implemented and exercised (RD-251):** Companion readiness now checks the callable React hooks, history pathname and navigation, local storage accessors, and player event registration that bootstrap uses. The staged publication fixture remains false until the complete surface is present, while the existing fully initialized companion still passes without optional ReactDOM or history-listener methods.
 
-**Fresh verification finding (RD-252):** Lifecycle coverage still relies on source assertions instead of a staged companion integration fixture. It remains recorded in `ROADMAP.md` with the reproduction, affected files and acceptance tests.
+**Implemented and exercised (RD-252):** The extension now completes route probing before listener registration and tracks every startup mutation for rollback. A happy-dom fixture publishes the companion in stages, forces a history-listener registration failure, verifies the claimed runtime, feature override, engine event, player listener, Marketplace subscription and mutation observer are cleaned up, then retries successfully. A direct engine fixture keeps a never-settling performance probe in the background while startup resolves.
 
 **Dependency assessment on 2026-09-06:** pnpm's complete installed lockfile audit and the desktop NuGet direct/transitive vulnerability query both returned no advisories. The .NET 10.0.11 and PowerShell 7.6.5 floors already exist. Primary changelogs were checked for the .NET UI/logging packages and the TypeScript toolchain. New TypeScript 7 and Vitest 5 releases do not alone justify an upgrade: TypeScript 7 lacks the compiler API used by existing tooling, while [Vitest 5](https://vitest.dev/blog/vitest-5.html) offers browser tracing that can be evaluated when a browser fixture needs it. Keep React aligned with the host ABI. Sources: `src/LibreSpot.App/package.json`, `eslint.config.js`, `schemas/dependency-health-allowlist.json`, [TypeScript release](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/).
 

@@ -34,7 +34,7 @@ import {
   SURFACE_SNIPPET_CSS,
 } from "../surface/builtins.ts";
 import settingsIconSource from "lucide-static/icons/settings.svg";
-import brandIconSource from "../icons/librespot.generated.txt";
+import brandIconSource from "../icons/librespot.svg";
 import { panelPath, type PanelId } from "../surface/navigation.ts";
 import { isCompanionApiReady } from "./companion-readiness.ts";
 
@@ -44,6 +44,18 @@ const COMPANION_API_POLL_MS = 100;
 const ENGINE_STATUS_EVENT = "librespot-engine-status";
 
 let bootstrapAttempt = 0;
+
+type CleanupCallback = () => void;
+
+function runCleanup(callbacks: CleanupCallback[]): void {
+  for (const callback of callbacks.reverse()) {
+    try {
+      callback();
+    } catch {
+      // Preserve the original startup failure when a host cleanup call fails.
+    }
+  }
+}
 
 function publishEngineStatus(
   phase: LibreSpotEngineBootstrapStatus["phase"],
@@ -415,6 +427,18 @@ async function bootstrap(): Promise<void> {
   publishEngineStatus("loading", null);
   let claimedRuntime: LibreSpotRuntimeApi | undefined;
   let startedEngine: LibreSpotEngine | undefined;
+  const cleanupCallbacks: CleanupCallback[] = [];
+  const addCleanup = (callback: CleanupCallback): void => {
+    cleanupCallbacks.push(callback);
+  };
+  const previousRouteWiring = window.__libreSpotRouteWiring;
+  addCleanup(() => {
+    if (previousRouteWiring === undefined) {
+      delete window.__libreSpotRouteWiring;
+    } else {
+      window.__libreSpotRouteWiring = previousRouteWiring;
+    }
+  });
   try {
     await waitForApi();
     // A second companion copy can enter after this wait in older clients. The
@@ -422,7 +446,6 @@ async function bootstrap(): Promise<void> {
     if (runtimeIsReady()) {
       return;
     }
-    registerAccessEntries();
     const store = new EngineStore(storageAdapter());
     const stored = store.load();
     // Read after load(), which is what puts an unreadable state into quarantine.
@@ -459,6 +482,7 @@ async function bootstrap(): Promise<void> {
     let availableHomeSections: ArrangementItem[] = [];
     let availableSidebarItems: ArrangementItem[] = [];
     let arrangementTimer: number | undefined;
+    let arrangementInterval: number | undefined;
     const listeners = new Set<(snapshot: LibreSpotRuntimeSnapshot) => void>();
     let marketplaceResetStatus: MarketplaceDeleteStatus = {
       phase: "idle",
@@ -513,6 +537,17 @@ async function bootstrap(): Promise<void> {
       }, delay);
     }
 
+    addCleanup(() => {
+      if (arrangementTimer !== undefined) {
+        window.clearTimeout(arrangementTimer);
+        arrangementTimer = undefined;
+      }
+      if (arrangementInterval !== undefined) {
+        window.clearInterval(arrangementInterval);
+        arrangementInterval = undefined;
+      }
+    });
+
     function runHealth(): HealthReport {
       return runSelfTest({
         document,
@@ -553,6 +588,10 @@ async function bootstrap(): Promise<void> {
     }
 
     const previousOverride = Spicetify.expFeatureOverride;
+    const hadPreviousOverride = Object.prototype.hasOwnProperty.call(
+      Spicetify,
+      "expFeatureOverride",
+    );
     Spicetify.expFeatureOverride = (feature) => {
       const resolved = previousOverride ? previousOverride(feature) : feature;
       capture.capture(resolved);
@@ -563,6 +602,17 @@ async function bootstrap(): Promise<void> {
       emit();
       return resolved;
     };
+    addCleanup(() => {
+      if (hadPreviousOverride) {
+        if (previousOverride) {
+          Spicetify.expFeatureOverride = previousOverride;
+        } else {
+          delete Spicetify.expFeatureOverride;
+        }
+      } else {
+        delete Spicetify.expFeatureOverride;
+      }
+    });
 
     function emit(): void {
       const current = snapshot();
@@ -600,10 +650,11 @@ async function bootstrap(): Promise<void> {
       8000,
       marketplaceLegacyStorage,
     );
-    marketplaceStore.subscribeDeleteStatus((status) => {
+    const unsubscribeMarketplaceStatus = marketplaceStore.subscribeDeleteStatus((status) => {
       marketplaceResetStatus = status;
       emit();
     });
+    addCleanup(unsubscribeMarketplaceStatus);
 
     function syncRecovery(): void {
       recovery = store.readRecovery();
@@ -943,17 +994,26 @@ async function bootstrap(): Promise<void> {
     claimedRuntime = runtime;
     window.LibreSpot = runtime;
     engine.addEventListener("applied", emit);
+    addCleanup(() => {
+      engine.removeEventListener("applied", emit);
+    });
     await engine.start({
       previousFeatureOverrides: stored.featureOverrides,
     });
-    window.__libreSpotEngineLoaded = true;
-    publishEngineStatus("ready", null);
     refreshArrangements();
     health = runHealth();
     emit();
 
+    // Route probing can fail through the health calculation. Complete it
+    // before listener registration so a failed startup never leaves observers
+    // attached to a runtime that will be discarded.
+    await refreshRoutes();
+
     const arrangementObserver = new MutationObserver(() => {
       scheduleArrangementRefresh();
+    });
+    addCleanup(() => {
+      arrangementObserver.disconnect();
     });
     const arrangementRoots = [
       document.querySelector(".Root__main-view"),
@@ -967,7 +1027,12 @@ async function bootstrap(): Promise<void> {
       void engine.refreshAccent().then(emit);
     };
     Spicetify.Player.addEventListener("songchange", onSongChange);
-    Spicetify.Platform.History.listen?.(() => {
+    if (Spicetify.Player.removeEventListener) {
+      addCleanup(() => {
+        Spicetify.Player.removeEventListener?.("songchange", onSongChange);
+      });
+    }
+    const removeHistoryListener = Spicetify.Platform.History.listen?.(() => {
       engine.apply();
       void engine.refreshAccent().then(emit);
       health = runHealth();
@@ -978,15 +1043,21 @@ async function bootstrap(): Promise<void> {
       }, 900);
       void refreshRoutes();
     });
-    window.setInterval(() => {
+    if (removeHistoryListener) {
+      addCleanup(removeHistoryListener);
+    }
+    arrangementInterval = window.setInterval(() => {
       engine.apply();
       refreshArrangements();
       emit();
       void engine.refreshAccent().then(emit);
     }, 60_000);
-    await refreshRoutes();
+    registerAccessEntries();
+    window.__libreSpotEngineLoaded = true;
+    publishEngineStatus("ready", null);
     console.info("[LibreSpot] live engine ready");
   } catch (error) {
+    runCleanup(cleanupCallbacks);
     if (startedEngine) {
       try {
         startedEngine.stop();
