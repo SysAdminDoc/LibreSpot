@@ -2468,13 +2468,18 @@ function Enter-LibreSpotMutationLease {
 
     $readOwner = {
         param([string]$Path)
+        if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+            return [pscustomobject]@{ State = 'Missing'; Owner = $null; Error = '' }
+        }
         try {
-            if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return $null }
             $raw = [System.IO.File]::ReadAllText($Path)
-            if ([string]::IsNullOrWhiteSpace($raw)) { return $null }
-            return ($raw | ConvertFrom-Json -ErrorAction Stop)
+            if ([string]::IsNullOrWhiteSpace($raw)) {
+                return [pscustomobject]@{ State = 'Unreadable'; Owner = $null; Error = 'the owner record is empty' }
+            }
+            $owner = $raw | ConvertFrom-Json -ErrorAction Stop
+            return [pscustomobject]@{ State = 'Valid'; Owner = $owner; Error = '' }
         } catch {
-            return $null
+            return [pscustomobject]@{ State = 'Unreadable'; Owner = $null; Error = $_.Exception.Message }
         }
     }
     $hasLiveDescendant = {
@@ -2482,7 +2487,7 @@ function Enter-LibreSpotMutationLease {
         try {
             $processes = @(Get-CimInstance -ClassName Win32_Process -ErrorAction Stop | Select-Object ProcessId, ParentProcessId)
         } catch {
-            return $false
+            throw "LIBRESPOT_MUTATION_BUSY: Could not inspect installer descendants for owner PID ${RootPid}. The operation was deferred without changing Spotify or Spicetify."
         }
         $pending = New-Object 'System.Collections.Generic.Queue[int]'
         $seen = New-Object 'System.Collections.Generic.HashSet[int]'
@@ -2502,7 +2507,11 @@ function Enter-LibreSpotMutationLease {
     $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
     $stream = $null
     while ($null -eq $stream) {
-        $owner = & $readOwner $leasePath
+        $ownerRead = & $readOwner $leasePath
+        if ($ownerRead.State -eq 'Unreadable') {
+            throw "LIBRESPOT_MUTATION_BUSY: LibreSpot could not verify the existing mutation lease owner record ($($ownerRead.Error)). The operation was deferred without changing Spotify or Spicetify."
+        }
+        $owner = $ownerRead.Owner
         $ownerPid = 0
         [DateTime]$ownerStart = [DateTime]::MinValue
         $ownerTimestampValid = $false
@@ -2510,7 +2519,15 @@ function Enter-LibreSpotMutationLease {
             $ownerStart = [DateTime]::Parse([string]$owner.startedAtUtc, [System.Globalization.CultureInfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::RoundtripKind)
             $ownerTimestampValid = $true
         } catch {}
-        if ($owner -and [int]::TryParse([string]$owner.pid, [ref]$ownerPid) -and $ownerTimestampValid) {
+        if ($owner) {
+            $ownerSchema = 0
+            if (-not [int]::TryParse([string]$owner.schemaVersion, [ref]$ownerSchema) -or $ownerSchema -ne 1) {
+                throw 'LIBRESPOT_MUTATION_BUSY: The existing LibreSpot mutation lease owner record is invalid. The operation was deferred without changing Spotify or Spicetify.'
+            }
+            if (-not [int]::TryParse([string]$owner.pid, [ref]$ownerPid) -or $ownerPid -le 0 -or -not $ownerTimestampValid -or
+                [string]$owner.targetIdentity -ne $targetIdentity) {
+                throw 'LIBRESPOT_MUTATION_BUSY: The existing LibreSpot mutation lease owner record could not be verified. The operation was deferred without changing Spotify or Spicetify.'
+            }
             $ownerMatches = $false
             $ownerAlive = $false
             try {
@@ -2518,7 +2535,11 @@ function Enter-LibreSpotMutationLease {
                 $ownerMatches = [Math]::Abs(($ownerProcess.StartTime.ToUniversalTime() - $ownerStart.ToUniversalTime()).TotalSeconds) -le 5
                 $ownerAlive = $ownerMatches
             } catch {
-                $ownerMatches = $true
+                if ($_.Exception.Message -match '(?i)(cannot find|no process|process.*identifier|does not exist)') {
+                    $ownerMatches = $true
+                } else {
+                    throw "LIBRESPOT_MUTATION_BUSY: LibreSpot could not verify owner process $ownerPid. The operation was deferred without changing Spotify or Spicetify."
+                }
             }
             if ($ownerMatches -and -not $ownerAlive -and (& $hasLiveDescendant $ownerPid)) {
                 if ([DateTime]::UtcNow -ge $deadline) {
@@ -2549,6 +2570,7 @@ function Enter-LibreSpotMutationLease {
         # so an installer child still writing for that owner cannot be bypassed.
         if ($stream) {
             $postOpenOwner = $null
+            $postOpenReadError = $null
             try {
                 $stream.Position = 0
                 $reader = [System.IO.StreamReader]::new($stream, [System.Text.Encoding]::UTF8, $true, 1024, $true)
@@ -2561,7 +2583,12 @@ function Enter-LibreSpotMutationLease {
                     $postOpenOwner = $postOpenRaw | ConvertFrom-Json -ErrorAction Stop
                 }
             } catch {
-                $postOpenOwner = $null
+                $postOpenReadError = $_.Exception.Message
+            }
+            if ($postOpenReadError) {
+                try { $stream.Dispose() } catch {}
+                $stream = $null
+                throw "LIBRESPOT_MUTATION_BUSY: LibreSpot could not verify the mutation lease owner record after opening it ($postOpenReadError). The operation was deferred without changing Spotify or Spicetify."
             }
             $postOpenPid = 0
             [DateTime]$postOpenStart = [DateTime]::MinValue
@@ -2570,7 +2597,15 @@ function Enter-LibreSpotMutationLease {
                 $postOpenStart = [DateTime]::Parse([string]$postOpenOwner.startedAtUtc, [System.Globalization.CultureInfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::RoundtripKind)
                 $postOpenTimestampValid = $true
             } catch {}
-            if ($postOpenOwner -and [int]::TryParse([string]$postOpenOwner.pid, [ref]$postOpenPid) -and $postOpenTimestampValid) {
+            if ($postOpenOwner) {
+                $postOpenSchema = 0
+                if (-not [int]::TryParse([string]$postOpenOwner.schemaVersion, [ref]$postOpenSchema) -or $postOpenSchema -ne 1 -or
+                    -not [int]::TryParse([string]$postOpenOwner.pid, [ref]$postOpenPid) -or $postOpenPid -le 0 -or
+                    -not $postOpenTimestampValid -or [string]$postOpenOwner.targetIdentity -ne $targetIdentity) {
+                    try { $stream.Dispose() } catch {}
+                    $stream = $null
+                    throw 'LIBRESPOT_MUTATION_BUSY: The mutation lease owner record changed to an unverifiable value while opening the lease. The operation was deferred without changing Spotify or Spicetify.'
+                }
                 $postOpenMatches = $false
                 $postOpenAlive = $false
                 try {
@@ -2578,15 +2613,31 @@ function Enter-LibreSpotMutationLease {
                     $postOpenMatches = [Math]::Abs(($postOpenProcess.StartTime.ToUniversalTime() - $postOpenStart.ToUniversalTime()).TotalSeconds) -le 5
                     $postOpenAlive = $postOpenMatches
                 } catch {
-                    $postOpenMatches = $true
-                }
-                if ($postOpenMatches -and -not $postOpenAlive -and (& $hasLiveDescendant $postOpenPid)) {
-                    $stream.Dispose()
-                    $stream = $null
-                    if ([DateTime]::UtcNow -ge $deadline) {
-                        throw "LIBRESPOT_MUTATION_BUSY: Another LibreSpot operation left installer descendants running for '$Label'. The operation was deferred without changing Spotify or Spicetify."
+                    if ($_.Exception.Message -match '(?i)(cannot find|no process|process.*identifier|does not exist)') {
+                        $postOpenMatches = $true
+                    } else {
+                        try { $stream.Dispose() } catch {}
+                        $stream = $null
+                        throw "LIBRESPOT_MUTATION_BUSY: LibreSpot could not verify owner process $postOpenPid after opening the lease. The operation was deferred without changing Spotify or Spicetify."
                     }
-                    Start-Sleep -Milliseconds $RetryMilliseconds
+                }
+                if ($postOpenMatches -and -not $postOpenAlive) {
+                    $postOpenHasLiveDescendant = $false
+                    try {
+                        $postOpenHasLiveDescendant = & $hasLiveDescendant $postOpenPid
+                    } catch {
+                        try { $stream.Dispose() } catch {}
+                        $stream = $null
+                        throw $_
+                    }
+                    if ($postOpenHasLiveDescendant) {
+                        $stream.Dispose()
+                        $stream = $null
+                        if ([DateTime]::UtcNow -ge $deadline) {
+                            throw "LIBRESPOT_MUTATION_BUSY: Another LibreSpot operation left installer descendants running for '$Label'. The operation was deferred without changing Spotify or Spicetify."
+                        }
+                        Start-Sleep -Milliseconds $RetryMilliseconds
+                    }
                 }
             }
         }
@@ -10854,8 +10905,6 @@ function Get-LibreSpotAssetInstallFailureSummary {
 
 function Module-InstallThemes { param($Config)
     $tn = [string]$Config.Spicetify_Theme
-    if ($tn -eq '(None - Marketplace Only)') { Write-Log 'No theme selected.'; return }
-    Write-Log "Installing theme: $tn..." -Level 'STEP'
 
     $integration = Get-SpicetifyIntegrationContext
     $td = $integration.ThemesDirectory
@@ -10870,6 +10919,8 @@ function Module-InstallThemes { param($Config)
     $allowedRoots = @($td, $configDirectory)
     $transactionPath = Join-Path $configDirectory '.librespot-package-theme.transaction.json'
     Resolve-LibreSpotPackageTransaction -TransactionPath $transactionPath -AllowedRoots $allowedRoots | Out-Null
+    if ($tn -eq '(None - Marketplace Only)') { Write-Log 'No theme selected.'; return }
+    Write-Log "Installing theme: $tn..." -Level 'STEP'
 
     $isBundled = ($null -ne $global:BundledThemes) -and $global:BundledThemes.Contains($tn)
     $isCommunity = ($null -ne $global:CommunityThemeRepos) -and $global:CommunityThemeRepos.ContainsKey($tn)
@@ -11029,10 +11080,13 @@ function Module-InstallThemes { param($Config)
                     throw "Bundled theme staging verification failed for '$fileName'."
                 }
             }
-        } elseif ($isCommunity -and
-            -not (Test-Path -LiteralPath (Join-Path $stagePath 'color.ini') -PathType Leaf) -and
+        } elseif (-not (Test-Path -LiteralPath (Join-Path $stagePath 'color.ini') -PathType Leaf) -and
             -not (Test-Path -LiteralPath (Join-Path $stagePath 'user.css') -PathType Leaf)) {
-            throw "Community theme '$tn' staging is missing color.ini and user.css."
+            throw "Theme '$tn' staging is missing color.ini and user.css."
+        }
+        if ($global:ThemesNeedingJS -contains $tn -and
+            -not (Test-Path -LiteralPath (Join-Path $stagePath 'theme.js') -PathType Leaf)) {
+            throw "Theme '$tn' requires theme.js, but the staged theme does not contain it."
         }
         $expectedFingerprint = Get-LibreSpotPackageFingerprint -Path $stagePath
         Invoke-LibreSpotPackageTransaction `
@@ -11795,6 +11849,11 @@ function Module-InstallCustomApps { param($Config)
                 New-Item -Path $stagePath -ItemType Directory -Force -ErrorAction Stop | Out-Null
                 $stagingPaths.Add($stagePath)
                 Copy-Item -Path (Join-Path $sourcePath '*') -Destination $stagePath -Recurse -Force -ErrorAction Stop
+                foreach ($requiredFile in $requiredFiles) {
+                    if (-not (Test-Path -LiteralPath (Join-Path $stagePath $requiredFile) -PathType Leaf)) {
+                        throw "Custom app '$appId' staging is missing required file '$requiredFile'."
+                    }
+                }
                 $expectedFingerprint = Get-LibreSpotPackageFingerprint -Path $stagePath
 
                 $companionExtension = [string]$info.CompanionExtension
@@ -11844,6 +11903,12 @@ function Module-InstallCustomApps { param($Config)
                 $descriptors.Add([pscustomobject]@{ Action = 'remove'; Kind = 'file'; TargetPath = $target })
             }
         }
+        $failedCompanionExtensions = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+        foreach ($failedAppId in $failedRequestedApps) {
+            if (-not $global:CommunityCustomApps.Contains($failedAppId)) { continue }
+            $failedCompanion = [string]$global:CommunityCustomApps[$failedAppId].CompanionExtension
+            if (-not [string]::IsNullOrWhiteSpace($failedCompanion)) { $null = $failedCompanionExtensions.Add($failedCompanion) }
+        }
         $descriptors.Add([pscustomobject]@{ Action = 'preserve'; Kind = 'file'; TargetPath = $configPath })
 
         Invoke-LibreSpotPackageTransaction `
@@ -11852,8 +11917,13 @@ function Module-InstallCustomApps { param($Config)
             -TransactionId $transactionId `
             -Packages @($descriptors) `
             -Commit {
-                Sync-SpicetifyListSetting -Key 'custom_apps' -DesiredItems @($installedApps) -ManagedItems $managedApps
-                Sync-SpicetifyListSetting -Key 'extensions' -DesiredItems @($installedCompanionExtensions) -ManagedItems $managedCompanionExtensions
+                # A requested asset that failed validation remains installed on
+                # disk. Preserve its existing config entry until a later retry
+                # succeeds, without inventing an entry for a never-installed app.
+                $preservedFailedApps = @(Get-SpicetifyConfigListValue -Key 'custom_apps' | Where-Object { $failedRequestedApps.Contains([string]$_) })
+                $preservedFailedExtensions = @(Get-SpicetifyConfigListValue -Key 'extensions' | Where-Object { $failedCompanionExtensions.Contains([string]$_) })
+                Sync-SpicetifyListSetting -Key 'custom_apps' -DesiredItems @($installedApps + $preservedFailedApps) -ManagedItems $managedApps
+                Sync-SpicetifyListSetting -Key 'extensions' -DesiredItems @($installedCompanionExtensions + $preservedFailedExtensions) -ManagedItems $managedCompanionExtensions
             } | Out-Null
     } finally {
         foreach ($zipPath in @($zipPaths)) { Remove-Item -LiteralPath $zipPath -Force -ErrorAction SilentlyContinue }
@@ -13332,6 +13402,8 @@ function Invoke-LibreSpotPackageTransaction {
                 BackupPath          = $backupPath
                 OldExists           = [bool]$targetExists
                 OldFingerprint      = $oldFingerprint
+                RecoveryFingerprint = $oldFingerprint
+                RecoveryOwned       = $false
                 ExpectedFingerprint = $expectedFingerprint
                 Status              = 'Prepared'
             })
@@ -13377,7 +13449,29 @@ function Invoke-LibreSpotPackageTransaction {
             }
         }
 
-        & $Commit
+        $transaction.Status = 'Committing'
+        Write-PackageTransactionMarker -Document $transaction
+        try {
+            & $Commit
+        } catch {
+            # A commit callback can write configuration and then fail. Record
+            # the bytes observed at that point so recovery can restore them
+            # only when this transaction still owns the target.
+            foreach ($descriptor in $normalized) {
+                if ($descriptor.Action -ne 'preserve') { continue }
+                if (Test-Path -LiteralPath $descriptor.TargetPath -PathType Leaf) {
+                    try {
+                        $descriptor.RecoveryFingerprint = Get-LibreSpotPackageFingerprint -Path $descriptor.TargetPath -AllowReparse
+                        $descriptor.RecoveryOwned = $true
+                    } catch {
+                        $descriptor.RecoveryFingerprint = ''
+                        $descriptor.RecoveryOwned = $false
+                    }
+                }
+            }
+            try { Write-PackageTransactionMarker -Document $transaction } catch {}
+            throw
+        }
 
         foreach ($descriptor in $normalized) {
             if ($descriptor.Action -eq 'swap') {
@@ -13526,6 +13620,14 @@ function Resolve-LibreSpotPackageTransaction {
         if (-not $oldExists -and -not [string]::IsNullOrWhiteSpace($oldFingerprint)) {
             throw 'A package transaction descriptor records a fingerprint for a missing original.'
         }
+        $recoveryFingerprint = [string]$descriptor.RecoveryFingerprint
+        $recoveryOwned = [bool]$descriptor.RecoveryOwned
+        if (-not [string]::IsNullOrWhiteSpace($recoveryFingerprint) -and $recoveryFingerprint -notmatch '\A[0-9a-f]{64}\z') {
+            throw 'A package transaction descriptor has an invalid recovery fingerprint.'
+        }
+        if ($recoveryOwned -and [string]::IsNullOrWhiteSpace($recoveryFingerprint)) {
+            throw 'A package transaction descriptor marks an unrecorded recovery target as owned.'
+        }
 
         $states.Add([pscustomobject]@{
             Action             = $action
@@ -13535,6 +13637,8 @@ function Resolve-LibreSpotPackageTransaction {
             BackupPath         = $canonicalBackup
             OldExists          = $oldExists
             OldFingerprint     = $oldFingerprint
+            RecoveryFingerprint = $recoveryFingerprint
+            RecoveryOwned      = $recoveryOwned
             ExpectedFingerprint = [string]$descriptor.ExpectedFingerprint
         })
     }
@@ -13549,6 +13653,14 @@ function Resolve-LibreSpotPackageTransaction {
             }
             if (($state.Kind -eq 'directory' -and -not $item.PSIsContainer) -or ($state.Kind -eq 'file' -and $item.PSIsContainer)) {
                 throw "Package transaction target kind changed: $($state.TargetPath)"
+            }
+            if ($state.Action -eq 'preserve' -and [string]$transaction.Status -ne 'Committed') {
+                $currentFingerprint = Get-LibreSpotPackageFingerprint -Path $state.TargetPath -AllowReparse
+                $matchesOriginal = $state.OldExists -and $currentFingerprint -eq $state.OldFingerprint
+                $matchesOwnedRecovery = $state.RecoveryOwned -and $currentFingerprint -eq $state.RecoveryFingerprint
+                if (-not $matchesOriginal -and -not $matchesOwnedRecovery) {
+                    throw "Package transaction cannot prove ownership of the changed configuration target: $($state.TargetPath)"
+                }
             }
         }
         if (Test-Path -LiteralPath $state.BackupPath) {
@@ -13600,8 +13712,7 @@ function Resolve-LibreSpotPackageTransaction {
         if ($state.Action -eq 'preserve') {
             if ($state.OldExists) {
                 if (-not $backupExists) { throw "Package transaction config backup is missing: $($state.BackupPath)" }
-                if ($targetExists) { Remove-LibreSpotPackagePathSafely -Path $state.TargetPath | Out-Null }
-                [System.IO.File]::Copy($state.BackupPath, $state.TargetPath, $false)
+                [System.IO.File]::Copy($state.BackupPath, $state.TargetPath, $true)
                 if ((Get-LibreSpotPackageFingerprint -Path $state.TargetPath -AllowReparse) -ne $state.OldFingerprint) {
                     throw "Package transaction could not restore configuration: $($state.TargetPath)"
                 }

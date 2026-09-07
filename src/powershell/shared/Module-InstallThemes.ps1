@@ -1,7 +1,5 @@
 function Module-InstallThemes { param($Config)
     $tn = [string]$Config.Spicetify_Theme
-    if ($tn -eq '(None - Marketplace Only)') { Write-Log 'No theme selected.'; return }
-    Write-Log "Installing theme: $tn..." -Level 'STEP'
 
     $integration = Get-SpicetifyIntegrationContext
     $td = $integration.ThemesDirectory
@@ -16,6 +14,8 @@ function Module-InstallThemes { param($Config)
     $allowedRoots = @($td, $configDirectory)
     $transactionPath = Join-Path $configDirectory '.librespot-package-theme.transaction.json'
     Resolve-LibreSpotPackageTransaction -TransactionPath $transactionPath -AllowedRoots $allowedRoots | Out-Null
+    if ($tn -eq '(None - Marketplace Only)') { Write-Log 'No theme selected.'; return }
+    Write-Log "Installing theme: $tn..." -Level 'STEP'
 
     $isBundled = ($null -ne $global:BundledThemes) -and $global:BundledThemes.Contains($tn)
     $isCommunity = ($null -ne $global:CommunityThemeRepos) -and $global:CommunityThemeRepos.ContainsKey($tn)
@@ -175,10 +175,13 @@ function Module-InstallThemes { param($Config)
                     throw "Bundled theme staging verification failed for '$fileName'."
                 }
             }
-        } elseif ($isCommunity -and
-            -not (Test-Path -LiteralPath (Join-Path $stagePath 'color.ini') -PathType Leaf) -and
+        } elseif (-not (Test-Path -LiteralPath (Join-Path $stagePath 'color.ini') -PathType Leaf) -and
             -not (Test-Path -LiteralPath (Join-Path $stagePath 'user.css') -PathType Leaf)) {
-            throw "Community theme '$tn' staging is missing color.ini and user.css."
+            throw "Theme '$tn' staging is missing color.ini and user.css."
+        }
+        if ($global:ThemesNeedingJS -contains $tn -and
+            -not (Test-Path -LiteralPath (Join-Path $stagePath 'theme.js') -PathType Leaf)) {
+            throw "Theme '$tn' requires theme.js, but the staged theme does not contain it."
         }
         $expectedFingerprint = Get-LibreSpotPackageFingerprint -Path $stagePath
         Invoke-LibreSpotPackageTransaction `

@@ -122,7 +122,7 @@ The Home update notice can show GitHub's SHA256 for `LibreSpot-Desktop.exe` and 
 
 Desktop setup, the standalone script, and the auto-reapply watcher now coordinate changes to one Spotify and Spicetify installation through a shared per-user lease. A second operation reports that the installation is busy before it takes a snapshot or stops Spotify, while separate installations can run at the same time. External PowerShell runs also own their complete process trees with a Windows Job Object, so timeout, cancellation, watchdog shutdown, and launcher exit terminate descendants before cleanup. Containment failures are reported explicitly and unrelated processes remain untouched.
 
-CLI, theme, and custom app installers now unpack pinned archives into a verified staging folder on the target volume. A single recoverable transaction swaps the package, companion extension, and Spicetify configuration together, so an extraction, copy, bootstrap, rename, or configuration failure restores the previous bytes without mixing versions.
+CLI, theme, and custom app installers now unpack pinned archives into a verified staging folder on the target volume. A single recoverable transaction swaps the package, companion extension, and Spicetify configuration together. Failed requested apps retain their existing config entries, required theme files are checked after staging, and a changed configuration target is left alone when recovery cannot prove that the transaction owns it.
 
 ## What's New in v4.4.0
 

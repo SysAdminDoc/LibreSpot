@@ -228,6 +228,7 @@ foreach ($name in @(
     'Test-LibreSpotPackageTransactionPath',
     'Invoke-LibreSpotPackageTransaction',
     'Resolve-LibreSpotPackageTransaction',
+    'Get-SpicetifyConfigListValue',
     'Module-InstallSpotX',
     'Module-InstallSpicetifyCLI',
     'Module-InstallThemes',

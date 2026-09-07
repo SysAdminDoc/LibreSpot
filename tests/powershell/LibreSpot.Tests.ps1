@@ -70,6 +70,8 @@ BeforeAll {
         'Test-LibreSpotPackageTransactionPath'
         'Invoke-LibreSpotPackageTransaction'
         'Resolve-LibreSpotPackageTransaction'
+        'Get-SpicetifyConfigEntries'
+        'Get-SpicetifyConfigListValue'
         'Merge-DirectorySnapshotMissingFiles'
         'Get-LibreSpotTempRoot'
         'Start-LibreSpotOwnedProcess'
@@ -2909,6 +2911,8 @@ Describe 'Module-InstallCustomApps bundled archive resolution' {
         . (Join-Path $sharedDir 'Get-LibreSpotAssetInstallFailureSummary.ps1')
         . (Join-Path $sharedDir 'Expand-ArchiveSafely.ps1')
         . (Join-Path $sharedDir 'Get-FileSha256Lower.ps1')
+        . (Join-Path $sharedDir 'Get-SpicetifyConfigEntries.ps1')
+        . (Join-Path $sharedDir 'Get-SpicetifyConfigListValue.ps1')
         . (Join-Path $PSScriptRoot '..\..\src\powershell\data\CommunityCustomApps.ps1')
 
         $script:bundledArchive = (Resolve-Path (Join-Path $PSScriptRoot '..\..\resources\custom-apps\librespot-engine.zip')).Path
@@ -2953,6 +2957,8 @@ Describe 'Module-InstallCustomApps bundled archive resolution' {
             [pscustomobject]@{
                 CustomAppsDirectory = Join-Path $script:spicetifyDir 'CustomApps'
                 ExtensionsDirectory = Join-Path $script:spicetifyDir 'Extensions'
+                ConfigDirectory = $script:spicetifyDir
+                ConfigPath = Join-Path $script:spicetifyDir 'config-xpui.ini'
             }
         }
         function New-LibreSpotTempFile { param([string]$Name) Join-Path $script:tempDir $Name }
@@ -3016,6 +3022,19 @@ Describe 'Module-InstallCustomApps bundled archive resolution' {
         $script:downloadAttempts | Should -Be 1
         Test-Path -LiteralPath (Join-Path (Join-Path $script:spicetifyDir 'CustomApps') 'librespot') | Should -BeFalse
         ($script:appLog -join "`n") | Should -Match 'does not match the pinned hash'
+    }
+
+    It 'keeps failed requested app and companion entries in the config list' {
+        Reset-CustomAppFixture -CorruptBundle
+        [System.IO.File]::WriteAllText(
+            (Join-Path $script:spicetifyDir 'config-xpui.ini'),
+            "custom_apps = librespot`nextensions = librespot-engine.js",
+            [System.Text.UTF8Encoding]::new($false))
+
+        Module-InstallCustomApps -Config ([pscustomobject]@{ Spicetify_CustomApps = @('librespot') })
+
+        @($script:syncedLists['custom_apps']) | Should -Contain 'librespot'
+        @($script:syncedLists['extensions']) | Should -Contain 'librespot-engine.js'
     }
 
     It 'falls back to the download when the bundled archive cannot be read' {
@@ -3328,7 +3347,11 @@ Describe 'Module-InstallThemes bundled theme resolution' {
         }
         function Write-Log { param([string]$Message, [string]$Level = 'INFO') $script:themeLog.Add("$Level|$Message") }
         function Get-SpicetifyIntegrationContext {
-            [pscustomobject]@{ ThemesDirectory = Join-Path $script:spicetifyDir 'Themes' }
+            [pscustomobject]@{
+                ThemesDirectory = Join-Path $script:spicetifyDir 'Themes'
+                ConfigDirectory = $script:spicetifyDir
+                ConfigPath = Join-Path $script:spicetifyDir 'config-xpui.ini'
+            }
         }
         function New-LibreSpotTempFile { param([string]$Name) Join-Path $script:tempDir $Name }
         function New-LibreSpotTempDirectory {
@@ -3403,6 +3426,42 @@ Describe 'Module-InstallThemes bundled theme resolution' {
         $script:downloadAttempts | Should -Be 0
         $script:cacheLookups | Should -Be 0
         ($script:themeLog -join "`n") | Should -Match 'Bundled theme .Prism. copied to'
+    }
+
+    It 'recovers a pending transaction before returning to marketplace-only mode' {
+        Reset-BundledThemeFixture
+        $configPath = Join-Path $script:spicetifyDir 'config-xpui.ini'
+        $transactionId = '0123456789abcdef0123456789abcdef'
+        $backupPath = Join-Path $script:spicetifyDir ".librespot-package-$transactionId-000-backup"
+        $marker = Join-Path $script:spicetifyDir '.librespot-package-theme.transaction.json'
+        [System.IO.File]::WriteAllText($configPath, 'current_theme = Prism', [System.Text.UTF8Encoding]::new($false))
+        $old = Get-LibreSpotPackageFingerprint -Path $configPath
+        [System.IO.File]::Copy($configPath, $backupPath, $false)
+        $document = [ordered]@{
+            SchemaVersion = 1
+            TransactionId = $transactionId
+            TransactionPath = $marker
+            Status = 'Prepared'
+            Descriptors = @([ordered]@{
+                Action = 'preserve'
+                Kind = 'file'
+                TargetPath = $configPath
+                BackupPath = $backupPath
+                OldExists = $true
+                OldFingerprint = $old
+                RecoveryFingerprint = $old
+                RecoveryOwned = $false
+                ExpectedFingerprint = ''
+            })
+        }
+        [System.IO.File]::WriteAllText($marker, ($document | ConvertTo-Json -Depth 8), [System.Text.UTF8Encoding]::new($false))
+
+        Module-InstallThemes -Config ([pscustomobject]@{ Spicetify_Theme = '(None - Marketplace Only)'; Spicetify_Scheme = 'Default' })
+
+        Test-Path -LiteralPath $marker | Should -BeFalse
+        Test-Path -LiteralPath $backupPath | Should -BeFalse
+        [System.IO.File]::ReadAllText($configPath) | Should -BeExactly 'current_theme = Prism'
+        $script:cliCalls.Count | Should -Be 0
     }
 
     It 'points Spicetify at the theme and turns on theme.js injection' {
@@ -3557,6 +3616,38 @@ Describe 'Module-InstallThemes bundled theme resolution' {
         } finally {
             Remove-ThemeJunctionFixture -Fixture $fixture
         }
+    }
+
+    It 'refuses a community theme that requires theme.js when staging omits it' {
+        Reset-BundledThemeFixture
+        $global:ThemesNeedingJS = @('Catppuccin')
+        $global:CommunityThemeRepos = @{
+            Catppuccin = @{
+                Owner = 'fixture-owner'
+                Repo = 'fixture-theme'
+                CommitSha = '1111111111111111111111111111111111111111'
+                ThemeFolder = 'Catppuccin'
+                SHA256 = 'fixture-hash'
+            }
+        }
+        Mock -CommandName Download-FileSafe -MockWith {
+            param([string]$Uri, [string]$OutFile)
+            [System.IO.File]::WriteAllText($OutFile, 'fixture archive')
+        }
+        Mock -CommandName Expand-ArchiveSafely -MockWith {
+            param([string]$ZipPath, [string]$DestinationPath, [string]$Label, [long]$MaxExpandedBytes)
+            $root = Join-Path $DestinationPath '00-theme-root'
+            $theme = Join-Path $root 'Catppuccin'
+            New-Item -Path $theme -ItemType Directory -Force | Out-Null
+            [System.IO.File]::WriteAllText((Join-Path $theme 'color.ini'), '[Mocha]')
+            [System.IO.File]::WriteAllText((Join-Path $theme 'user.css'), 'body {}')
+        }
+
+        Module-InstallThemes -Config ([pscustomobject]@{ Spicetify_Theme = 'Catppuccin'; Spicetify_Scheme = 'Mocha' })
+
+        Test-Path -LiteralPath (Join-Path $script:spicetifyDir 'Themes\Catppuccin') | Should -BeFalse
+        Get-LibreSpotAssetInstallFailureSummary | Should -Match 'requires theme.js'
+        $script:cliCalls.Count | Should -Be 0
     }
 
     It 'replaces an official theme and cleans its extraction without traversing junctions' {
@@ -4315,6 +4406,23 @@ try {
             $owner.Dispose()
         }
     }
+
+    It 'refuses an unreadable owner record instead of treating it as stale' {
+        $global:SPOTIFY_EXE_PATH = Join-Path $TestDrive 'unreadable\Spotify.exe'
+        $global:SPICETIFY_DIR = Join-Path $TestDrive 'unreadable\Local\spicetify'
+        $global:SPICETIFY_CONFIG_DIR = Join-Path $TestDrive 'unreadable\Roaming\spicetify'
+        $global:LibreSpotMutationLeases = $null
+
+        $lease = Enter-LibreSpotMutationLease -Label 'owner-record-seed' -TimeoutSeconds 2
+        Exit-LibreSpotMutationLease -Lease $lease
+        [System.IO.File]::WriteAllText($lease.Key, '{not-json')
+
+        try {
+            { Enter-LibreSpotMutationLease -Label 'unreadable-owner' -TimeoutSeconds 1 } | Should -Throw '*LIBRESPOT_MUTATION_BUSY*'
+        } finally {
+            Remove-Item -LiteralPath $lease.Key -Force -ErrorAction SilentlyContinue
+        }
+    }
 }
 
 # =============================================================================
@@ -4388,6 +4496,43 @@ Describe 'Staged package transactions' {
         { Invoke-LibreSpotPackageTransaction -TransactionPath $marker -AllowedRoots @($packages, $config) -TransactionId 'fedcba9876543210fedcba9876543210' -Packages @([pscustomobject]@{ Action = 'swap'; Kind = 'directory'; TargetPath = $target; StagePath = $stage; ExpectedFingerprint = ('0' * 64) }) -Commit { } } | Should -Throw
         (Get-LibreSpotPackageFingerprint -Path $target) | Should -Be $old
         Test-Path -LiteralPath $marker | Should -BeFalse
+    }
+
+    It 'retains a changed configuration target when recovery cannot prove ownership' {
+        $root = Join-Path $TestDrive 'package-config-ownership'
+        $config = Join-Path $root 'Config'
+        New-Item -Path $config -ItemType Directory -Force | Out-Null
+        $target = Join-Path $config 'config-xpui.ini'
+        $transactionId = '0123456789abcdef0123456789abcdef'
+        $backup = Join-Path $config ".librespot-package-$transactionId-000-backup"
+        [System.IO.File]::WriteAllText($target, 'old-config', [System.Text.UTF8Encoding]::new($false))
+        $old = Get-LibreSpotPackageFingerprint -Path $target
+        [System.IO.File]::Copy($target, $backup, $false)
+        [System.IO.File]::WriteAllText($target, 'changed-by-someone-else', [System.Text.UTF8Encoding]::new($false))
+        $marker = Join-Path $config '.librespot-package-config-ownership.transaction.json'
+        $document = [ordered]@{
+            SchemaVersion = 1
+            TransactionId = $transactionId
+            TransactionPath = $marker
+            Status = 'Committing'
+            Descriptors = @([ordered]@{
+                Action = 'preserve'
+                Kind = 'file'
+                TargetPath = $target
+                BackupPath = $backup
+                OldExists = $true
+                OldFingerprint = $old
+                RecoveryFingerprint = $old
+                RecoveryOwned = $false
+                ExpectedFingerprint = ''
+            })
+        }
+        [System.IO.File]::WriteAllText($marker, ($document | ConvertTo-Json -Depth 8), [System.Text.UTF8Encoding]::new($false))
+
+        { Resolve-LibreSpotPackageTransaction -TransactionPath $marker -AllowedRoots @($config) } | Should -Throw '*cannot prove ownership*'
+        [System.IO.File]::ReadAllText($target) | Should -BeExactly 'changed-by-someone-else'
+        Test-Path -LiteralPath $marker | Should -BeTrue
+        Test-Path -LiteralPath $backup | Should -BeTrue
     }
 
     It 'restores the original package when a rename fails after the backup move' {

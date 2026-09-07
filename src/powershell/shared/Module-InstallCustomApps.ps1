@@ -135,6 +135,11 @@ function Module-InstallCustomApps { param($Config)
                 New-Item -Path $stagePath -ItemType Directory -Force -ErrorAction Stop | Out-Null
                 $stagingPaths.Add($stagePath)
                 Copy-Item -Path (Join-Path $sourcePath '*') -Destination $stagePath -Recurse -Force -ErrorAction Stop
+                foreach ($requiredFile in $requiredFiles) {
+                    if (-not (Test-Path -LiteralPath (Join-Path $stagePath $requiredFile) -PathType Leaf)) {
+                        throw "Custom app '$appId' staging is missing required file '$requiredFile'."
+                    }
+                }
                 $expectedFingerprint = Get-LibreSpotPackageFingerprint -Path $stagePath
 
                 $companionExtension = [string]$info.CompanionExtension
@@ -184,6 +189,12 @@ function Module-InstallCustomApps { param($Config)
                 $descriptors.Add([pscustomobject]@{ Action = 'remove'; Kind = 'file'; TargetPath = $target })
             }
         }
+        $failedCompanionExtensions = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+        foreach ($failedAppId in $failedRequestedApps) {
+            if (-not $global:CommunityCustomApps.Contains($failedAppId)) { continue }
+            $failedCompanion = [string]$global:CommunityCustomApps[$failedAppId].CompanionExtension
+            if (-not [string]::IsNullOrWhiteSpace($failedCompanion)) { $null = $failedCompanionExtensions.Add($failedCompanion) }
+        }
         $descriptors.Add([pscustomobject]@{ Action = 'preserve'; Kind = 'file'; TargetPath = $configPath })
 
         Invoke-LibreSpotPackageTransaction `
@@ -192,8 +203,13 @@ function Module-InstallCustomApps { param($Config)
             -TransactionId $transactionId `
             -Packages @($descriptors) `
             -Commit {
-                Sync-SpicetifyListSetting -Key 'custom_apps' -DesiredItems @($installedApps) -ManagedItems $managedApps
-                Sync-SpicetifyListSetting -Key 'extensions' -DesiredItems @($installedCompanionExtensions) -ManagedItems $managedCompanionExtensions
+                # A requested asset that failed validation remains installed on
+                # disk. Preserve its existing config entry until a later retry
+                # succeeds, without inventing an entry for a never-installed app.
+                $preservedFailedApps = @(Get-SpicetifyConfigListValue -Key 'custom_apps' | Where-Object { $failedRequestedApps.Contains([string]$_) })
+                $preservedFailedExtensions = @(Get-SpicetifyConfigListValue -Key 'extensions' | Where-Object { $failedCompanionExtensions.Contains([string]$_) })
+                Sync-SpicetifyListSetting -Key 'custom_apps' -DesiredItems @($installedApps + $preservedFailedApps) -ManagedItems $managedApps
+                Sync-SpicetifyListSetting -Key 'extensions' -DesiredItems @($installedCompanionExtensions + $preservedFailedExtensions) -ManagedItems $managedCompanionExtensions
             } | Out-Null
     } finally {
         foreach ($zipPath in @($zipPaths)) { Remove-Item -LiteralPath $zipPath -Force -ErrorAction SilentlyContinue }

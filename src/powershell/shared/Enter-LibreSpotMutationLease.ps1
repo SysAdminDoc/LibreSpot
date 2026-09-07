@@ -56,13 +56,18 @@ function Enter-LibreSpotMutationLease {
 
     $readOwner = {
         param([string]$Path)
+        if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+            return [pscustomobject]@{ State = 'Missing'; Owner = $null; Error = '' }
+        }
         try {
-            if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return $null }
             $raw = [System.IO.File]::ReadAllText($Path)
-            if ([string]::IsNullOrWhiteSpace($raw)) { return $null }
-            return ($raw | ConvertFrom-Json -ErrorAction Stop)
+            if ([string]::IsNullOrWhiteSpace($raw)) {
+                return [pscustomobject]@{ State = 'Unreadable'; Owner = $null; Error = 'the owner record is empty' }
+            }
+            $owner = $raw | ConvertFrom-Json -ErrorAction Stop
+            return [pscustomobject]@{ State = 'Valid'; Owner = $owner; Error = '' }
         } catch {
-            return $null
+            return [pscustomobject]@{ State = 'Unreadable'; Owner = $null; Error = $_.Exception.Message }
         }
     }
     $hasLiveDescendant = {
@@ -70,7 +75,7 @@ function Enter-LibreSpotMutationLease {
         try {
             $processes = @(Get-CimInstance -ClassName Win32_Process -ErrorAction Stop | Select-Object ProcessId, ParentProcessId)
         } catch {
-            return $false
+            throw "LIBRESPOT_MUTATION_BUSY: Could not inspect installer descendants for owner PID ${RootPid}. The operation was deferred without changing Spotify or Spicetify."
         }
         $pending = New-Object 'System.Collections.Generic.Queue[int]'
         $seen = New-Object 'System.Collections.Generic.HashSet[int]'
@@ -90,7 +95,11 @@ function Enter-LibreSpotMutationLease {
     $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
     $stream = $null
     while ($null -eq $stream) {
-        $owner = & $readOwner $leasePath
+        $ownerRead = & $readOwner $leasePath
+        if ($ownerRead.State -eq 'Unreadable') {
+            throw "LIBRESPOT_MUTATION_BUSY: LibreSpot could not verify the existing mutation lease owner record ($($ownerRead.Error)). The operation was deferred without changing Spotify or Spicetify."
+        }
+        $owner = $ownerRead.Owner
         $ownerPid = 0
         [DateTime]$ownerStart = [DateTime]::MinValue
         $ownerTimestampValid = $false
@@ -98,7 +107,15 @@ function Enter-LibreSpotMutationLease {
             $ownerStart = [DateTime]::Parse([string]$owner.startedAtUtc, [System.Globalization.CultureInfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::RoundtripKind)
             $ownerTimestampValid = $true
         } catch {}
-        if ($owner -and [int]::TryParse([string]$owner.pid, [ref]$ownerPid) -and $ownerTimestampValid) {
+        if ($owner) {
+            $ownerSchema = 0
+            if (-not [int]::TryParse([string]$owner.schemaVersion, [ref]$ownerSchema) -or $ownerSchema -ne 1) {
+                throw 'LIBRESPOT_MUTATION_BUSY: The existing LibreSpot mutation lease owner record is invalid. The operation was deferred without changing Spotify or Spicetify.'
+            }
+            if (-not [int]::TryParse([string]$owner.pid, [ref]$ownerPid) -or $ownerPid -le 0 -or -not $ownerTimestampValid -or
+                [string]$owner.targetIdentity -ne $targetIdentity) {
+                throw 'LIBRESPOT_MUTATION_BUSY: The existing LibreSpot mutation lease owner record could not be verified. The operation was deferred without changing Spotify or Spicetify.'
+            }
             $ownerMatches = $false
             $ownerAlive = $false
             try {
@@ -106,7 +123,11 @@ function Enter-LibreSpotMutationLease {
                 $ownerMatches = [Math]::Abs(($ownerProcess.StartTime.ToUniversalTime() - $ownerStart.ToUniversalTime()).TotalSeconds) -le 5
                 $ownerAlive = $ownerMatches
             } catch {
-                $ownerMatches = $true
+                if ($_.Exception.Message -match '(?i)(cannot find|no process|process.*identifier|does not exist)') {
+                    $ownerMatches = $true
+                } else {
+                    throw "LIBRESPOT_MUTATION_BUSY: LibreSpot could not verify owner process $ownerPid. The operation was deferred without changing Spotify or Spicetify."
+                }
             }
             if ($ownerMatches -and -not $ownerAlive -and (& $hasLiveDescendant $ownerPid)) {
                 if ([DateTime]::UtcNow -ge $deadline) {
@@ -137,6 +158,7 @@ function Enter-LibreSpotMutationLease {
         # so an installer child still writing for that owner cannot be bypassed.
         if ($stream) {
             $postOpenOwner = $null
+            $postOpenReadError = $null
             try {
                 $stream.Position = 0
                 $reader = [System.IO.StreamReader]::new($stream, [System.Text.Encoding]::UTF8, $true, 1024, $true)
@@ -149,7 +171,12 @@ function Enter-LibreSpotMutationLease {
                     $postOpenOwner = $postOpenRaw | ConvertFrom-Json -ErrorAction Stop
                 }
             } catch {
-                $postOpenOwner = $null
+                $postOpenReadError = $_.Exception.Message
+            }
+            if ($postOpenReadError) {
+                try { $stream.Dispose() } catch {}
+                $stream = $null
+                throw "LIBRESPOT_MUTATION_BUSY: LibreSpot could not verify the mutation lease owner record after opening it ($postOpenReadError). The operation was deferred without changing Spotify or Spicetify."
             }
             $postOpenPid = 0
             [DateTime]$postOpenStart = [DateTime]::MinValue
@@ -158,7 +185,15 @@ function Enter-LibreSpotMutationLease {
                 $postOpenStart = [DateTime]::Parse([string]$postOpenOwner.startedAtUtc, [System.Globalization.CultureInfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::RoundtripKind)
                 $postOpenTimestampValid = $true
             } catch {}
-            if ($postOpenOwner -and [int]::TryParse([string]$postOpenOwner.pid, [ref]$postOpenPid) -and $postOpenTimestampValid) {
+            if ($postOpenOwner) {
+                $postOpenSchema = 0
+                if (-not [int]::TryParse([string]$postOpenOwner.schemaVersion, [ref]$postOpenSchema) -or $postOpenSchema -ne 1 -or
+                    -not [int]::TryParse([string]$postOpenOwner.pid, [ref]$postOpenPid) -or $postOpenPid -le 0 -or
+                    -not $postOpenTimestampValid -or [string]$postOpenOwner.targetIdentity -ne $targetIdentity) {
+                    try { $stream.Dispose() } catch {}
+                    $stream = $null
+                    throw 'LIBRESPOT_MUTATION_BUSY: The mutation lease owner record changed to an unverifiable value while opening the lease. The operation was deferred without changing Spotify or Spicetify.'
+                }
                 $postOpenMatches = $false
                 $postOpenAlive = $false
                 try {
@@ -166,15 +201,31 @@ function Enter-LibreSpotMutationLease {
                     $postOpenMatches = [Math]::Abs(($postOpenProcess.StartTime.ToUniversalTime() - $postOpenStart.ToUniversalTime()).TotalSeconds) -le 5
                     $postOpenAlive = $postOpenMatches
                 } catch {
-                    $postOpenMatches = $true
-                }
-                if ($postOpenMatches -and -not $postOpenAlive -and (& $hasLiveDescendant $postOpenPid)) {
-                    $stream.Dispose()
-                    $stream = $null
-                    if ([DateTime]::UtcNow -ge $deadline) {
-                        throw "LIBRESPOT_MUTATION_BUSY: Another LibreSpot operation left installer descendants running for '$Label'. The operation was deferred without changing Spotify or Spicetify."
+                    if ($_.Exception.Message -match '(?i)(cannot find|no process|process.*identifier|does not exist)') {
+                        $postOpenMatches = $true
+                    } else {
+                        try { $stream.Dispose() } catch {}
+                        $stream = $null
+                        throw "LIBRESPOT_MUTATION_BUSY: LibreSpot could not verify owner process $postOpenPid after opening the lease. The operation was deferred without changing Spotify or Spicetify."
                     }
-                    Start-Sleep -Milliseconds $RetryMilliseconds
+                }
+                if ($postOpenMatches -and -not $postOpenAlive) {
+                    $postOpenHasLiveDescendant = $false
+                    try {
+                        $postOpenHasLiveDescendant = & $hasLiveDescendant $postOpenPid
+                    } catch {
+                        try { $stream.Dispose() } catch {}
+                        $stream = $null
+                        throw $_
+                    }
+                    if ($postOpenHasLiveDescendant) {
+                        $stream.Dispose()
+                        $stream = $null
+                        if ([DateTime]::UtcNow -ge $deadline) {
+                            throw "LIBRESPOT_MUTATION_BUSY: Another LibreSpot operation left installer descendants running for '$Label'. The operation was deferred without changing Spotify or Spicetify."
+                        }
+                        Start-Sleep -Milliseconds $RetryMilliseconds
+                    }
                 }
             }
         }

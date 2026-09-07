@@ -98,6 +98,14 @@ function Resolve-LibreSpotPackageTransaction {
         if (-not $oldExists -and -not [string]::IsNullOrWhiteSpace($oldFingerprint)) {
             throw 'A package transaction descriptor records a fingerprint for a missing original.'
         }
+        $recoveryFingerprint = [string]$descriptor.RecoveryFingerprint
+        $recoveryOwned = [bool]$descriptor.RecoveryOwned
+        if (-not [string]::IsNullOrWhiteSpace($recoveryFingerprint) -and $recoveryFingerprint -notmatch '\A[0-9a-f]{64}\z') {
+            throw 'A package transaction descriptor has an invalid recovery fingerprint.'
+        }
+        if ($recoveryOwned -and [string]::IsNullOrWhiteSpace($recoveryFingerprint)) {
+            throw 'A package transaction descriptor marks an unrecorded recovery target as owned.'
+        }
 
         $states.Add([pscustomobject]@{
             Action             = $action
@@ -107,6 +115,8 @@ function Resolve-LibreSpotPackageTransaction {
             BackupPath         = $canonicalBackup
             OldExists          = $oldExists
             OldFingerprint     = $oldFingerprint
+            RecoveryFingerprint = $recoveryFingerprint
+            RecoveryOwned      = $recoveryOwned
             ExpectedFingerprint = [string]$descriptor.ExpectedFingerprint
         })
     }
@@ -121,6 +131,14 @@ function Resolve-LibreSpotPackageTransaction {
             }
             if (($state.Kind -eq 'directory' -and -not $item.PSIsContainer) -or ($state.Kind -eq 'file' -and $item.PSIsContainer)) {
                 throw "Package transaction target kind changed: $($state.TargetPath)"
+            }
+            if ($state.Action -eq 'preserve' -and [string]$transaction.Status -ne 'Committed') {
+                $currentFingerprint = Get-LibreSpotPackageFingerprint -Path $state.TargetPath -AllowReparse
+                $matchesOriginal = $state.OldExists -and $currentFingerprint -eq $state.OldFingerprint
+                $matchesOwnedRecovery = $state.RecoveryOwned -and $currentFingerprint -eq $state.RecoveryFingerprint
+                if (-not $matchesOriginal -and -not $matchesOwnedRecovery) {
+                    throw "Package transaction cannot prove ownership of the changed configuration target: $($state.TargetPath)"
+                }
             }
         }
         if (Test-Path -LiteralPath $state.BackupPath) {
@@ -172,8 +190,7 @@ function Resolve-LibreSpotPackageTransaction {
         if ($state.Action -eq 'preserve') {
             if ($state.OldExists) {
                 if (-not $backupExists) { throw "Package transaction config backup is missing: $($state.BackupPath)" }
-                if ($targetExists) { Remove-LibreSpotPackagePathSafely -Path $state.TargetPath | Out-Null }
-                [System.IO.File]::Copy($state.BackupPath, $state.TargetPath, $false)
+                [System.IO.File]::Copy($state.BackupPath, $state.TargetPath, $true)
                 if ((Get-LibreSpotPackageFingerprint -Path $state.TargetPath -AllowReparse) -ne $state.OldFingerprint) {
                     throw "Package transaction could not restore configuration: $($state.TargetPath)"
                 }

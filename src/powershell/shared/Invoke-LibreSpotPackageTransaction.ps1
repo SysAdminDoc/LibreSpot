@@ -125,6 +125,8 @@ function Invoke-LibreSpotPackageTransaction {
                 BackupPath          = $backupPath
                 OldExists           = [bool]$targetExists
                 OldFingerprint      = $oldFingerprint
+                RecoveryFingerprint = $oldFingerprint
+                RecoveryOwned       = $false
                 ExpectedFingerprint = $expectedFingerprint
                 Status              = 'Prepared'
             })
@@ -170,7 +172,29 @@ function Invoke-LibreSpotPackageTransaction {
             }
         }
 
-        & $Commit
+        $transaction.Status = 'Committing'
+        Write-PackageTransactionMarker -Document $transaction
+        try {
+            & $Commit
+        } catch {
+            # A commit callback can write configuration and then fail. Record
+            # the bytes observed at that point so recovery can restore them
+            # only when this transaction still owns the target.
+            foreach ($descriptor in $normalized) {
+                if ($descriptor.Action -ne 'preserve') { continue }
+                if (Test-Path -LiteralPath $descriptor.TargetPath -PathType Leaf) {
+                    try {
+                        $descriptor.RecoveryFingerprint = Get-LibreSpotPackageFingerprint -Path $descriptor.TargetPath -AllowReparse
+                        $descriptor.RecoveryOwned = $true
+                    } catch {
+                        $descriptor.RecoveryFingerprint = ''
+                        $descriptor.RecoveryOwned = $false
+                    }
+                }
+            }
+            try { Write-PackageTransactionMarker -Document $transaction } catch {}
+            throw
+        }
 
         foreach ($descriptor in $normalized) {
             if ($descriptor.Action -eq 'swap') {
