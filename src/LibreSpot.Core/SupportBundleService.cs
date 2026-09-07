@@ -17,7 +17,22 @@ public sealed record SupportBundleOptions(
     bool IncludeLogs = true,
     bool IncludeCrashReports = true,
     SupportBundleRunContext? CurrentRun = null,
-    bool IncludeMinidump = false);
+    bool IncludeMinidump = false,
+    SupportBundleLoggingStatus? LoggingStatus = null);
+
+public sealed record SupportBundleLoggingStatus(
+    string State,
+    string UserMessage,
+    string Diagnostic,
+    string PrimaryDirectory,
+    string? FallbackDirectory,
+    bool FallbackActive,
+    DateTimeOffset OccurredAtUtc);
+
+public sealed record SupportBundleDiagnosticFailure(
+    string Path,
+    string Label,
+    string Reason);
 
 public sealed record SupportBundleRunContext(
     string Title,
@@ -153,7 +168,7 @@ public sealed class SupportBundleService
             new SupportBundlePreviewEntry(
                 "logs",
                 "Logs",
-                $"Selected install, watcher, and desktop logs; newest {MaxRollingLogFiles} rolling desktop logs.",
+                BuildLogsPreviewDetail(options.LoggingStatus),
                 CountExisting(LogFiles()),
                 EstimateFiles(LogFiles(), MaxLogLines),
                 false,
@@ -205,6 +220,7 @@ public sealed class SupportBundleService
         var preview = CreatePreview(snapshot, options);
         var operationId = ResolveOperationId(options.CurrentRun);
         var entryCount = 0;
+        var diagnosticFailures = new List<SupportBundleDiagnosticFailure>();
         var tempDirectory = string.IsNullOrWhiteSpace(directory) ? Environment.CurrentDirectory : directory;
         var tempPath = Path.Combine(tempDirectory, $"{Path.GetFileName(fullPath)}.{Environment.ProcessId}.{Guid.NewGuid():N}.tmp");
 
@@ -213,18 +229,15 @@ public sealed class SupportBundleService
             await using (var stream = new FileStream(tempPath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None))
             using (var archive = new ZipArchive(stream, ZipArchiveMode.Create))
             {
-                AddJsonEntry(archive, "manifest.json", BuildManifest(preview, options, snapshot, operationId));
-                entryCount++;
-                AddJsonEntry(archive, "health/health-report.json", BuildHealthReport(snapshot));
+                AddJsonEntry(archive, "health/health-report.json", BuildHealthReport(snapshot, options.LoggingStatus));
                 entryCount++;
                 AddJsonEntry(archive, "health/provenance.json", BuildProvenanceReport(snapshot));
                 entryCount++;
                 AddJsonEntry(archive, "health/runtime.json", BuildRuntimeReport(snapshot));
                 entryCount++;
-
                 if (options.IncludeOperationJournal)
                 {
-                    AddTextEntry(archive, "operation/latest-journal.txt", BuildOperationJournal());
+                    AddTextEntry(archive, "operation/latest-journal.txt", BuildOperationJournal(diagnosticFailures));
                     entryCount++;
                 }
 
@@ -245,7 +258,7 @@ public sealed class SupportBundleService
                             break;
                         }
 
-                        if (TryAddRedactedFileWindow(archive, "logs", file, MaxLogLines))
+                        if (TryAddRedactedFileWindow(archive, "logs", file, MaxLogLines, diagnosticFailures))
                         {
                             entryCount++;
                         }
@@ -261,7 +274,7 @@ public sealed class SupportBundleService
                             break;
                         }
 
-                        if (TryAddRedactedFileWindow(archive, "crashes", file, MaxCrashLines))
+                        if (TryAddRedactedFileWindow(archive, "crashes", file, MaxCrashLines, diagnosticFailures))
                         {
                             entryCount++;
                         }
@@ -284,6 +297,10 @@ public sealed class SupportBundleService
                     }
                 }
 
+                AddJsonEntry(archive, "health/logging-status.json", BuildLoggingStatusReport(options.LoggingStatus, diagnosticFailures));
+                entryCount++;
+                AddJsonEntry(archive, "manifest.json", BuildManifest(preview, options, snapshot, operationId, diagnosticFailures));
+                entryCount++;
                 cancellationToken.ThrowIfCancellationRequested();
             }
 
@@ -311,11 +328,42 @@ public sealed class SupportBundleService
         return Path.Combine(_configDirectory, $"LibreSpot-failure-{stamp}.zip");
     }
 
+    private static string BuildLogsPreviewDetail(SupportBundleLoggingStatus? loggingStatus)
+    {
+        var detail = $"Selected install, watcher, and desktop logs; newest {MaxRollingLogFiles} rolling desktop logs.";
+        return loggingStatus is null
+            ? detail
+            : $"{detail} {loggingStatus.UserMessage}";
+    }
+
+    private object BuildLoggingStatusReport(
+        SupportBundleLoggingStatus? loggingStatus,
+        IReadOnlyList<SupportBundleDiagnosticFailure> diagnosticFailures) =>
+        new
+        {
+            state = loggingStatus?.State ?? (diagnosticFailures.Count == 0 ? "available" : "degraded"),
+            message = loggingStatus?.UserMessage ?? (diagnosticFailures.Count == 0
+                ? "No desktop logging failure was reported during this export."
+                : "One or more diagnostic files could not be read during this export."),
+            diagnostic = loggingStatus?.Diagnostic,
+            primaryDirectory = loggingStatus is null ? null : RedactText(loggingStatus.PrimaryDirectory),
+            fallbackDirectory = loggingStatus is null ? null : RedactNullable(loggingStatus.FallbackDirectory),
+            fallbackActive = loggingStatus?.FallbackActive ?? false,
+            occurredAtUtc = loggingStatus?.OccurredAtUtc,
+            unreadableFiles = diagnosticFailures.Select(failure => new
+            {
+                label = failure.Label,
+                path = RedactText(failure.Path),
+                reason = RedactText(failure.Reason)
+            })
+        };
+
     private object BuildManifest(
         SupportBundlePreview preview,
         SupportBundleOptions options,
         EnvironmentSnapshot snapshot,
-        string? operationId) =>
+        string? operationId,
+        IReadOnlyList<SupportBundleDiagnosticFailure> diagnosticFailures) =>
         new
         {
             schemaVersion = 1,
@@ -333,6 +381,7 @@ public sealed class SupportBundleService
             selectedFileCount = preview.SelectedFileCount,
             estimatedBytes = preview.EstimatedBytes,
             healthStatus = snapshot.HealthReport.StatusTitle,
+            logging = BuildLoggingStatusReport(options.LoggingStatus, diagnosticFailures),
             currentRun = options.CurrentRun is null
                 ? null
                 : new
@@ -355,7 +404,7 @@ public sealed class SupportBundleService
             redactionRules = preview.RedactionRules
         };
 
-    private object BuildHealthReport(EnvironmentSnapshot snapshot) =>
+    private object BuildHealthReport(EnvironmentSnapshot snapshot, SupportBundleLoggingStatus? loggingStatus) =>
         new
         {
             snapshot.HealthReport.StatusTitle,
@@ -389,6 +438,7 @@ public sealed class SupportBundleService
             customPatchImport = BuildCustomPatchImportReport(),
             marketplaceVisibility = BuildMarketplaceVisibilityReport(snapshot.MarketplaceVisibilityEvidence),
             assetCache = BuildAssetCacheReport(snapshot.AssetCacheInventory),
+            logging = loggingStatus is null ? null : BuildLoggingStatusReport(loggingStatus, Array.Empty<SupportBundleDiagnosticFailure>()),
             provenance = BuildProvenanceReport(snapshot),
             communityAssets = snapshot.CommunityAssetDriftReport.Assets.Select(asset => new
             {
@@ -732,7 +782,7 @@ public sealed class SupportBundleService
     private static string? NormalizeOperationId(string? value) =>
         Guid.TryParse(value, out var parsed) ? parsed.ToString() : null;
 
-    private string BuildOperationJournal()
+    private string BuildOperationJournal(ICollection<SupportBundleDiagnosticFailure> diagnosticFailures)
     {
         var builder = new StringBuilder();
         builder.AppendLine("LibreSpot support operation journal");
@@ -751,7 +801,16 @@ public sealed class SupportBundleService
                 continue;
             }
 
-            builder.AppendLine(ReadSupportFileWindow(file.Path, MaxOperationLines));
+            var read = ReadSupportFileWindow(file.Path, MaxOperationLines);
+            if (read.IsAvailable)
+            {
+                builder.AppendLine(read.Content);
+            }
+            else
+            {
+                RecordDiagnosticFailure(diagnosticFailures, file, read.FailureReason!);
+                builder.AppendLine($"Unavailable: {RedactText(read.FailureReason!)}");
+            }
             builder.AppendLine();
         }
 
@@ -809,7 +868,12 @@ public sealed class SupportBundleService
         }
     }
 
-    private bool TryAddRedactedFileWindow(ZipArchive archive, string folder, SupportBundleFile file, int maxLines)
+    private bool TryAddRedactedFileWindow(
+        ZipArchive archive,
+        string folder,
+        SupportBundleFile file,
+        int maxLines,
+        ICollection<SupportBundleDiagnosticFailure> diagnosticFailures)
     {
         if (!File.Exists(file.Path))
         {
@@ -819,7 +883,14 @@ public sealed class SupportBundleService
         var leaf = MakeSafeFileName(System.IO.Path.GetFileName(file.Path));
         var entryName = $"{folder}/{leaf}.tail.txt";
         var header = $"{file.Label}{Environment.NewLine}Source: {RedactText(file.Path)}{Environment.NewLine}{Environment.NewLine}";
-        AddTextEntry(archive, entryName, header + ReadSupportFileWindow(file.Path, maxLines));
+        var read = ReadSupportFileWindow(file.Path, maxLines);
+        if (!read.IsAvailable)
+        {
+            RecordDiagnosticFailure(diagnosticFailures, file, read.FailureReason!);
+            return false;
+        }
+
+        AddTextEntry(archive, entryName, header + read.Content);
         return true;
     }
 
@@ -948,12 +1019,12 @@ public sealed class SupportBundleService
     private static bool IsSupportedTriageStream(uint streamType) => streamType is
         3 or 4 or 5 or 6 or 7 or 8 or 10 or 11 or 12 or 13 or 14 or 15 or 16 or 17 or 21 or 22 or 24;
 
-    private string ReadSupportFileWindow(string path, int maxLines) =>
+    private SupportBundleTextReadResult ReadSupportFileWindow(string path, int maxLines) =>
         string.Equals(Path.GetFileName(path), "operation-journal.jsonl", StringComparison.OrdinalIgnoreCase)
             ? ReadOperationJournalRedacted(path, maxLines)
             : ReadTailRedacted(path, maxLines);
 
-    private string ReadOperationJournalRedacted(string path, int maxLines)
+    private SupportBundleTextReadResult ReadOperationJournalRedacted(string path, int maxLines)
     {
         try
         {
@@ -977,19 +1048,19 @@ public sealed class SupportBundleService
                 }
             }
 
-            return RedactText(string.Join(Environment.NewLine, output));
+            return SupportBundleTextReadResult.Success(RedactText(string.Join(Environment.NewLine, output)));
         }
         catch (DecoderFallbackException)
         {
-            return "<omitted: file is not UTF-8 text>";
+            return SupportBundleTextReadResult.Success("<omitted: file is not UTF-8 text>");
         }
         catch (IOException ex)
         {
-            return RedactText($"<unavailable: {ex.Message}>");
+            return SupportBundleTextReadResult.Failure(ex.Message);
         }
         catch (UnauthorizedAccessException ex)
         {
-            return RedactText($"<unavailable: {ex.Message}>");
+            return SupportBundleTextReadResult.Failure(ex.Message);
         }
     }
 
@@ -1031,26 +1102,39 @@ public sealed class SupportBundleService
         }
     }
 
-    private string ReadTailRedacted(string path, int maxLines)
+    private SupportBundleTextReadResult ReadTailRedacted(string path, int maxLines)
     {
         try
         {
             var lines = ReadBoundedTailLines(path, MaxDiagnosticWindowBytes)
                 .TakeLast(maxLines);
-            return RedactText(string.Join(Environment.NewLine, lines));
+            return SupportBundleTextReadResult.Success(RedactText(string.Join(Environment.NewLine, lines)));
         }
         catch (DecoderFallbackException)
         {
-            return "<omitted: file is not UTF-8 text>";
+            return SupportBundleTextReadResult.Success("<omitted: file is not UTF-8 text>");
         }
         catch (IOException ex)
         {
-            return RedactText($"<unavailable: {ex.Message}>");
+            return SupportBundleTextReadResult.Failure(ex.Message);
         }
         catch (UnauthorizedAccessException ex)
         {
-            return RedactText($"<unavailable: {ex.Message}>");
+            return SupportBundleTextReadResult.Failure(ex.Message);
         }
+    }
+
+    private static void RecordDiagnosticFailure(
+        ICollection<SupportBundleDiagnosticFailure> diagnosticFailures,
+        SupportBundleFile file,
+        string reason)
+    {
+        if (diagnosticFailures.Any(failure => string.Equals(failure.Path, file.Path, StringComparison.OrdinalIgnoreCase)))
+        {
+            return;
+        }
+
+        diagnosticFailures.Add(new SupportBundleDiagnosticFailure(file.Path, file.Label, reason));
     }
 
     private static IEnumerable<string> ReadBoundedTailLines(string path, int maxBytes)
@@ -1206,6 +1290,16 @@ public sealed class SupportBundleService
     }
 
     private sealed record SupportBundleFile(string Path, string Label);
+
+    private readonly record struct SupportBundleTextReadResult(
+        bool IsAvailable,
+        string Content,
+        string? FailureReason)
+    {
+        public static SupportBundleTextReadResult Success(string content) => new(true, content, null);
+
+        public static SupportBundleTextReadResult Failure(string reason) => new(false, string.Empty, reason);
+    }
 
     private sealed class RedactingStringJsonConverter(SupportBundleRedactor redactor) : JsonConverter<string>
     {

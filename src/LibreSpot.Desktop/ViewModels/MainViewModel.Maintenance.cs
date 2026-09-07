@@ -657,7 +657,8 @@ public sealed partial class MainViewModel
             IncludeLogs: SupportBundleItems.FirstOrDefault(item => item.Id == "logs")?.IsSelected ?? true,
             IncludeCrashReports: SupportBundleItems.FirstOrDefault(item => item.Id == "crashes")?.IsSelected ?? true,
             CurrentRun: currentRun,
-            IncludeMinidump: IsMinidumpEnabled);
+            IncludeMinidump: IsMinidumpEnabled,
+            LoggingStatus: CrashReporter.LoggingStatus);
 
     private void RefreshSupportBundlePreview()
     {

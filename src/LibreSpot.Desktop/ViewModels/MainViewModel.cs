@@ -38,6 +38,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private readonly SettingsSearchStateViewModel _settingsSearch = new();
     private readonly Dispatcher _dispatcher;
     private readonly bool _isAdministratorSession;
+    private int _loggingFailureNoticeShown;
     private readonly InstallConfiguration _recommendedBaseline;
     private readonly MaintenanceActionsStateViewModel _maintenanceActions;
     private readonly Stopwatch _runStopwatch = new();
@@ -104,7 +105,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _configurationService = configurationService;
         _backendScriptService = backendScriptService;
         _snapshotLoader = snapshotLoader ?? snapshotService.GetSnapshotAsync;
-        _supportBundleService = supportBundleService ?? new SupportBundleService(configurationService.ConfigDirectory);
+        _supportBundleService = supportBundleService ?? new SupportBundleService(configurationService.ConfigDirectory, CrashReporter.ActiveLogDirectory);
         _minidumpSettingsService = minidumpSettingsService ?? new MinidumpSettingsService(configurationService.ConfigDirectory);
         _operationJournalUndoService = operationJournalUndoService ?? new OperationJournalUndoService();
         _profileService = profileService ?? new LocalProfileService(configurationService);
@@ -116,6 +117,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _selectedLocalizationOption = LocalizationService.SupportedCultures.First(option =>
             string.Equals(option.CultureName, _localizationService.CultureName, StringComparison.OrdinalIgnoreCase));
         _dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
+        CrashReporter.LoggingFailureDetected += OnLoggingFailureDetected;
+        if (CrashReporter.LoggingStatus is { } loggingStatus)
+        {
+            OnLoggingFailureDetected(loggingStatus);
+        }
         _isAdministratorSession = IsAdministrator();
         _recommendedBaseline = AppCatalog.CreateRecommendedConfiguration();
         _customOptions = new CustomOptionEditorStateViewModel(_recommendedBaseline);
@@ -1713,6 +1719,24 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         }
     }
 
+    private void OnLoggingFailureDetected(SupportBundleLoggingStatus status)
+    {
+        if (Interlocked.Exchange(ref _loggingFailureNoticeShown, 1) == 1)
+        {
+            return;
+        }
+
+        void AppendNotice() => AppendLog(status.UserMessage, "ERROR");
+        if (_dispatcher.CheckAccess())
+        {
+            AppendNotice();
+        }
+        else
+        {
+            _dispatcher.BeginInvoke(AppendNotice, DispatcherPriority.Background);
+        }
+    }
+
     private void OnLocalizationCultureChanged(object? sender, EventArgs e) =>
         _dispatcher.BeginInvoke(
             new Action(() =>
@@ -2188,6 +2212,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _promptState.PropertyChanged -= OnPromptStatePropertyChanged;
         _settingsSearch.PropertyChanged -= OnSettingsSearchStatePropertyChanged;
         _localizationService.CultureChanged -= OnLocalizationCultureChanged;
+        CrashReporter.LoggingFailureDetected -= OnLoggingFailureDetected;
         _runCts?.Dispose();
         _runCts = null;
     }

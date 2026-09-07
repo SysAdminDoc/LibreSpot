@@ -113,7 +113,8 @@ public partial class MainWindow : Window
                 new EnvironmentSnapshotService(
                     upstreamDriftProbe: () => UpstreamDriftService.Default.GetReport(),
                     communityAssetDriftProbe: () => CommunityAssetDriftService.Default.GetReport(),
-                    storeSpotifyProbe: EnvironmentSnapshotService.QueryStoreSpotifyPresent),
+                    storeSpotifyProbe: EnvironmentSnapshotService.QueryStoreSpotifyPresent,
+                    rollingLogDirectory: CrashReporter.ActiveLogDirectory),
                 releaseNoticeProbe: ReleaseNoticeService.Default.GetNoticeAsync)
             : CreateUiAutomationSmokeViewModel(_uiAutomationSmokeCulture);
 

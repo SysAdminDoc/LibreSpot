@@ -157,6 +157,32 @@ public sealed class SupportBundleServiceTests
     }
 
     [Fact]
+    public async Task ExportAsync_ReportsUnreadableLogsWithoutShippingThemAsComplete()
+    {
+        using var fixture = new SupportBundleFixture();
+        fixture.WriteStackReadyState();
+        fixture.WriteInstallLog("locked diagnostic");
+        var installLogPath = Path.Combine(fixture.ConfigDirectory, "install.log");
+        using var lockStream = new FileStream(installLogPath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+
+        var result = await fixture.ExportAsync(new SupportBundleOptions(
+            IncludeOperationJournal: true,
+            IncludeLogs: true,
+            IncludeCrashReports: false));
+        var entries = ReadZipText(result.Path);
+
+        Assert.DoesNotContain("logs/install.log.tail.txt", entries.Keys);
+        Assert.Contains("Unavailable:", entries["operation/latest-journal.txt"]);
+        using var status = JsonDocument.Parse(entries["health/logging-status.json"]);
+        var failures = status.RootElement.GetProperty("unreadableFiles").EnumerateArray().ToArray();
+        Assert.Contains(failures, failure =>
+            failure.GetProperty("label").GetString() == "Backend install log tail" &&
+            failure.GetProperty("path").GetString()!.Contains("<LIBRESPOT_CONFIG>", StringComparison.Ordinal));
+        Assert.Equal("degraded", status.RootElement.GetProperty("state").GetString());
+        Assert.Contains("unreadableFiles", entries["manifest.json"]);
+    }
+
+    [Fact]
     public async Task ExportAsync_CapturesOnlyBoundedTailOfOversizedDiagnostics()
     {
         using var fixture = new SupportBundleFixture();

@@ -12,6 +12,8 @@ using System.Windows.Media;
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
+using Serilog.Configuration;
+using Serilog.Debugging;
 using Application = System.Windows.Application;
 using Button = System.Windows.Controls.Button;
 using Clipboard = System.Windows.Clipboard;
@@ -52,6 +54,19 @@ public static class CrashReporter
 
     private static int _initialized;
     private static int _crashDialogOpen;
+    private static readonly string FallbackLogRoot = ResolveDataRoot(
+        Path.Combine(Path.GetTempPath(), "LibreSpot", "logs"),
+        "logging-fallback");
+    private static readonly LoggingFailureTracker LoggingFailures = new();
+    private static string _activeLogDirectory = LogRoot;
+    private static string? _fallbackLogDirectory;
+    private static SupportBundleLoggingStatus? _loggingStatus;
+
+    public static string ActiveLogDirectory => Volatile.Read(ref _activeLogDirectory);
+
+    public static SupportBundleLoggingStatus? LoggingStatus => Volatile.Read(ref _loggingStatus);
+
+    public static event Action<SupportBundleLoggingStatus>? LoggingFailureDetected;
 
     // The bug-report template asks for the full product version (4.1.2).
     // Assembly.GetName().Version only carries the numeric 4.1.2.NN, so read the
@@ -69,14 +84,26 @@ public static class CrashReporter
             return;
         }
 
+        SelfLog.Enable(message => ReportLoggingFailure(message));
+
+        var primaryWritable = TryPrepareWritableDirectory(LogRoot, out var primaryError);
+        var fallbackWritable = TryPrepareWritableDirectory(FallbackLogRoot, out _);
+        var fallbackDirectory = fallbackWritable ? FallbackLogRoot : null;
+        Volatile.Write(ref _fallbackLogDirectory, fallbackDirectory);
+        var activeDirectory = primaryWritable ? LogRoot : fallbackDirectory ?? LogRoot;
+        Volatile.Write(ref _activeLogDirectory, activeDirectory);
+        if (!primaryWritable)
+        {
+            ReportLoggingFailure($"Primary desktop log directory unavailable: {primaryError}", fallbackDirectory);
+        }
+
         try
         {
-            Directory.CreateDirectory(LogRoot);
             Directory.CreateDirectory(CrashRoot);
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"CrashReporter: could not create log/crash directories: {ex.Message}");
+            Console.Error.WriteLine($"CrashReporter: could not create crash directory: {ex.Message}");
         }
 
         // Clean up crash reports older than 30 days to prevent unbounded growth.
@@ -94,17 +121,9 @@ public static class CrashReporter
 
         MinidumpSettingsService.PruneCrashDumps(CrashRoot, MinidumpSettingsService.RetainedDumpCount);
 
-        Log.Logger = new LoggerConfiguration()
-            .MinimumLevel.Is(LogEventLevel.Information)
-            .Enrich.WithProperty("ProcessId", Environment.ProcessId)
-            .Enrich.With(new OperationIdEnricher())
-            .WriteTo.File(
-                path: Path.Combine(LogRoot, "librespot-.log"),
-                rollingInterval: RollingInterval.Day,
-                retainedFileCountLimit: 14,
-                outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] [op:{OperationId}] {Message:lj}{NewLine}{Exception}",
-                shared: true)
-            .CreateLogger();
+        Log.Logger = CreateLogger(
+            primaryDirectory: primaryWritable ? LogRoot : fallbackDirectory,
+            fallbackDirectory: primaryWritable ? fallbackDirectory : null);
 
         Log.Information("LibreSpot desktop shell starting. Version {Version} on {OS}",
             ProductVersion,
@@ -116,6 +135,98 @@ public static class CrashReporter
         {
             app.DispatcherUnhandledException += OnDispatcherUnhandled;
             app.Exit += OnExit;
+        }
+    }
+
+    private static ILogger CreateLogger(string? primaryDirectory, string? fallbackDirectory)
+    {
+        var configuration = new LoggerConfiguration()
+            .MinimumLevel.Is(LogEventLevel.Information)
+            .Enrich.WithProperty("ProcessId", Environment.ProcessId)
+            .Enrich.With(new OperationIdEnricher());
+
+        if (!string.IsNullOrWhiteSpace(primaryDirectory))
+        {
+            var primaryPath = Path.Combine(primaryDirectory, "librespot-.log");
+            if (!string.IsNullOrWhiteSpace(fallbackDirectory) &&
+                !string.Equals(primaryDirectory, fallbackDirectory, StringComparison.OrdinalIgnoreCase))
+            {
+                var fallbackPath = Path.Combine(fallbackDirectory, "librespot-.log");
+                configuration.WriteTo.FallbackChain(
+                    configureSink => configureSink.File(
+                        path: primaryPath,
+                        rollingInterval: RollingInterval.Day,
+                        retainedFileCountLimit: 14,
+                        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] [op:{OperationId}] {Message:lj}{NewLine}{Exception}",
+                        shared: true),
+                    configureFallback => configureFallback.File(
+                        path: fallbackPath,
+                        rollingInterval: RollingInterval.Day,
+                        retainedFileCountLimit: 14,
+                        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] [op:{OperationId}] {Message:lj}{NewLine}{Exception}",
+                        shared: true));
+            }
+            else
+            {
+                configuration.WriteTo.File(
+                    path: primaryPath,
+                    rollingInterval: RollingInterval.Day,
+                    retainedFileCountLimit: 14,
+                    outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] [op:{OperationId}] {Message:lj}{NewLine}{Exception}",
+                    shared: true);
+            }
+        }
+
+        return configuration.CreateLogger();
+    }
+
+    private static void ReportLoggingFailure(string? diagnostic, string? fallbackDirectory = null)
+    {
+        fallbackDirectory ??= Volatile.Read(ref _fallbackLogDirectory);
+        var status = LoggingFailures.TryRecord(diagnostic, LogRoot, fallbackDirectory);
+        if (status is null)
+        {
+            return;
+        }
+
+        Volatile.Write(ref _loggingStatus, status);
+        if (status.FallbackActive && status.FallbackDirectory is { } activeFallback)
+        {
+            Volatile.Write(ref _activeLogDirectory, activeFallback);
+        }
+
+        try
+        {
+            LoggingFailureDetected?.Invoke(status);
+        }
+        catch
+        {
+            // A diagnostic observer must never become another logging failure.
+        }
+    }
+
+    private static bool TryPrepareWritableDirectory(string directory, out string? error)
+    {
+        try
+        {
+            Directory.CreateDirectory(directory);
+            var probe = Path.Combine(directory, $".write-{Guid.NewGuid():N}.tmp");
+            try
+            {
+                using var stream = new FileStream(probe, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+            }
+            finally
+            {
+                try { File.Delete(probe); } catch { }
+            }
+
+            error = null;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+            return false;
         }
     }
 

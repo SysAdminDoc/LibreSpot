@@ -53,6 +53,7 @@ All notable changes to LibreSpot will be documented in this file.
 - The theme gallery in Settings no longer scrolls inside the page. At the smallest window it showed a second scrollbar beside the page's own and one and a half cards; it now grows with the page.
 - The dependency gate now refuses an installed JavaScript package that runs an install script without being on the reviewed allowlist, which is the boundary a compromised package crosses first.
 - Diagnostic timestamps are the same on every machine now. On a Thai or Arabic Windows the health output was showing a Buddhist or Hijri year, and crash filenames used local time so two an hour apart could collide across a clock change.
+- Desktop file logging now probes its profile directory, falls back to a writable temporary directory when needed, and reports one bounded failure notice without logging through the failed sink. Support bundles identify unreadable log files and omit them from the captured payload.
 - A run that changes your system and then cannot write its receipt now says so, and names the file, instead of finishing quietly with nothing for undo to offer. A failed config rollback names the rescue copy, and a failed undo says when it could not be recorded.
 - The offscreen accessibility scan now also checks that anything you click is at least 24 by 24 points, which is what WCAG 2.2 asks for and what Axe.Windows does not check.
 - Running a setup by hand from the standalone LibreSpot window now clears an auto-reapply hold, the same as the desktop app already did.

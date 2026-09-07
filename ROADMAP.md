@@ -22,13 +22,6 @@ Incomplete, implementer-actionable work only. Operator-dependent decisions remai
 
 ### P2: Next
 
-- [ ] P2: RD-243. Report file-logging failures without depending on the failed sink
-  Why: Impact 3/5. Serilog catches sink failures internally, while CrashReporter provides no failure-listener or SelfLog path.
-  Evidence: RESEARCH.md; src/LibreSpot.Desktop/Services/CrashReporter.cs Initialize; Serilog Reliability documentation and file-sink PR #342, already included by the pinned package.
-  Touches: CrashReporter configuration; local diagnostic health/status; focused logging failure tests.
-  Acceptance: An injected denied-open or write failure produces a bounded in-memory status and one user-visible diagnostic, with a writable fallback where available. The app stays usable, no recursive logging occurs, and support export reports the missing log instead of implying completeness. Do not enable a network sink.
-  Complexity: M
-
 - [ ] P2: RD-244. Bound native process output and error-tail retention
   Why: Impact 3/5. A noisy or hung worker can grow the retained line buffer and full output list throughout its timeout.
   Evidence: RESEARCH.md; src/powershell/shared/Read-ProcessOutputDelta.ps1 and Invoke-SpicetifyCli.ps1; LibreSpotNativeOutputCollector in both host preambles.
