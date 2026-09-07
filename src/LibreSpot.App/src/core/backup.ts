@@ -215,9 +215,22 @@ export function parseBackup(source: string): ParsedBackup {
         `Marketplace settings exceed the ${MAX_MARKETPLACE_BYTES}-byte backup limit.`,
       );
     }
+    const ownedIndexedDb = ownedMarketplaceEntries(indexedDb);
+    const ownedLocalStorage = ownedMarketplaceEntries(localStorage);
+    if (
+      (!parsed.marketplaceStorage.indexedDbAvailable &&
+        (Object.keys(ownedIndexedDb).length > 0 ||
+          parsed.marketplaceStorage.indexedDbMigrationComplete)) ||
+      (!parsed.marketplaceStorage.localStorageAvailable &&
+        Object.keys(ownedLocalStorage).length > 0)
+    ) {
+      throw new Error(
+        "This backup marks a Marketplace backend unavailable but includes captured values for it.",
+      );
+    }
     marketplaceStorage = {
-      indexedDb: ownedMarketplaceEntries(indexedDb),
-      localStorage: ownedMarketplaceEntries(localStorage),
+      indexedDb: ownedIndexedDb,
+      localStorage: ownedLocalStorage,
       indexedDbAvailable: parsed.marketplaceStorage.indexedDbAvailable,
       localStorageAvailable: parsed.marketplaceStorage.localStorageAvailable,
       indexedDbMigrationComplete:
@@ -673,6 +686,16 @@ export function indexedDbMarketplaceStore(
   ): Promise<void> => {
     const indexedEntries = ownedMarketplaceEntries(snapshot.indexedDb);
     const legacyEntries = ownedMarketplaceEntries(snapshot.localStorage);
+    if (
+      (!snapshot.indexedDbAvailable &&
+        (Object.keys(indexedEntries).length > 0 ||
+          snapshot.indexedDbMigrationComplete)) ||
+      (!snapshot.localStorageAvailable && Object.keys(legacyEntries).length > 0)
+    ) {
+      throw new Error(
+        "Marketplace storage snapshot contains values for an unavailable backend.",
+      );
+    }
     // An unavailable backend is unknown state, not an empty store. Leave it
     // untouched and avoid creating a schema while restoring a fallback-only
     // snapshot.
@@ -693,8 +716,6 @@ export function indexedDbMarketplaceStore(
         );
       }
       if (snapshot.localStorageAvailable) {
-        replaceLegacy(legacyEntries);
-      } else if (Object.keys(legacyEntries).length > 0) {
         replaceLegacy(legacyEntries);
       }
     } finally {

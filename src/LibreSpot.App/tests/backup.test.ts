@@ -613,6 +613,22 @@ describe("backup", () => {
     expect(legacy.entries()).toEqual({ "spotify:unrelated": "keep" });
   });
 
+  it("rejects unavailable backend snapshots that carry captured values", () => {
+    const state = stateFixture(new Date("2026-09-06T22:00:00.000Z"));
+    const file = serializeBackup({
+      ...createBackup(state, {}, new Date("2026-09-06T22:00:00.000Z")),
+      marketplaceStorage: {
+        indexedDb: {},
+        localStorage: { "marketplace:stale": "must-not-write" },
+        indexedDbAvailable: false,
+        localStorageAvailable: false,
+        indexedDbMigrationComplete: false,
+      },
+    });
+
+    expect(() => parseBackup(file)).toThrow(/unavailable but includes captured values/);
+  });
+
   it("round-trips a migration snapshot without resurrecting old themes after reset", async () => {
     const legacy = fakeWebStorage({
       "marketplace:active-tab": "Legacy",
