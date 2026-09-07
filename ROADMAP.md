@@ -22,13 +22,6 @@ Added 2026-09-07 from RESEARCH.md. IDs continue the RD scheme; RD-252 was the la
   Acceptance: the capture path SHALL stamp `LibreSpotCaptureRailVersion` from the value the rail's `SimpleShellVersionLabel` actually exposes through UI Automation at capture time; the gate SHALL fail when that value differs from the assembly version or from the README's Version badge; all eleven captures SHALL be retaken from the released 4.5.1 build with a synthetic Spotify library (Open Questions in RESEARCH.md), and the seven in-client captures SHALL show the 4.5.1 companion status surface.
   Complexity: S
 
-- [ ] P2: RD-260: Add a catalog refresh proposal tool that stages candidate pins for review without applying them
-  Why: the theme pin shipped Blackout for seven weeks after upstream removed it, the pin is five commits behind, and the only re-pin tooling is the SpotX policy review; spicetify-nix re-pins its whole set on a weekly automated commit, and LibreSpot's drift services detect but never propose.
-  Evidence: spicetify/spicetify-themes #1283 (2026-07-14) against pin `df033493` (2026-05-31); `src/LibreSpot.Core/CommunityAssetDriftService.cs`; `Build-Scripts.ps1:3194` (`Test-SpotifyVersionDrift`); Gerg-L/spicetify-nix commit history; `schemas/community-assets.json` provenance fields.
-  Touches: `Build-Scripts.ps1` (new `-ProposeCatalogRefresh` in the network lane beside `-CatalogTruth`), `tools/`, `schemas/community-assets.json`, `tests/LibreSpot.Desktop.Tests/CommunityAssetsManifestTests.cs`.
-  Acceptance: WHEN run with network, the tool SHALL list, for every pinned extension, theme and custom app, the pinned commit, the upstream head, the commits between them with subjects, whether the asset still exists at head, and the SHA256 of the head asset, then run the existing archived, stale and evidence policies against the candidates and write a review file under `work/`; it SHALL change no pin; WHEN run offline it SHALL exit non-zero with the reason; a test SHALL feed a fixture where an asset was deleted upstream and require the tool to flag it.
-  Complexity: M
-
 ### P3: Later
 
 - [ ] P3: RD-268: Reproduce the light-scheme context-menu defect on the pinned client and mitigate it in Prism if it shows

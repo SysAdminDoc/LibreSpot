@@ -5032,3 +5032,129 @@ Describe 'Custom-app route wiring against real xpui bundles' {
         }
     }
 }
+
+Describe 'Catalog refresh proposal' {
+    BeforeAll {
+        $script:proposalTool = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..\..\tools\Propose-CatalogRefresh.ps1')).Path
+
+        function script:New-ProposalFixture {
+            param(
+                [switch]$AssetMissingAtHead,
+                [switch]$OmitAssetResponse
+            )
+            $root = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
+            New-Item -ItemType Directory -Path $root -Force | Out-Null
+
+            $pinned = '1111111111111111111111111111111111111111'
+            $head = '2222222222222222222222222222222222222222'
+            $manifest = [ordered]@{
+                manifestVersion = 1
+                extensions = @(
+                    [ordered]@{
+                        filename   = 'probe.js'
+                        owner      = 'acme'
+                        repo       = 'widgets'
+                        branch     = 'main'
+                        commitSha  = $pinned
+                        assetPath  = 'dist/probe.js'
+                        sha256     = ('a' * 64)
+                        supportState = 'active'
+                        catalogReview = [ordered]@{
+                            evidenceUrls = @('https://github.com/acme/widgets')
+                        }
+                    }
+                )
+                themes = @()
+                customApps = @()
+            }
+            $manifestPath = Join-Path $root 'community-assets.json'
+            Set-Content -LiteralPath $manifestPath -Value ($manifest | ConvertTo-Json -Depth 8) -Encoding UTF8
+
+            $assetUrl = "https://raw.githubusercontent.com/acme/widgets/$head/dist/probe.js"
+            $responses = [ordered]@{
+                'https://api.github.com/repos/acme/widgets' = [ordered]@{
+                    status = 200
+                    body   = (@{ default_branch = 'main'; archived = $false; pushed_at = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ') } | ConvertTo-Json -Compress)
+                }
+                "https://api.github.com/repos/acme/widgets/commits/main" = [ordered]@{
+                    status = 200
+                    body   = (@{ sha = $head } | ConvertTo-Json -Compress)
+                }
+                "https://api.github.com/repos/acme/widgets/compare/$pinned...$head" = [ordered]@{
+                    status = 200
+                    body   = (@{ ahead_by = 2; commits = @(
+                        @{ sha = 'aaa'; commit = @{ message = "first subject`nbody" } },
+                        @{ sha = 'bbb'; commit = @{ message = 'second subject' } }
+                    ) } | ConvertTo-Json -Depth 6 -Compress)
+                }
+            }
+            if (-not $OmitAssetResponse) {
+                $responses[$assetUrl] = if ($AssetMissingAtHead) {
+                    [ordered]@{ status = 404 }
+                } else {
+                    [ordered]@{ status = 200; body = 'console.log("probe");' }
+                }
+            }
+
+            $cachePath = Join-Path $root 'responses.json'
+            Set-Content -LiteralPath $cachePath -Value ($responses | ConvertTo-Json -Depth 8) -Encoding UTF8
+
+            return [pscustomobject]@{
+                Root         = $root
+                ManifestPath = $manifestPath
+                CachePath    = $cachePath
+                OutputPath   = Join-Path $root 'proposal.json'
+                AssetUrl     = $assetUrl
+                HeadCommit   = $head
+            }
+        }
+    }
+
+    It 'flags an asset that no longer exists at head and changes no pin' {
+        $fixture = New-ProposalFixture -AssetMissingAtHead
+        $before = [System.IO.File]::ReadAllBytes($fixture.ManifestPath)
+
+        # A dot-sourced script does not set $LASTEXITCODE; the tool signals
+        # failure by throwing, which the unreachable case below covers.
+        & $script:proposalTool -RepoRoot $fixture.Root -ManifestPath $fixture.ManifestPath -OutputPath $fixture.OutputPath -ResponseCache $fixture.CachePath | Out-Null
+
+        $proposal = Get-Content -Raw -LiteralPath $fixture.OutputPath | ConvertFrom-Json
+        $candidate = @($proposal.candidates)[0]
+        $candidate.assetExistsAtHead | Should -BeFalse
+        $candidate.headCommit | Should -Be $fixture.HeadCommit
+        $candidate.commitsBehind | Should -Be 2
+        @($candidate.commits).Count | Should -Be 2
+        # The subject is the first line of the message, not the whole body.
+        @($candidate.commits)[0].subject | Should -Be 'first subject'
+        @($proposal.flagged) | Should -Contain "extensions/probe.js: the pinned asset no longer exists at head ($($fixture.AssetUrl))"
+
+        # A proposal that edited the manifest would not be a proposal.
+        [System.IO.File]::ReadAllBytes($fixture.ManifestPath) | Should -Be $before
+    }
+
+    It 'records the head hash when the asset is still there' {
+        $fixture = New-ProposalFixture
+        & $script:proposalTool -RepoRoot $fixture.Root -ManifestPath $fixture.ManifestPath -OutputPath $fixture.OutputPath -ResponseCache $fixture.CachePath | Out-Null
+
+        $proposal = Get-Content -Raw -LiteralPath $fixture.OutputPath | ConvertFrom-Json
+        $candidate = @($proposal.candidates)[0]
+        $candidate.assetExistsAtHead | Should -BeTrue
+        # SHA256 of 'console.log("probe");'
+        $expected = [System.Security.Cryptography.SHA256]::Create()
+        try {
+            $hash = ([BitConverter]::ToString($expected.ComputeHash([System.Text.Encoding]::UTF8.GetBytes('console.log("probe");'))) -replace '-', '').ToLowerInvariant()
+        } finally {
+            $expected.Dispose()
+        }
+        $candidate.headAssetSha256 | Should -Be $hash
+        $candidate.pinnedSha256 | Should -Be ('a' * 64)
+        @($proposal.flagged) | Should -BeNullOrEmpty
+    }
+
+    It 'refuses to write a proposal when a request cannot be made' {
+        $fixture = New-ProposalFixture -OmitAssetResponse
+        { & $script:proposalTool -RepoRoot $fixture.Root -ManifestPath $fixture.ManifestPath -OutputPath $fixture.OutputPath -ResponseCache $fixture.CachePath } |
+            Should -Throw -ExpectedMessage '*without reaching upstream*'
+        Test-Path -LiteralPath $fixture.OutputPath | Should -BeFalse -Because 'an unreachable run has nothing to propose'
+    }
+}

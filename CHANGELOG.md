@@ -10,6 +10,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Fixed
 
+- `Build-Scripts.ps1 -ProposeCatalogRefresh` stages what advancing every community pin would mean, and applies none of it. For each pinned extension, theme and custom app it reports the commits between the pin and upstream head with their subjects, whether the asset still exists at head, what it hashes to there, and whether the archived, maintenance and evidence policies still pass. The first run found that the pinned playlist-icons asset no longer exists at upstream head and that Bloom has not been pushed in sixteen months.
 - The Settings footer said your profile is applied "through the original backend", which names a component nothing else mentions. It now says what happens: the profile is saved, Spotify is patched, and your Spicetify setup is applied. All five locales carry the rewrite, and the Russian one no longer calls it a server.
 - The Smart App Control answer in the FAQ named an update Microsoft pulled. KB5079391 failed to install with error 0x80073712 and was replaced by out-of-band KB5086672 on 2026-03-31, builds 26200.8117 and 26100.8117, which is what the FAQ names now.
 - The theme list says Blackout is retained on purpose. Upstream deleted it from `spicetify-themes` on 2026-07-14, after the commit LibreSpot pins, so it still ships and the README no longer reads as though it were current upstream. The preview manifest carries the same date and a test keeps the two together.
