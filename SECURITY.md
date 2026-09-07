@@ -146,7 +146,7 @@ These limits are revisited when their documented trigger conditions are met (e.g
 
 ## Legal contingency
 
-LibreSpot is a wrapper and orchestrator, it does not host, redistribute, or modify the code of SpotX, Spicetify CLI, or Spotify itself. All upstream code is downloaded directly from its official GitHub repository using commit-pinned URLs with SHA256 verification. LibreSpot is MIT-licensed, uses no Spotify API Client IDs, and makes no network requests except to GitHub (for downloads) and Spotify (normal app traffic through the unmodified Spotify client).
+LibreSpot does not ship Spotify binaries or an upstream SpotX or Spicetify distribution. It does ship its own MIT-licensed root hosts and the AGPL-3.0-only in-Spotify app, including the Prism theme and live engine. SpotX, Spicetify CLI, Marketplace, and the official theme archive are downloaded at install time from their official GitHub repositories using pinned URLs and SHA256 verification. The root project is MIT-licensed; the app component keeps the license in `src/LibreSpot.App/LICENSE`. LibreSpot uses no Spotify API Client IDs and makes no network requests except to GitHub for downloads and Spotify through the normal client.
 
 ### If SpotX is taken down
 

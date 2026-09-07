@@ -2,7 +2,7 @@
 
 LibreSpot App is licensed under the GNU Affero General Public License version 3. This file records the upstream work inspected for the live customization engine and the exact revisions used during development.
 
-Vendored files retain their upstream copyright notices and license terms. Entries marked "approach only" supplied design or interoperability information. No source from those repositories is included.
+Selected source parts are included under `vendor` for the projects marked as vendored below, and retain their upstream copyright notices and license terms. Entries marked "approach only" or "research only" supplied design or interoperability information without including their source. No complete upstream repository is bundled.
 
 Prism is LibreSpot's own theme, so it is not listed in the table below. It started as a separate proof of concept in a local repository that was never published, and it moved into this repository on 2026-09-03. Its origin snapshot is commit `72dc0334fdf11a156314c96593539e477aee7028`, kept here under the `refs/archive/prism-origin` ref and readable with `git log refs/archive/prism-origin`. The theme itself ships from `resources/themes/Prism`.
 

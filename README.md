@@ -110,13 +110,13 @@ Do not use Telegram links, rehosted files, or builds copied to another site. Nev
 
 This is what the next release will contain. It is built from this tree and has not been published yet, so the download links above still give you v4.4.0.
 
-Prism's settings entry survives a slow client start. The retry that waits for Spotify's menu and modal APIs before registering it had been written months earlier and announced as shipped, but it only ever reached a copy of the theme that nothing installs, so the theme people actually had still registered the menu once and gave up. There is one copy of the theme in the tree now, and a test that fails if a second one appears.
+Prism's settings entry survives a slow client start. The retry waits for Spicetify's menu and modal surfaces, then registers `Spicetify.Menu.Item` and opens `Spicetify.PopupModal.display`. That logic had been written months earlier and announced as shipped, but it only ever reached a copy of the theme that nothing installs, so the theme people actually had still registered the menu once and gave up. There is one copy of the theme in the tree now, and a test that fails if a second one appears.
 
 Safe mode now gives Spotify one clean diagnostic launch without sacrificing the current setup. LibreSpot authenticates the private recovery marker with the current Windows account, verifies the complete snapshot before changing anything, and keeps one Restore my setup action ready until the original files and Spicetify apply both succeed.
 
 Fleet admins can move a verified asset cache to an offline endpoint. Import rejects undeclared files and damaged content before it swaps the cache into place, with rollback if the commit is interrupted. Cache writes stage and flush each object before replacement, and Core and PowerShell serialize index changes through the same lease. Every existing cache or configuration parent is checked for reparse points before a lock or staging directory is created. A bounded transaction marker records each directory move, so a process that dies during publication is recovered on the next cache operation without losing unindexed files. A malformed index stays in place and is reported, while concurrent saves retain both entries. Exit code 13 now matches the actual run behavior too: selected assets missing is success with a warning, including the Intune mapping.
 
-Local crash dumps are opt-in and limited to the next LibreSpot process. Support export accepts only a structurally valid Windows minidump whose header flags and stream kinds match the .NET Triage policy, keeps the two newest files locally, and adds just the newest accepted dump when the setting is enabled. The binary is diagnostic memory that may contain sensitive process state. Nothing is uploaded automatically.
+Local crash dumps are opt-in and limited to the next LibreSpot process. Support export accepts only a structurally valid Windows minidump whose header flags and stream kinds match the .NET Triage policy, keeps the two newest files locally, and adds just the newest accepted dump when the setting is enabled. Self-contained single-file builds need the adjacent .NET `createdump.exe` helper, which the local release publisher carries beside the desktop and CLI executables and includes in `checksums.txt`. The binary is diagnostic memory that may contain sensitive process state. Nothing is uploaded automatically.
 
 The Home update notice can show GitHub's SHA256 for `LibreSpot-Desktop.exe` and copy the exact verification command. Default-install and release-response tests now exercise the real behavior, while the catalog generator is checked across both supported PowerShell editions. The live engine also starts after a Spotify reload when Spicetify omits its optional `ReactDOM` global. If Spotify's companion APIs never arrive, the in-client surface reports the startup failure with a retry action instead of waiting forever. A failed startup runtime is discarded before a retry can bind a replacement. A panel that throws stays inside its own error view, with Retry panel and Open Health actions that leave saved settings intact.
 
@@ -238,10 +238,12 @@ The desktop rail uses Home, Maintenance, and Settings. Windows protocol and prof
 
 ## What It Does
 
-LibreSpot wraps two powerful open-source projects into one polished interface:
+LibreSpot wraps two open-source projects into one interface:
 
 - **[SpotX](https://github.com/SpotX-Official/SpotX)**, patches Spotify to remove ads, block telemetry, and enable experimental UI features
 - **[Spicetify](https://github.com/spicetify)**, injects custom themes, extensions, custom apps, and the in-app Marketplace into Spotify
+
+The root project, desktop shell, fleet CLI, and PowerShell hosts are MIT-licensed. The in-Spotify live customization engine is an AGPL-3.0-only component and ships with LibreSpot's own Prism theme and engine archive. SpotX, Spicetify CLI, Marketplace, and the official theme archive are fetched from pinned upstream sources during installation. Their licenses and retrieval posture are recorded in [the third-party notices](src/LibreSpot.App/THIRD_PARTY_NOTICES.md) and the [notices manifest](schemas/third-party-notices.json).
 
 Instead of running multiple scripts, editing config files, and hoping the versions are compatible, LibreSpot handles the entire workflow: clean uninstall, fresh Spotify install, SpotX patching, Spicetify CLI setup, theme installation, extension configuration, verified custom-app installation, and Marketplace deployment, all in the correct order, with full error handling.
 
@@ -528,8 +530,8 @@ LibreSpot.ps1 -RemoveSelfData      # unregister the watcher and delete all Libre
 - **Community asset verification**, opt-in community extensions, themes, and custom apps are pinned in `schemas/community-assets.json` with provenance, SHA256, license, branch, support, fallback, network-behavior, and catalog-review metadata; the review gate rejects archived, stale, undocumented, or unknown-network entries from easy-mode defaults while retaining deferred entries as opt-in, and Maintenance health, `status --json`, and redacted support bundles report the decision and reason without failing offline
 - **Community catalog:** browse the reviewed asset list and its trust evidence on the [LibreSpot community catalog](https://sysadmindoc.github.io/LibreSpot/), generated from the same schemas used by the local review gate. Each card records what the asset does over the network and whether it touches the Spotify Web API, because since February 2026 an extension calling that API with its own client ID works for five people and then stops. None of the reviewed assets does; every one either stays inside the Spotify client's own APIs or makes no Spotify call at all
 - **Marketplace visibility evidence**, Reapply and Repair Marketplace record the installed files, manifest version, `custom_apps` registration, Spicetify apply stage, direct `spotify:app:marketplace` open attempt, and last observed Spotify process so Maintenance and `status --json` can distinguish files installed from likely visible
-- **Repair preservation**, before Reapply or Repair Marketplace replaces managed Spicetify files, LibreSpot snapshots `config-xpui.ini` and `CustomApps` under `%USERPROFILE%\LibreSpot_Backups`, restores only missing files, and retains support-bundle evidence. The Marketplace IndexedDB database is detected but not backed up, so use Marketplace's own export/import controls before repair and expect that state may reset
-- **In-Spotify backup recovery**, Health snapshots the engine bytes and Marketplace settings before restore. If either write fails, it puts back the exact prior bytes and keys, removes keys introduced by the failed merge, and keeps a bounded recovery copy when compensation cannot finish. Marketplace reset keeps its own copy outside the database until you restore or dismiss it, and can recreate its known settings store after deletion
+- **Repair preservation**, before Reapply or Repair Marketplace replaces managed Spicetify files, LibreSpot snapshots `config-xpui.ini` and `CustomApps` under `%USERPROFILE%\LibreSpot_Backups`, restores only missing files, and retains support-bundle evidence. Health backups include Marketplace's owned `marketplace:` keys from IndexedDB and its localStorage fallback, but arbitrary Marketplace-installed files and unrelated browser state still require Marketplace's own export/import controls
+- **In-Spotify backup recovery**, a raw `.librespot` profile is an engine-only recovery input. Health's complete backup envelope snapshots the engine bytes and Marketplace's owned settings before restore. If either write fails, it puts back the exact prior bytes and keys, removes keys introduced by the failed merge, and keeps a bounded recovery copy when compensation cannot finish. Marketplace reset keeps its own copy outside the database until you restore or dismiss it, and can recreate its known settings store after deletion
 - **Asset-cache inventory**, verified download-cache entries keep source labels, source URLs, byte size, first-seen, last-used, and last-verified metadata; corrupt files are quarantined with journal receipts, and Maintenance, `status --json`, and support bundles show cache count, size, stale, corrupt, and clear-cache state. Fleet admins can export a complete cache and import it offline with full manifest, ZIP-layout, size, and SHA256 verification
 - **Config backup**, up to 5 rotating Spicetify config backups stored in `%USERPROFILE%\LibreSpot_Backups`
 - **Architecture support**, the Spicetify CLI download is pinned with a separate SHA256 for x64 and ARM64. LibreSpot's own desktop and CLI executables are built for x64 only and run under emulation on ARM devices
@@ -558,6 +560,9 @@ Use Maintenance > Repair and open Marketplace. LibreSpot reinstalls the custom a
 **Marketplace-installed themes or extensions reset when Spotify closes.**
 This is a known upstream issue (spicetify/cli#3837). Themes and extensions installed through LibreSpot's Custom Install are not affected because they are applied directly. If you rely on Marketplace-only additions, uncheck "Install the Spicetify Marketplace" in Custom mode and choose bundled themes/extensions instead.
 
+**What is included in a profile or backup?**
+A raw `.librespot` profile contains LibreSpot-managed engine settings only. Health's complete backup envelope also includes the owned `marketplace:` keys it can read from Marketplace's IndexedDB and localStorage fallback. It does not copy arbitrary Marketplace theme or extension files, unrelated browser state, credentials, or cloud data.
+
 **How do I collect diagnostics without leaking local paths or secrets?**
 Use Maintenance > Support bundle. LibreSpot previews the selected health report, operation journal, log, and crash-report windows, redacts local user/machine paths, GitHub headers, proxy credentials, tokens, passwords, and command-line secret arguments, then writes a local zip. The manifest includes the latest stable operation GUID so support evidence can be matched to the activity dialog and logs. If file logging fails, the activity view reports it once and the bundle lists unreadable files instead of treating missing logs as complete. Native process output and redirected worker logs use bounded capture with an explicit truncation marker, so a noisy or hung tool cannot grow diagnostic memory without limit. Malformed output bytes are consumed with replacement decoding so later diagnostics still get classified. It does not upload the bundle.
 
@@ -573,7 +578,7 @@ Use Maintenance > Full Reset. This removes all modifications, uninstalls Spotify
 BlockTheSpot archived its repository in February 2026. LibreSpot's environment health report distinguishes likely BlockTheSpot-family DLL/config artifacts, raw SpotX backups, standalone Spicetify, and LibreSpot-owned state before setup. Review the migration recommendation first: standalone Spicetify config and CustomApps are preserved before setup, while Full Reset removes foreign Spotify state only after its destructive confirmation. The same ownership result is available through CLI status JSON and local support bundles.
 
 **Is this safe?**
-Every download is verified against pinned SHA256 hashes. LibreSpot doesn't host or redistribute any code, it downloads directly from the official SpotX and Spicetify GitHub repositories. See [Trust & risk disclosure](#trust--risk-disclosure) below for enforcement context and account risk details.
+Every download is verified against pinned SHA256 hashes. LibreSpot ships its own MIT-licensed hosts and its AGPL-3.0-only in-Spotify app, including Prism and the live engine. SpotX, Spicetify CLI, Marketplace, and the theme archive are fetched from their official GitHub repositories at install time. See [Trust & risk disclosure](#trust--risk-disclosure) below for enforcement context and account risk details.
 
 **My antivirus flagged LibreSpot / SpotX, is it a virus?**
 A detection alone cannot answer that. Security products can flag scripts and patched application files for several reasons, and LibreSpot will not label a detection harmless on your behalf. Stop before allowing or restoring the file. Confirm that it came from the [official LibreSpot release](https://github.com/SysAdminDoc/LibreSpot/releases) or the pinned upstream source, then compare its SHA256 with the matching entry in that same release's `checksums.txt` or LibreSpot's logged pin. A matching hash establishes file identity, not safety. If the source or hash does not match, or cannot be confirmed, leave the file blocked and delete the download. If both match, review the detection in Windows Security Protection History and submit the exact file to [Microsoft Security Intelligence](https://www.microsoft.com/en-us/wdsi/filesubmission) or your security vendor for analysis. Do not add an antivirus exclusion or turn off protection for LibreSpot.
@@ -603,7 +608,7 @@ PowerShell 7.6.0 through 7.6.4 also receive a non-blocking security-floor warnin
 
 **What LibreSpot does NOT do:**
 - Collect, transmit, or store any credentials, tokens, or account data
-- Bundle, host, or redistribute Spotify binaries or any upstream project code
+- Bundle or redistribute Spotify binaries. LibreSpot's own hosts and in-Spotify app are part of the release, while SpotX, Spicetify CLI, Marketplace, and theme archives are retrieved from their upstream sources at install time
 - Communicate, *as LibreSpot itself*, with any server other than GitHub (for downloads) and Spotify (normal app traffic)
 - Modify Spotify's authentication, payment, or account systems
 
@@ -624,7 +629,7 @@ Use Maintenance > Full Reset. This removes all modifications, uninstalls Spotify
 
 ## Signing & verification
 
-Releases ship unsigned by design. LibreSpot is not code-signed and is not waiting on a certificate: [SignPath Foundation](https://signpath.org/) OSS signing was evaluated and set aside, so there is no "once the cert arrives" milestone. `LibreSpot.exe`, `LibreSpot-Desktop.exe`, and `LibreSpot.Cli.exe` are published as unsigned artifacts, and Windows SmartScreen may warn about them. Verify identity with the SHA256 `checksums.txt` published alongside each release. A matching hash proves that the file is the release artifact, but it does not prove that the file is safe.
+Releases ship unsigned by design. LibreSpot is not code-signed and is not waiting on a certificate: [SignPath Foundation](https://signpath.org/) OSS signing was evaluated and set aside, so there is no "once the cert arrives" milestone. The three user-facing executable artifacts are `LibreSpot.exe`, `LibreSpot-Desktop.exe`, and `LibreSpot.Cli.exe`. They are published as unsigned artifacts, and Windows SmartScreen may warn about them. The adjacent `createdump.exe` file is a .NET runtime crash-dump helper, not a fourth entry point. Verify identity with the SHA256 `checksums.txt` published alongside each release. A matching hash proves that the file is the release artifact, but it does not prove that the file is safe.
 
 The public latest stable release, v4.4.0, ships eight assets: `LibreSpot.ps1`, `LibreSpot.exe`, the .NET 10 `LibreSpot-Desktop.exe` and `LibreSpot.Cli.exe`, `librespot-engine.zip`, the CycloneDX SBOM, `checksums.txt`, and `librespot-release-manifest.json`. The engine archive is the same live customization app the desktop executable carries inside itself, so the script lane can install it from a file next to `LibreSpot.ps1` instead of downloading it. The repository itself does not track build artifacts. `LibreSpot.exe` and `checksums.txt` are generated fresh for each local release build, so always verify against the copies you downloaded from the [latest stable release](https://github.com/SysAdminDoc/LibreSpot/releases/latest), not against anything in a source checkout. v4.4.0 ships source script v3.11.0. Version 4.5.0 is prepared in this repository and has not been published, so its number appears on the Version badge and in What's New, while the Stable badge and the verification examples above name v4.4.0.
 
@@ -656,7 +661,7 @@ Releases are built and uploaded from the maintainer machine. GitHub Actions do
 not build, test, or publish release assets. Run the local gates first.
 
 The xUnit 4 projects are Microsoft Testing Platform applications. Build them,
-then invoke their generated DLLs directly on .NET 10 so the MTP filters and
+then invoke their generated executables directly so the MTP filters and
 reporting options are passed to the test runner itself:
 
 ```powershell
@@ -664,9 +669,9 @@ reporting options are passed to the test runner itself:
 .\Build-Scripts.ps1 -Lint
 .\Build-Scripts.ps1 -DependencyHealth
 dotnet build .\tests\LibreSpot.Desktop.Tests\LibreSpot.Desktop.Tests.csproj --no-restore
-dotnet .\tests\LibreSpot.Desktop.Tests\bin\Debug\net10.0-windows\LibreSpot.Desktop.Tests.dll --filter-not-class "*Wpf*" --minimum-expected-tests 1 --progress off
+.\tests\LibreSpot.Desktop.Tests\bin\Debug\net10.0-windows\LibreSpot.Desktop.Tests.exe --filter-not-class "*Wpf*" --minimum-expected-tests 1 --progress off
 dotnet build .\tests\LibreSpot.Core.Tests\LibreSpot.Core.Tests.csproj --no-restore
-dotnet .\tests\LibreSpot.Core.Tests\bin\Debug\net10.0-windows\LibreSpot.Core.Tests.dll --minimum-expected-tests 1 --progress off
+.\tests\LibreSpot.Core.Tests\bin\Debug\net10.0-windows\LibreSpot.Core.Tests.exe --minimum-expected-tests 1 --progress off
 powershell -NoProfile -ExecutionPolicy Bypass -Command "Import-Module Pester -RequiredVersion 5.9.1; Invoke-Pester -Configuration (New-PesterConfiguration -Hashtable (& .\tests\powershell\pester.config.ps1))"
 ```
 
@@ -682,8 +687,9 @@ CycloneDX SBOM, write SHA256 `checksums.txt`, then create the release manifest:
 ```
 
 `-PublishRelease` empties `publish`, publishes the desktop and CLI projects as
-self-contained single-file `win-x64` executables, and copies in `LibreSpot.ps1`
-and `resources\custom-apps\librespot-engine.zip`. It pins the build properties
+self-contained single-file `win-x64` executables, copies the matching .NET
+`createdump.exe` helper beside them, and copies in `LibreSpot.ps1` and
+`resources\custom-apps\librespot-engine.zip`. It pins the build properties
 that make the output reproducible (`Deterministic`,
 `ContinuousIntegrationBuild`, `EmbedUntrackedSources`, `PublishRepositoryUrl`)
 and prints the size and SHA256 of each asset. The release manifest records the
@@ -707,10 +713,10 @@ graph. Manifest generation then re-checks that file version against the script, 
 SBOM is CycloneDX 1.7 from that tool with per-component hashes and licenses,
 and measures the desktop executable against the publish footprint budget, so a
 mismatched or oversized artifact fails before the release is uploaded.
-`-GenerateChecksums` hashes the six artifacts the release contract covers, which
-is every published asset except the SBOM and the release manifest, and writes
-the `checksums.txt` file consumed by manifest generation. Eight files are
-uploaded; six of them carry a checksum line.
+`-GenerateChecksums` hashes the seven artifacts the release contract covers,
+which is every published asset except the SBOM and the release manifest, and
+writes the `checksums.txt` file consumed by manifest generation. Nine files are
+uploaded; seven of them carry a checksum line.
 
 Create and push the version tag, create a draft GitHub release, upload every
 file in `publish`, and publish the draft only after the asset list is complete.
@@ -788,10 +794,12 @@ not accepted in the same allowlist with an owner, a reason and a recheck date.
 
 The UI automation suite runs an Axe.Windows rule scan, the same engine behind
 Accessibility Insights, against the Home, Settings and Maintenance states. The
-shell is launched hidden, so the scan never takes over the screen:
+shell is launched hidden, so the scan never takes over the screen. The
+`--uia-capture=<path>` option writes the requested PNG at the path supplied by
+the caller; the other UI-automation state stays under its isolated root:
 
 ```powershell
-dotnet .\tests\LibreSpot.Desktop.Tests\bin\Debug\net10.0-windows\LibreSpot.Desktop.Tests.dll --filter-method "*AxeWindowsScan*" --minimum-expected-tests 1
+.\tests\LibreSpot.Desktop.Tests\bin\Debug\net10.0-windows\LibreSpot.Desktop.Tests.exe --filter-method "*AxeWindowsScan*" --minimum-expected-tests 1
 ```
 
 Known violations live in `schemas\axe-windows-baseline.json` with a count and a

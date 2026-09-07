@@ -4,7 +4,7 @@
 
 ## Risk
 
-<!-- Low / Medium / High — explain anything above Low. -->
+<!-- Low, Medium, or High. Explain anything above Low. -->
 
 ## Test evidence
 
@@ -20,10 +20,10 @@
 
 ## Checklist
 
-- [ ] Safe .NET tests pass locally (`dotnet tests/LibreSpot.Desktop.Tests/bin/Debug/net10.0-windows/LibreSpot.Desktop.Tests.dll --filter-not-class "*Wpf*" --minimum-expected-tests 1`)
+- [ ] Safe .NET tests pass locally (`tests/LibreSpot.Desktop.Tests/bin/Debug/net10.0-windows/LibreSpot.Desktop.Tests.exe --filter-not-class "*Wpf*" --minimum-expected-tests 1` and the matching Core test executable)
 - [ ] PowerShell composition and 5.1/7 parsing pass (`pwsh -File .\Build-Scripts.ps1 -Validate`)
 - [ ] PSScriptAnalyzer passes (`pwsh -File .\Build-Scripts.ps1 -Lint`)
-- [ ] Pester passes (`Invoke-Pester -Path .\tests\powershell\LibreSpot.Tests.ps1 -CI`)
+- [ ] Full configured Pester suite passes (`Invoke-Pester -Configuration (New-PesterConfiguration -Hashtable (& .\tests\powershell\pester.config.ps1))` with Pester 5.9.1)
 - [ ] No hardcoded English UI strings added without resource backing
 - [ ] Version strings match across all files (if changed)
 - [ ] README updated (if user-facing behavior changed)

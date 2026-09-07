@@ -8,8 +8,8 @@ The engine keeps one managed style element for the active palette and another fo
 
 - `src/core` contains the runtime, `color.ini` parser, profile and theme export, signal adapters, and named health checks.
 - `../../schemas/librespot-customization.json` is the shared catalog. It records 348 flags from the pinned Spotify `xpui.js`, 31 SpotX controls, 21 Spicetify options, reviewed CSS, themes, extensions, custom apps, and source pins.
-- `src/app.ts` is the Spotify custom app. Its rail opens Look, Tweaks, Features, Extensions, Presets, and Health.
-- `src/extensions/librespot-engine.ts` keeps the engine loaded on every Spotify route and supplies a menu entry when custom-app navigation is unavailable.
+- `src/app.ts` is the Spotify custom app. Its rail opens Store, Look, Tweaks, Features, Presets, and Health. Legacy `/librespot/extensions` and `/librespot/marketplace` paths normalize to Store.
+- `src/extensions/librespot-engine.ts` keeps the engine loaded on every Spotify route and supplies a menu entry when custom-app navigation is unavailable. Companion startup uses Spicetify's Menu, Topbar, Platform.History, LocalStorage, and Player surfaces; Prism's own settings entry uses `Spicetify.Menu.Item` and `Spicetify.PopupModal.display`.
 - Companion startup has a 30-second API deadline and publishes an accessible error with a retry action. The app binds only after the engine's loaded marker is true, and frame measurement runs after startup with a timeout that defers hidden or stalled samples.
 - Each panel is mounted inside a React error boundary. A failed panel shows a redacted retry view while the rail and Health route remain available.
 - Dynamic artwork accents are generation-aware. A late result cannot replace newer colors, and a derived Material palette survives route changes, previews, and timer reapplication until its effective scheme or accent inputs change.
@@ -17,7 +17,7 @@ The engine keeps one managed style element for the active palette and another fo
 - Shared controls connect their explanatory text with `aria-describedby`, and Store result changes use one polite status region for counts and empty states.
 - `src/panels` contains the six native React surfaces. The controls update the live runtime or clearly identify settings that need a desktop apply.
 - `tests` uses Vitest with happy-dom. Files run one at a time to stay within the Spotify fixture memory limit.
-- `vendor` holds pinned upstream source parts. See [third-party notices](THIRD_PARTY_NOTICES.md).
+- `vendor` holds selected pinned upstream source parts used by the independently implemented engine. The repo bundles the LibreSpot engine and Prism theme; SpotX, Spicetify CLI, Marketplace, and community assets are fetched or installed from their pinned sources. See [third-party notices](THIRD_PARTY_NOTICES.md).
 
 ## Check it
 
@@ -32,4 +32,4 @@ The workspace pins pnpm 11 so dependency audits use npm's supported bulk advisor
 
 Use `pnpm run catalog:refresh` only when advancing the reviewed Spotify or SpotX pins. It reads the local pinned `xpui.js` and SpotX `patches.json`, then rewrites the shared catalog. `pnpm run catalog:truth` is read-only and fails if those sources drift.
 
-The component is [AGPL-3.0](LICENSE). The rest of LibreSpot keeps its root license.
+The component is [AGPL-3.0-only](LICENSE). The rest of LibreSpot keeps its root [MIT license](../../LICENSE). Vendored files retain the notices and license terms recorded in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

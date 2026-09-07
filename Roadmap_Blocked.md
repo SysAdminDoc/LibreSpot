@@ -372,37 +372,43 @@ item with current evidence if it is wanted.
 
 Why: LibreSpot can share the settings it owns: SpotX flags, selected
 Spotify target, selected Spicetify theme/scheme, curated extensions, and
-Marketplace install preference. It does not currently back up arbitrary
-Marketplace-installed themes, snippets, IndexedDB state, or cloud sync.
-Recent Spicetify community threads report themes/extensions disappearing
-and users wanting a backup/restore path for Marketplace installs. LibreSpot
-should address that pain without implying it can safely export hidden
-Spotify browser storage, usernames, or third-party cloud data as part of a
-simple `.librespot` profile.
+Marketplace install preference. RD-234 and RD-235 also added an explicit
+Health backup for the engine plus owned `marketplace:` keys from IndexedDB
+and the localStorage fallback. It still does not back up arbitrary
+Marketplace-installed themes, snippets, extension files, unrelated browser
+state, or cloud sync. Recent Spicetify community threads report
+themes/extensions disappearing and users wanting a backup/restore path for
+Marketplace installs. LibreSpot should address that pain without implying it
+can safely export hidden Spotify browser storage, usernames, or third-party
+cloud data as part of a simple `.librespot` profile.
 
 Evidence: `src/LibreSpot.Desktop/Models/AppCatalog.cs:41`,
-`LibreSpot.ps1:757`,
-`README.md:124`,
-https://spicetify.app/docs/cli/commands,
-Reddit threads on Marketplace extension loss
+`LibreSpot.ps1:757`, `README.md:124`,
+`src/LibreSpot.App/src/core/backup.ts`,
+`src/LibreSpot.App/src/panels/health.ts`, and the RD-234/RD-235 tests cover
+the owned-key boundary. See also https://spicetify.app/docs/cli/commands and
+the Reddit threads on Marketplace extension loss. The remaining decision is
+whether any broader Marketplace coverage should be offered.
 
 Touches: profile export schema, Marketplace diagnostics, backup/restore
 docs, support copy, future preset gallery, trust/risk documentation.
 
 Acceptance: export UI labels profiles as "LibreSpot-managed settings" and
-separately reports detected unmanaged Marketplace state. If a broader
-Marketplace backup is added, it is an explicit advanced action with a
-preview of included paths, a no-credentials guarantee, local-only storage by
-default, and clear restore limits. Profile import never silently copies
-Spotify IndexedDB or Marketplace browser state.
+separately reports detected unmanaged Marketplace state. The existing
+advanced backup action shows that it captures owned Marketplace keys locally.
+If broader Marketplace coverage is added, it is an explicit advanced action
+with a preview of included paths, a no-credentials guarantee, local-only
+storage by default, and clear restore limits. Profile import never silently
+copies Spotify IndexedDB or Marketplace browser state.
 
 Verify: tests prove a `.librespot` export includes only managed settings by
-default; diagnostics can mention unmanaged Marketplace state without
-copying it; import of a profile with unknown marketplace sections is shown
-as unsupported unless the advanced backup feature exists and is explicitly
-enabled.
+default; Health's complete backup includes only owned `marketplace:` keys
+from the two supported backends; diagnostics can mention unmanaged
+Marketplace state without copying it; import of a profile with unknown
+marketplace sections is shown as unsupported unless the advanced backup
+feature exists and is explicitly enabled.
 
-Research note (2026-09-03): Marketplace's own Backup modal exports and imports a `marketplace-settings-<date>.json` file (https://github.com/spicetify/marketplace/blob/main/src/components/Modals/BackupModal/index.tsx), and Marketplace 1.0.11 (2026-09-02) fixed key migration. RD-147 in ROADMAP.md uses that JSON format from inside the client, which needs no Chromium file copy; the file-copy question here stays open.
+Research note (2026-09-03, updated RD-246): Marketplace's own Backup modal exports and imports a `marketplace-settings-<date>.json` file (https://github.com/spicetify/marketplace/blob/main/src/components/Modals/BackupModal/index.tsx), and Marketplace 1.0.11 (2026-09-02) fixed key migration. LibreSpot's RD-235 backup reads the same owned settings boundary from inside the client, which needs no Chromium file copy. The file-copy question stays open for arbitrary installed themes, snippets, and extension assets.
 
 ## P2 - Write a bad-release and rollback runbook
 

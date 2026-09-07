@@ -16,8 +16,8 @@ For security vulnerabilities, use [private vulnerability reporting](https://gith
 
 1. Fork the repository and create a branch from `main`.
 2. Make your changes, matching the existing code style and patterns.
-3. Build the test project, then run its non-WPF MTP test application and fix any failures: `dotnet build .\tests\LibreSpot.Desktop.Tests\LibreSpot.Desktop.Tests.csproj` followed by `dotnet .\tests\LibreSpot.Desktop.Tests\bin\Debug\net10.0-windows\LibreSpot.Desktop.Tests.dll --filter-not-class "*Wpf*" --minimum-expected-tests 1`.
-4. Test PowerShell changes on both Windows PowerShell 5.1 and PowerShell 7.
+3. Build both test projects, then run their generated non-WPF MTP executables and fix any failures: `dotnet build .\tests\LibreSpot.Desktop.Tests\LibreSpot.Desktop.Tests.csproj --no-restore` followed by `.\tests\LibreSpot.Desktop.Tests\bin\Debug\net10.0-windows\LibreSpot.Desktop.Tests.exe --filter-not-class "*Wpf*" --minimum-expected-tests 1`, then the matching Core build and `.\tests\LibreSpot.Core.Tests\bin\Debug\net10.0-windows\LibreSpot.Core.Tests.exe --minimum-expected-tests 1`.
+4. Test PowerShell changes on both Windows PowerShell 5.1 and PowerShell 7, then run the full configured Pester suite: `powershell -NoProfile -ExecutionPolicy Bypass -Command "Import-Module Pester -RequiredVersion 5.9.1; Invoke-Pester -Configuration (New-PesterConfiguration -Hashtable (& .\tests\powershell\pester.config.ps1))"`.
 5. Open a pull request using the provided template.
 
 ### Style
@@ -57,4 +57,4 @@ use a translation bot, so there are no bot-authored commits in the history.
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the [MIT License](../LICENSE).
+By contributing to the root project, desktop shell, fleet CLI, or PowerShell hosts, you agree that those contributions will be licensed under the [MIT License](../LICENSE). Contributions under `src/LibreSpot.App` are licensed under that component's [AGPL-3.0-only license](../src/LibreSpot.App/LICENSE). A change spanning both areas keeps each component's applicable license.

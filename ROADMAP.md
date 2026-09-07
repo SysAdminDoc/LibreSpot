@@ -6,13 +6,6 @@ Incomplete, implementer-actionable work only. Operator-dependent decisions remai
 
 ### P2: Next
 
-- [ ] P2: RD-246. Reconcile public documentation with the shipped components
-  Why: Impact 3/5. Redistribution, licensing, crash/privacy, navigation and validation instructions contradict the implementation.
-  Evidence: RESEARCH.md, Documentation; README/SECURITY no-redistribution claims; component AGPL license/notices; current changelog contradictions and incomplete PR-template Pester command.
-  Touches: README.md; SECURITY.md; CHANGELOG.md; .github/CONTRIBUTING.md and PULL_REQUEST_TEMPLATE.md; src/LibreSpot.App/README.md; current assertions in Roadmap_Blocked.md.
-  Acceptance: Describe bundled versus fetched components and their licenses accurately; list three executable artifacts; use the full configured Pester suite. Correct Prism API, UIA capture, Store navigation and unpublished-release claims. Distinguish raw profile recovery from complete backups. Retain historical records as historical; remove or update only blocker premises disproved by existing code. Add narrowly targeted factual checks where a previous check missed the contradiction, and keep human-written prose conventions.
-  Complexity: S
-
 - [ ] P2: RD-250. Exercise cache recovery across real process termination
   Why: Impact 3/5. Core tests named for process death only move directories in one process, leaving rename and marker boundaries untested under termination.
   Evidence: Fresh verifier review of tests/LibreSpot.Core.Tests/AssetCacheBundleServiceTests.cs and the five-boundary PowerShell fixture.
