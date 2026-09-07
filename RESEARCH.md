@@ -1,6 +1,6 @@
 # Research: LibreSpot
 
-Date: 2026-09-06. Replaces all prior research.
+Date: 2026-09-07. Replaces all prior research.
 
 ## Executive Summary
 
@@ -14,10 +14,10 @@ Priority order:
 4. Make backup restoration and Marketplace reset preserve recoverable data (RD-228, RD-229).
 5. Serialize mutations across hosts, own installer descendants, and replace installed assets through staging and rollback (RD-230 through RD-232).
 6. Repair Marketplace storage lifecycle and migration handling, then make cache writes survive concurrent work and process death (RD-234 through RD-237).
-7. Finish recovery and accessibility inside Spotify: render fallback, coherent dynamic colors and truthful preset state (RD-239 through RD-242).
+7. Finish recovery and accessibility inside Spotify: truthful preset state and connected announcements (RD-241 and RD-242); RD-239 and RD-240 are implemented below.
 8. Make diagnostics observable and test the Windows crash artifact itself (RD-233, RD-243 through RD-245); correct contradictory public documentation (RD-246).
 
-These are recommendations, not implemented fixes. Findings marked **Verified** were traced in source; exercised findings identify their synthetic reproduction. **Likely** describes a failure consequence not reproduced on a real installation. **Needs live validation** means a fixture or static check cannot establish the installed-client result.
+The remaining entries are recommendations unless an implemented item is called out below. Findings marked **Verified** were traced in source; exercised findings identify their synthetic reproduction. **Likely** describes a failure consequence not reproduced on a real installation. **Needs live validation** means a fixture or static check cannot establish the installed-client result.
 
 Short in-client paths are relative to `src/LibreSpot.App/src/`; shared PowerShell helper names refer to `src/powershell/shared/`.
 
@@ -101,11 +101,13 @@ Pinned [Marketplace Storage.ts](https://raw.githubusercontent.com/spicetify/mark
 
 **Implemented and exercised (RD-238, RD-239):** the companion API wait now has a 30-second deadline and publishes a persistent loading, ready or error status. The in-client surface listens for that status, binds a runtime only after the loaded marker is true, removes a failed pre-start runtime, and offers an accessible retry action. Frame probes have a 1.5-second deadline, defer while the document is hidden or frames never arrive, and run after engine initialization without blocking listener setup. A deferred sample leaves the current effects tier unchanged. Each panel now sits inside a React error boundary that preserves navigation and Health access, redacts exception details from the view, and retries without changing saved state.
 
-**Verified, exercised color defects:** `core/engine.ts:refreshAccent` accepts older artwork results after newer ones. A controlled promise-order test changed the accent back to the old track. `apply` also overwrites a derived Material palette with the base scheme; the companion calls it on navigation and every minute. These need generation-aware results and consistent reapplication (RD-240).
+**Implemented and exercised (RD-240):** `core/engine.ts:refreshAccent` now captures the state, scheme and dynamic-accent inputs for each request and discards late results when those inputs or the request generation changed. A derived Material palette is retained through `apply`, preview cancellation, navigation and timer reapplication. Scheduled light and dark changes invalidate the old derivation and trigger a fresh request. Reversed artwork completions and a scheduled boundary fixture cover both paths.
 
 **Verified source UI gaps:** `panels/presets.ts` disables Apply using the preset name alone, even after edits retain that name. `surface/ui.ts` renders descriptions without associating them with controls; Store result changes lack the announcement already present in Features (RD-241, RD-242). Existing six-panel and four WPF screenshots were inspected. Live interaction, screen-reader output and newly changed visual states require isolated validation; existing pictures do not establish those results.
 
 **Implemented and exercised (RD-233):** both lane functions now reset `LibreSpotReapplyStep` at tick entry, retain it through cleanup, write the originating download, parameter, patch, or Spicetify application stage into the failure diagnostics, and clear it after the watcher records the result. The actual watcher call chains pass controlled failures for all four stages while preserving the retry and hold policy. `CrashReporter.Initialize` configures a file sink without SelfLog/failure-listener handling even though its pinned sink supports it (RD-243). `Read-ProcessOutputDelta.ps1` retains an unbounded partial line, and `Invoke-SpicetifyCli.ps1` stores every line when it only needs an error tail. Both host preambles also define an unbounded `LibreSpotNativeOutputCollector` queue; the runner's `BeginOutputReadLine` can buffer an oversized unterminated line before its first callback. Bounds must include that reader and collector (RD-244).
+
+**Fresh verification findings (RD-247 through RD-252):** a malformed PowerShell cache index can still be treated as an empty inventory; a cache-root junction can redirect PowerShell writes; copied pre-existing cache objects are not durably flushed; Core process-death tests do not terminate a helper process; companion readiness accepts truthy objects whose bootstrap methods are missing; and lifecycle coverage relies on source assertions instead of a staged companion integration fixture. These are recorded in `ROADMAP.md` with reproductions, affected files and acceptance tests.
 
 **Dependency assessment on 2026-09-06:** pnpm's complete installed lockfile audit and the desktop NuGet direct/transitive vulnerability query both returned no advisories. The .NET 10.0.11 and PowerShell 7.6.5 floors already exist. Primary changelogs were checked for the .NET UI/logging packages and the TypeScript toolchain. New TypeScript 7 and Vitest 5 releases do not alone justify an upgrade: TypeScript 7 lacks the compiler API used by existing tooling, while [Vitest 5](https://vitest.dev/blog/vitest-5.html) offers browser tracing that can be evaluated when a browser fixture needs it. Keep React aligned with the host ABI. Sources: `src/LibreSpot.App/package.json`, `eslint.config.js`, `schemas/dependency-health-allowlist.json`, [TypeScript release](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/).
 

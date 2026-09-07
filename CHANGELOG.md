@@ -6,6 +6,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Fixed
 
+- Dynamic artwork accents now use request generations, so a late result from an older track cannot replace the current colors. Material palettes survive route changes, previews, and timer reapplication until the effective scheme or accent inputs change, then scheduled light and dark transitions derive a fresh palette.
 - Panel render failures are now contained inside the LibreSpot surface. Navigation and Health stay available, the error view omits raw exception details, and Retry panel leaves saved settings untouched.
 - Live engine startup now has a 30-second companion API deadline and a persistent retry surface. Failed pre-start runtimes are cleaned up before a retry, and background or stalled frame probes defer without blocking listener setup.
 - Asset-cache objects now stage to flushed temporary files before publication, and index updates re-read under a shared cache lease across the PowerShell and Core lanes. Concurrent saves retain both verified entries, interrupted index writes leave the prior JSON intact, and malformed indexes are retained and reported.

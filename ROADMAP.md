@@ -6,14 +6,21 @@ Incomplete, implementer-actionable work only. Operator-dependent decisions remai
 
 ### P1: Now
 
-### P2: Next
+- [ ] P1: RD-247. Reject cache indexes that omit existing entries
+  Why: Impact 4/5. A parseable index without an `entries` array is treated as empty, so importing a bundle silently drops every existing cache entry from the index while leaving the files on disk.
+  Evidence: Fresh verifier reproduction against src/powershell/shared/Import-LibreSpotAssetCacheBundle.ps1; Core rejects the same malformed shape in src/LibreSpot.Core/AssetCacheBundleService.cs.
+  Touches: PowerShell bundle import and cache-index validation; AssetCacheBundle.Tests.ps1 and composed hosts.
+  Acceptance: A schema-valid-looking index with a missing, null, or non-array `entries` field is rejected before mutation, with a regression test proving existing files and the index remain unchanged.
+  Complexity: S
 
-- [ ] P2: RD-240. Preserve the newest dynamic palette through reapplication
-  Why: Impact 4/5. Older artwork results overwrite newer colors, and normal navigation/timer apply replaces Material colors with the base palette.
-  Evidence: RESEARCH.md; exercised reversed artwork completion and apply-after-Material fixtures; core/engine.ts refreshAccent/apply and companion navigation/minute callbacks.
-  Touches: Component core/engine.ts and accent.ts; preview/clearPreview behavior; tests/engine.test.ts.
-  Acceptance: Late results from an old track, scheme or accent mode cannot overwrite current state. Navigation, preview cancellation and a minute tick with an unchanged effective scheme retain the current derived palette. Crossing a scheduled light/dark boundary derives the appropriate new palette. Fixed colors and normal scheme changes still work; test both promise completion orders without wall-clock sleeps.
+- [ ] P1: RD-248. Contain cache writes beneath the configured root
+  Why: Impact 4/5. A cache-root junction lets object and index writes escape the configured cache directory despite file-level atomic checks.
+  Evidence: Fresh verifier junction reproduction against src/powershell/shared/Save-ToAssetCache.ps1 and Write-LibreSpotAssetCacheFileAtomically.ps1.
+  Touches: PowerShell cache-root validation, recovery, and write helpers; Core parity checks and cache fixtures.
+  Acceptance: Existing or newly introduced reparse points at the cache root or object directory are rejected before any write or recovery, while ordinary directories continue to work on Windows.
   Complexity: M
+
+### P2: Next
 
 - [ ] P2: RD-241. Detect preset edits by contents instead of name
   Why: Impact 3/5. Editing an applied preset retains its name, leaves Applied selected and disables restoring that preset.
@@ -56,3 +63,31 @@ Incomplete, implementer-actionable work only. Operator-dependent decisions remai
   Touches: README.md; SECURITY.md; CHANGELOG.md; .github/CONTRIBUTING.md and PULL_REQUEST_TEMPLATE.md; src/LibreSpot.App/README.md; current assertions in Roadmap_Blocked.md.
   Acceptance: Describe bundled versus fetched components and their licenses accurately; list three executable artifacts; use the full configured Pester suite. Correct Prism API, UIA capture, Store navigation and unpublished-release claims. Distinguish raw profile recovery from complete backups. Retain historical records as historical; remove or update only blocker premises disproved by existing code. Add narrowly targeted factual checks where a previous check missed the contradiction, and keep human-written prose conventions.
   Complexity: S
+
+- [ ] P2: RD-249. Flush pre-existing cache objects during bundle publication
+  Why: Impact 3/5. Existing files copied into a replacement cache are not durably flushed, weakening the transaction guarantee during power loss.
+  Evidence: Fresh verifier review of src/LibreSpot.Core/AssetCacheBundleService.cs and src/powershell/shared/Import-LibreSpotAssetCacheBundle.ps1.
+  Touches: Core and PowerShell cache replacement copy paths; durability fixtures.
+  Acceptance: Every copied or imported object is flushed before publication, and a test or instrumented stream proves the existing-file path uses the same durability contract as new files.
+  Complexity: M
+
+- [ ] P2: RD-250. Exercise cache recovery across real process termination
+  Why: Impact 3/5. Core tests named for process death only move directories in one process, leaving rename and marker boundaries untested under termination.
+  Evidence: Fresh verifier review of tests/LibreSpot.Core.Tests/AssetCacheBundleServiceTests.cs and the five-boundary PowerShell fixture.
+  Touches: Core recovery test fixtures and subprocess harness; AssetCacheBundleService recovery hooks.
+  Acceptance: A disposable helper process is terminated at each publication boundary, then a fresh process recovers and verifies the cache and index without relying on in-process observers.
+  Complexity: M
+
+- [ ] P2: RD-251. Require callable companion APIs before bootstrap
+  Why: Impact 4/5. Truthy placeholder objects can pass readiness while required React, History, LocalStorage, or Player methods are still unavailable.
+  Evidence: Fresh verifier review of src/LibreSpot.App/src/extensions/companion-readiness.ts and companion-readiness.test.ts.
+  Touches: Companion readiness predicates and startup tests.
+  Acceptance: Readiness remains false until every bootstrap-used method is callable, accepts the existing fully initialized companion, and waits through staged API publication without starting a partial engine.
+  Complexity: S
+
+- [ ] P2: RD-252. Cover companion startup and retry with integration fixtures
+  Why: Impact 3/5. Lifecycle tests assert source text and helpers but do not exercise listener setup, cleanup, or a retry after a failed bootstrap.
+  Evidence: Fresh verifier review of tests/surface.test.ts, app-readiness.test.ts, and performance.test.ts.
+  Touches: App/extension startup seams and isolated companion fixture tests.
+  Acceptance: A staged companion fixture proves startup waits, a failed start cleans up claimed globals and listeners, retry succeeds, and background performance probing never blocks readiness; tests run offscreen without Spotify UI automation.
+  Complexity: M

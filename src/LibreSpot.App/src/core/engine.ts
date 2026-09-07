@@ -40,6 +40,18 @@ export type EngineAppliedDetail = {
   activeScheme: string;
 };
 
+function accentInputKey(
+  state: EngineState,
+  activeScheme: string,
+  scheme: ColorScheme,
+): string {
+  return JSON.stringify({
+    activeScheme,
+    scheme,
+    dynamicAccent: state.dynamicAccent,
+  });
+}
+
 export class LibreSpotEngine extends EventTarget {
   readonly #styles: ManagedRuntimeStyles;
   readonly #document: Document;
@@ -54,6 +66,10 @@ export class LibreSpotEngine extends EventTarget {
   readonly #themeStyles: Readonly<Record<string, { className: string; css: string }>>;
   #state: EngineState;
   #activeScheme: string;
+  #accentInputKey: string | null = null;
+  #accentRequestGeneration = 0;
+  #derivedScheme: ColorScheme | null = null;
+  #derivedSchemeKey: string | null = null;
 
   public constructor(environment: EngineEnvironment) {
     super();
@@ -105,7 +121,18 @@ export class LibreSpotEngine extends EventTarget {
     if (!scheme) {
       throw new Error(`Active scheme "${this.#activeScheme}" is not available.`);
     }
-    this.#styles.applyPalette(scheme, this.#state.layers.palette);
+    const inputKey = accentInputKey(this.#state, this.#activeScheme, scheme);
+    if (this.#accentInputKey !== null && this.#accentInputKey !== inputKey) {
+      this.#accentRequestGeneration += 1;
+      this.#derivedScheme = null;
+      this.#derivedSchemeKey = null;
+    }
+    this.#accentInputKey = inputKey;
+    const palette =
+      this.#derivedSchemeKey === inputKey && this.#derivedScheme
+        ? this.#derivedScheme
+        : scheme;
+    this.#styles.applyPalette(palette, this.#state.layers.palette);
     this.#styles.applyLayers(this.#state.layers, this.#state.effectsTier);
     this.#styles.applyAppearance(this.#state);
     const theme = this.#themeStyles[this.#state.theme];
@@ -198,17 +225,45 @@ export class LibreSpotEngine extends EventTarget {
   }
 
   public async refreshAccent(): Promise<AccentResult> {
-    const base = this.#state.schemes[this.#activeScheme];
+    const scheduledScheme = resolveScheduledScheme(this.#state, this.#now());
+    if (scheduledScheme !== this.#activeScheme) {
+      this.apply();
+    }
+    const state = cloneState(this.#state);
+    const base = state.schemes[this.#activeScheme];
     if (!base) {
       throw new Error(`Active scheme "${this.#activeScheme}" is not available.`);
     }
+    const inputKey = accentInputKey(state, this.#activeScheme, base);
+    const requestGeneration = ++this.#accentRequestGeneration;
     const derived = deriveScheme(base);
-    const result = await resolveAccent(this.#state, derived, {
+    const result = await resolveAccent(state, derived, {
       artworkUri: this.#artworkUri?.(),
       extractor: this.#colorExtractor,
       osAccent: this.#osAccent?.(),
       isDark: !this.#activeScheme.toLowerCase().includes("light"),
     });
+
+    const currentScheme = this.#state.schemes[this.#activeScheme];
+    const currentKey = currentScheme
+      ? accentInputKey(this.#state, this.#activeScheme, currentScheme)
+      : null;
+    const currentScheduledScheme = resolveScheduledScheme(this.#state, this.#now());
+    if (currentScheduledScheme !== this.#activeScheme) {
+      this.apply();
+      void this.refreshAccent().catch(() => undefined);
+      return result;
+    }
+    if (
+      requestGeneration !== this.#accentRequestGeneration ||
+      currentKey !== inputKey ||
+      this.#accentInputKey !== inputKey
+    ) {
+      return result;
+    }
+
+    this.#derivedScheme = result.scheme;
+    this.#derivedSchemeKey = result.scheme ? inputKey : null;
     if (result.scheme && this.#state.layers.palette) {
       this.#styles.applyPalette(result.scheme);
     }

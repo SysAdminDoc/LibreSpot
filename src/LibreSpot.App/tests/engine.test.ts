@@ -268,4 +268,104 @@ describe("LibreSpot engine", () => {
       }
     }
   });
+
+  it("ignores a late artwork result after a newer accent request", async () => {
+    const state = createDefaultState();
+    state.schemes = {
+      Dark: { main: "000000", text: "FFFFFF", accent: "1ED760" },
+    };
+    state.dynamicAccent.materialPalette = true;
+    let artwork = "initial";
+    const pending = new Map<string, (colors: { VIBRANT: string }) => void>();
+    const engine = new LibreSpotEngine({
+      document,
+      window,
+      store: new EngineStore(memoryStorage()),
+      initialState: state,
+      artworkUri: () => artwork,
+      colorExtractor: async (uri) => {
+        if (uri === "initial") {
+          return { VIBRANT: "101010" };
+        }
+        return await new Promise((resolve) => {
+          pending.set(uri, resolve);
+        });
+      },
+    });
+    await engine.start({ probePerformance: false });
+
+    artwork = "older";
+    const older = engine.refreshAccent();
+    await Promise.resolve();
+    artwork = "newer";
+    const newer = engine.refreshAccent();
+    await Promise.resolve();
+    pending.get("newer")?.({ VIBRANT: "223344" });
+    await newer;
+    pending.get("older")?.({ VIBRANT: "AA0000" });
+    await older;
+
+    const accent = document.documentElement.style.getPropertyValue(
+      "--librespot-accent",
+    );
+    expect(accent).toBe("#223344");
+    const paletteBeforeApply = document.getElementById(
+      "librespot-engine-palette",
+    )?.textContent;
+    engine.apply();
+    expect(document.getElementById("librespot-engine-palette")?.textContent).toBe(
+      paletteBeforeApply,
+    );
+    engine.applyPreviewScheme({ main: "FFFFFF", text: "000000" });
+    engine.clearPreview();
+    expect(document.getElementById("librespot-engine-palette")?.textContent).toBe(
+      paletteBeforeApply,
+    );
+    engine.stop();
+  });
+
+  it("refreshes the material palette after a scheduled scheme boundary", async () => {
+    let now = new Date("2026-09-01T20:00:00");
+    const state = createDefaultState(now);
+    state.schemes = {
+      Dark: { main: "000000", text: "FFFFFF", accent: "1ED760" },
+      Light: { main: "FFFFFF", text: "000000", accent: "16843D" },
+    };
+    state.schedule = {
+      enabled: true,
+      lightStart: "07:00",
+      darkStart: "19:00",
+      lightScheme: "Light",
+      darkScheme: "Dark",
+    };
+    state.dynamicAccent.materialPalette = true;
+    const engine = new LibreSpotEngine({
+      document,
+      window,
+      store: new EngineStore(memoryStorage()),
+      initialState: state,
+      now: () => now,
+      colorExtractor: () => Promise.resolve({ VIBRANT: "335577" }),
+      artworkUri: () => "scheduled",
+    });
+    await engine.start({ probePerformance: false });
+    expect(engine.activeScheme).toBe("Dark");
+    const darkPalette = document.getElementById("librespot-engine-palette")?.textContent;
+
+    now = new Date("2026-09-02T08:00:00");
+    engine.apply();
+    expect(engine.activeScheme).toBe("Light");
+    await engine.refreshAccent();
+
+    expect(document.getElementById("librespot-engine-palette")?.textContent).not.toBe(
+      darkPalette,
+    );
+    expect(document.getElementById("librespot-engine-palette")?.textContent).toContain(
+      "--spice-button: #33618D;",
+    );
+    expect(document.getElementById("librespot-engine-palette")?.textContent).not.toContain(
+      "--spice-button: #16843D;",
+    );
+    engine.stop();
+  });
 });

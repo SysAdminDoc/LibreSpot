@@ -969,6 +969,7 @@ async function bootstrap(): Promise<void> {
     Spicetify.Player.addEventListener("songchange", onSongChange);
     Spicetify.Platform.History.listen?.(() => {
       engine.apply();
+      void engine.refreshAccent().then(emit);
       health = runHealth();
       emit();
       scheduleArrangementRefresh();
@@ -981,6 +982,7 @@ async function bootstrap(): Promise<void> {
       engine.apply();
       refreshArrangements();
       emit();
+      void engine.refreshAccent().then(emit);
     }, 60_000);
     await refreshRoutes();
     console.info("[LibreSpot] live engine ready");

@@ -282,7 +282,7 @@ Three layer themes ship with the engine:
 | Compact | Denser track rows, a thinner navigation rail, and a lower playbar. | Dark, Light, OLED, HighContrast |
 | Accessibility | Larger controls, thicker focus, a readable font option, flat surfaces, and stronger contrast. | Light, HighContrast, Dark, OLED |
 
-Scheme previews, layers, effects tiers, client-side flags, snippets, and presets change immediately. Installing a new custom app or extension still needs the desktop app. SpotX controls and cosmetic bundle patches also need a desktop reapply because they change files before Spotify starts. LibreSpot marks those controls clearly and copies a `.librespot` profile for the existing desktop import path.
+Scheme previews, layers, effects tiers, client-side flags, snippets, and presets change immediately. Artwork accents update in request order, and a derived Material palette stays in place while you navigate or the companion reapplies the current scheme. Installing a new custom app or extension still needs the desktop app. SpotX controls and cosmetic bundle patches also need a desktop reapply because they change files before Spotify starts. LibreSpot marks those controls clearly and copies a `.librespot` profile for the existing desktop import path.
 
 ---
 
