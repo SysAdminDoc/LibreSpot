@@ -12,6 +12,15 @@ function Enter-LibreSpotAssetCacheLease {
     }
 
     $resolvedCache = [System.IO.Path]::GetFullPath($CacheDirectory)
+    $cacheItem = Get-Item -LiteralPath $resolvedCache -Force -ErrorAction SilentlyContinue
+    if ($cacheItem) {
+        if (($cacheItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+            throw 'The asset-cache directory is a reparse point and cannot be used safely.'
+        }
+        if (-not $cacheItem.PSIsContainer) {
+            throw 'The asset-cache path is a file, not a directory.'
+        }
+    }
     $parent = [System.IO.Path]::GetDirectoryName($resolvedCache)
     if ([string]::IsNullOrWhiteSpace($parent)) {
         throw 'LibreSpot could not resolve the asset-cache parent directory for its shared lease.'

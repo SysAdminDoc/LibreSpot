@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
@@ -53,7 +54,7 @@ public sealed class AssetCacheBundleServiceTests
     public void Import_RejectsTamperedAssetBeforeChangingTargetCache()
     {
         using var fixture = new Fixture();
-        fixture.AddSourceAsset("Alpha", "https://example.invalid/alpha", "alpha bytes");
+        var imported = fixture.AddSourceAsset("Alpha", "https://example.invalid/alpha", "alpha bytes");
         var existing = fixture.AddTargetAsset("Existing", "https://example.invalid/existing", "existing bytes");
         var indexPath = Path.Combine(fixture.TargetCache, "asset-cache-index.json");
         var originalIndex = File.ReadAllBytes(indexPath);
@@ -100,6 +101,78 @@ public sealed class AssetCacheBundleServiceTests
             corrupt.Message.Contains("size", StringComparison.OrdinalIgnoreCase) ||
             corrupt.Message.Contains("SHA256", StringComparison.OrdinalIgnoreCase));
         Assert.False(File.Exists(corruptBundle));
+    }
+
+    [Theory]
+    [InlineData("{\"schemaVersion\":1}")]
+    [InlineData("{\"schemaVersion\":1,\"entries\":null}")]
+    [InlineData("{\"schemaVersion\":1,\"entries\":{\"sha256\":\"not-an-array\"}}")]
+    public void Export_RejectsIndexWithoutAnEntriesArray(string indexJson)
+    {
+        using var fixture = new Fixture();
+        fixture.AddSourceAsset("Alpha", "https://example.invalid/alpha", "alpha bytes");
+        var indexPath = Path.Combine(fixture.SourceCache, "asset-cache-index.json");
+        File.WriteAllText(indexPath, indexJson);
+        var bundlePath = Path.Combine(fixture.Root, "invalid-index.zip");
+
+        var error = Assert.Throws<AssetCacheBundleException>(() =>
+            new AssetCacheBundleService().Export(fixture.SourceCache, bundlePath, "4.5.0"));
+
+        Assert.Contains("index", error.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.False(File.Exists(bundlePath));
+        Assert.Equal(indexJson, File.ReadAllText(indexPath));
+    }
+
+    [Fact]
+    public void Import_RejectsCacheRootReparsePointBeforeWritingOutsideTheRoot()
+    {
+        using var fixture = new Fixture();
+        var imported = fixture.AddSourceAsset("Alpha", "https://example.invalid/alpha", "alpha bytes");
+        fixture.AddTargetAsset("Existing", "https://example.invalid/existing", "existing bytes");
+        var bundlePath = Path.Combine(fixture.Root, "reparse.zip");
+        new AssetCacheBundleService().Export(fixture.SourceCache, bundlePath, "4.5.0");
+
+        var external = Path.Combine(fixture.Root, "external-cache");
+        var sentinel = Path.Combine(external, "sentinel.txt");
+        Directory.CreateDirectory(external);
+        File.WriteAllText(sentinel, "leave me");
+        Directory.Delete(fixture.TargetCache, recursive: true);
+        CreateDirectoryJunction(fixture.TargetCache, external);
+
+        try
+        {
+            var error = Assert.Throws<AssetCacheBundleException>(() =>
+                new AssetCacheBundleService().Import(fixture.TargetCache, bundlePath));
+
+            Assert.Contains("reparse", error.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal("leave me", File.ReadAllText(sentinel));
+            Assert.False(File.Exists(Path.Combine(external, "asset-cache-index.json")));
+            Assert.False(File.Exists(Path.Combine(external, imported.Hash)));
+        }
+        finally
+        {
+            DeleteDirectoryJunction(fixture.TargetCache);
+        }
+    }
+
+    [Fact]
+    public void Import_FlushesCopiedPreExistingFilesBeforePublication()
+    {
+        using var fixture = new Fixture();
+        fixture.AddSourceAsset("Imported", "https://example.invalid/imported", "imported bytes");
+        var existing = fixture.AddTargetAsset("Existing", "https://example.invalid/existing", "existing bytes");
+        var bundlePath = Path.Combine(fixture.Root, "durable-copy.zip");
+        new AssetCacheBundleService().Export(fixture.SourceCache, bundlePath, "4.5.0");
+        var observed = new List<(string Source, string Destination)>();
+        var service = new AssetCacheBundleService(
+            transactionObserver: null,
+            durableCopyObserver: (source, destination) => observed.Add((source, destination)));
+
+        service.Import(fixture.TargetCache, bundlePath);
+
+        Assert.Contains(observed, copy =>
+            string.Equals(copy.Source, Path.Combine(fixture.TargetCache, existing.Hash), StringComparison.OrdinalIgnoreCase));
+        Assert.Equal(existing.Bytes, File.ReadAllBytes(Path.Combine(fixture.TargetCache, existing.Hash)));
     }
 
     [Fact]
@@ -390,6 +463,41 @@ public sealed class AssetCacheBundleServiceTests
     {
         using var reader = new StreamReader(entry.Open(), Encoding.UTF8);
         return reader.ReadToEnd();
+    }
+
+    private static void CreateDirectoryJunction(string junctionPath, string targetPath)
+    {
+        var process = Process.Start(new ProcessStartInfo
+        {
+            FileName = "cmd.exe",
+            Arguments = $"/d /c mklink /J \"{junctionPath}\" \"{targetPath}\"",
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true
+        }) ?? throw new InvalidOperationException("Could not start junction fixture process.");
+        using (process)
+        {
+            process.WaitForExit();
+            if (process.ExitCode != 0)
+            {
+                throw new InvalidOperationException($"Could not create junction fixture: {process.StandardError.ReadToEnd()}");
+            }
+        }
+    }
+
+    private static void DeleteDirectoryJunction(string junctionPath)
+    {
+        try
+        {
+            if (Directory.Exists(junctionPath) || File.Exists(junctionPath))
+            {
+                Directory.Delete(junctionPath);
+            }
+        }
+        catch
+        {
+        }
     }
 
     private sealed class Fixture : IDisposable

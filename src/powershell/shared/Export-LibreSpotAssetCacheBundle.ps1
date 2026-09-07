@@ -35,7 +35,11 @@ function Export-LibreSpotAssetCacheBundle {
         throw 'The asset-cache index uses an unsupported schema version.'
     }
 
-    $indexedEntries = @($index.entries)
+    $entriesProperty = $index.PSObject.Properties['entries']
+    if ($null -eq $entriesProperty -or $null -eq $entriesProperty.Value -or $entriesProperty.Value -isnot [array]) {
+        throw 'The asset-cache index has no entries array.'
+    }
+    $indexedEntries = @($entriesProperty.Value)
     if ($indexedEntries.Count -eq 0 -or $indexedEntries.Count -gt $maxEntryCount) {
         throw "The asset-cache index must contain between 1 and $maxEntryCount entries."
     }

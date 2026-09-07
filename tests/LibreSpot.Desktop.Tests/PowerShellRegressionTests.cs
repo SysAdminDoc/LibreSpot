@@ -2673,6 +2673,36 @@ public sealed class PowerShellRegressionTests
     }
 
     [Theory]
+    [InlineData("src/powershell/shared/Import-LibreSpotAssetCacheBundle.ps1")]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void AssetCacheImport_RejectsMissingEntriesAndFlushesCopiedFiles(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+
+        Assert.Contains("PSObject.Properties['entries']", script);
+        Assert.Contains("-isnot [array]", script);
+        Assert.Contains("function Copy-AssetCacheFileDurably", script);
+        Assert.Contains("[System.IO.FileMode]::CreateNew", script);
+        Assert.Contains("$destination.Flush($true)", script);
+        Assert.DoesNotContain("[System.IO.File]::Copy($child.FullName, $destinationPath", script);
+    }
+
+    [Theory]
+    [InlineData("src/powershell/shared/Enter-LibreSpotAssetCacheLease.ps1")]
+    [InlineData("src/powershell/shared/Write-LibreSpotAssetCacheFileAtomically.ps1")]
+    [InlineData("src/powershell/shared/Recover-LibreSpotAssetCacheTransaction.ps1")]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    public void AssetCacheWrites_RejectReparseRootsAndParents(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+
+        Assert.Contains("FileAttributes]::ReparsePoint", script);
+        Assert.Contains("reparse point", script, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
     [InlineData("MinimizeBtn", "Minimize window")]
     [InlineData("CloseTitleBtn", "Close window")]
     [InlineData("ModeEasy", "Recommended setup")]

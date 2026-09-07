@@ -9446,7 +9446,11 @@ function Export-LibreSpotAssetCacheBundle {
         throw 'The asset-cache index uses an unsupported schema version.'
     }
 
-    $indexedEntries = @($index.entries)
+    $entriesProperty = $index.PSObject.Properties['entries']
+    if ($null -eq $entriesProperty -or $null -eq $entriesProperty.Value -or $entriesProperty.Value -isnot [array]) {
+        throw 'The asset-cache index has no entries array.'
+    }
+    $indexedEntries = @($entriesProperty.Value)
     if ($indexedEntries.Count -eq 0 -or $indexedEntries.Count -gt $maxEntryCount) {
         throw "The asset-cache index must contain between 1 and $maxEntryCount entries."
     }
@@ -9631,6 +9635,15 @@ function Import-LibreSpotAssetCacheBundle {
     $requirement = "Spotify itself is not stored in LibreSpot's asset cache. SpotX's Spotify installer chain still needs access to Spotify's vendor download."
     $resolvedBundle = [System.IO.Path]::GetFullPath($BundlePath)
     $resolvedCache = [System.IO.Path]::GetFullPath($global:CACHE_DIR).TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar)
+    $cacheItem = Get-Item -LiteralPath $resolvedCache -Force -ErrorAction SilentlyContinue
+    if ($cacheItem) {
+        if (($cacheItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+            throw 'The target asset-cache directory is a reparse point and cannot be imported safely.'
+        }
+        if (-not $cacheItem.PSIsContainer) {
+            throw 'The target asset-cache path is a file, not a directory.'
+        }
+    }
     if ($resolvedBundle.Equals($resolvedCache, [System.StringComparison]::OrdinalIgnoreCase) -or
         $resolvedBundle.StartsWith(($resolvedCache + [System.IO.Path]::DirectorySeparatorChar), [System.StringComparison]::OrdinalIgnoreCase)) {
         throw 'The imported bundle must be stored outside the target asset-cache directory.'
@@ -9818,7 +9831,11 @@ function Import-LibreSpotAssetCacheBundle {
             if ([int]$existingIndex.schemaVersion -ne 1) {
                 throw 'The existing asset-cache index uses an unsupported schema version.'
             }
-            $existingEntries = @($existingIndex.entries)
+            $entriesProperty = $existingIndex.PSObject.Properties['entries']
+            if ($null -eq $entriesProperty -or $null -eq $entriesProperty.Value -or $entriesProperty.Value -isnot [array]) {
+                throw 'The existing asset-cache index has no entries array.'
+            }
+            $existingEntries = @($entriesProperty.Value)
             if ($existingEntries.Count -gt $maxEntryCount) {
                 throw 'The existing asset-cache index contains too many entries.'
             }
@@ -9838,6 +9855,31 @@ function Import-LibreSpotAssetCacheBundle {
 
         if (Test-Path -LiteralPath $resolvedCache -PathType Leaf) {
             throw 'The target asset-cache path is a file, not a directory.'
+        }
+
+        function Copy-AssetCacheFileDurably {
+            param(
+                [Parameter(Mandatory = $true)][string]$SourcePath,
+                [Parameter(Mandatory = $true)][string]$DestinationPath
+            )
+
+            $source = [System.IO.File]::Open(
+                $SourcePath,
+                [System.IO.FileMode]::Open,
+                [System.IO.FileAccess]::Read,
+                [System.IO.FileShare]::Read)
+            $destination = [System.IO.File]::Open(
+                $DestinationPath,
+                [System.IO.FileMode]::CreateNew,
+                [System.IO.FileAccess]::Write,
+                [System.IO.FileShare]::None)
+            try {
+                $source.CopyTo($destination)
+                $destination.Flush($true)
+            } finally {
+                $destination.Dispose()
+                $source.Dispose()
+            }
         }
 
         New-Item -Path $replacementRoot -ItemType Directory -Force | Out-Null
@@ -9860,7 +9902,7 @@ function Import-LibreSpotAssetCacheBundle {
                         New-Item -Path $destinationPath -ItemType Directory -Force -ErrorAction Stop | Out-Null
                         $pendingDirectories.Enqueue([pscustomobject]@{ Source = $child.FullName; Destination = $destinationPath })
                     } else {
-                        [System.IO.File]::Copy($child.FullName, $destinationPath, $false)
+                        Copy-AssetCacheFileDurably -SourcePath $child.FullName -DestinationPath $destinationPath
                     }
                 }
             }
@@ -9996,6 +10038,15 @@ function Enter-LibreSpotAssetCacheLease {
     }
 
     $resolvedCache = [System.IO.Path]::GetFullPath($CacheDirectory)
+    $cacheItem = Get-Item -LiteralPath $resolvedCache -Force -ErrorAction SilentlyContinue
+    if ($cacheItem) {
+        if (($cacheItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+            throw 'The asset-cache directory is a reparse point and cannot be used safely.'
+        }
+        if (-not $cacheItem.PSIsContainer) {
+            throw 'The asset-cache path is a file, not a directory.'
+        }
+    }
     $parent = [System.IO.Path]::GetDirectoryName($resolvedCache)
     if ([string]::IsNullOrWhiteSpace($parent)) {
         throw 'LibreSpot could not resolve the asset-cache parent directory for its shared lease.'
@@ -10088,6 +10139,10 @@ function Write-LibreSpotAssetCacheFileAtomically {
     if (-not (Test-Path -LiteralPath $parent -PathType Container)) {
         New-Item -Path $parent -ItemType Directory -Force -ErrorAction Stop | Out-Null
     }
+    $parentInfo = Get-Item -LiteralPath $parent -Force -ErrorAction Stop
+    if (($parentInfo.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+        throw "The asset-cache destination parent is a reparse point: $parent"
+    }
 
     $existingDestination = Get-Item -LiteralPath $resolvedDestination -Force -ErrorAction SilentlyContinue
     if ($existingDestination -and (($existingDestination.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0)) {
@@ -10160,6 +10215,18 @@ function Recover-LibreSpotAssetCacheTransaction {
         param([Parameter(Mandatory = $true)][string]$Path, [Parameter(Mandatory = $true)][string]$Label)
         if (([System.IO.File]::GetAttributes($Path) -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
             throw "The $Label is a reparse point; the asset-cache transaction marker was retained."
+        }
+    }
+
+    function Test-CacheRoot {
+        param([Parameter(Mandatory = $true)][string]$Path)
+        $item = Get-Item -LiteralPath $Path -Force -ErrorAction SilentlyContinue
+        if ($null -eq $item) { return }
+        if (($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+            throw 'The asset-cache directory is a reparse point and cannot be used safely.'
+        }
+        if (-not $item.PSIsContainer) {
+            throw 'The asset-cache path is a file, not a directory.'
         }
     }
 
@@ -10425,6 +10492,7 @@ function Recover-LibreSpotAssetCacheTransaction {
     function Recover-Internal {
         param([Parameter(Mandatory = $true)][string]$CacheRoot)
 
+        Test-CacheRoot -Path $CacheRoot
         $configRoot = [System.IO.Path]::GetDirectoryName($CacheRoot)
         if ([string]::IsNullOrWhiteSpace($configRoot)) { throw 'The asset-cache directory has no parent configuration directory.' }
         $markerPath = Join-Path $configRoot $markerName
@@ -10599,7 +10667,7 @@ function Update-AssetCacheIndexEntry {
                     throw 'The asset-cache index uses an unsupported schema version.'
                 }
                 $entriesProperty = $existingDoc.PSObject.Properties['entries']
-                if ($null -eq $entriesProperty -or $null -eq $entriesProperty.Value) {
+                if ($null -eq $entriesProperty -or $null -eq $entriesProperty.Value -or $entriesProperty.Value -isnot [array]) {
                     throw 'The asset-cache index has no entries array.'
                 }
                 $entries = @($entriesProperty.Value)

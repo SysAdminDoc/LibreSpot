@@ -25,6 +25,7 @@ internal sealed class AssetCacheLease : IDisposable
         ArgumentException.ThrowIfNullOrWhiteSpace(cacheDirectory);
 
         var cacheRoot = Path.GetFullPath(cacheDirectory);
+        ValidateCacheRoot(cacheRoot);
         var parent = Path.GetDirectoryName(cacheRoot)
             ?? throw new IOException("The asset-cache directory has no parent directory.");
         Directory.CreateDirectory(parent);
@@ -47,6 +48,30 @@ internal sealed class AssetCacheLease : IDisposable
             {
                 Thread.Sleep(RetryMilliseconds);
             }
+        }
+    }
+
+    internal static void ValidateCacheRoot(string cacheDirectory)
+    {
+        var cacheRoot = Path.GetFullPath(cacheDirectory);
+        try
+        {
+            var attributes = File.GetAttributes(cacheRoot);
+            if ((attributes & FileAttributes.ReparsePoint) != 0)
+            {
+                throw new AssetCacheBundleException("The asset-cache directory is a reparse point and cannot be used safely.");
+            }
+
+            if ((attributes & FileAttributes.Directory) == 0)
+            {
+                throw new AssetCacheBundleException("The asset-cache path is a file, not a directory.");
+            }
+        }
+        catch (FileNotFoundException)
+        {
+        }
+        catch (DirectoryNotFoundException)
+        {
         }
     }
 

@@ -24,6 +24,18 @@ function Recover-LibreSpotAssetCacheTransaction {
         }
     }
 
+    function Test-CacheRoot {
+        param([Parameter(Mandatory = $true)][string]$Path)
+        $item = Get-Item -LiteralPath $Path -Force -ErrorAction SilentlyContinue
+        if ($null -eq $item) { return }
+        if (($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+            throw 'The asset-cache directory is a reparse point and cannot be used safely.'
+        }
+        if (-not $item.PSIsContainer) {
+            throw 'The asset-cache path is a file, not a directory.'
+        }
+    }
+
     function Test-Tree {
         param([Parameter(Mandatory = $true)][string]$Root)
 
@@ -286,6 +298,7 @@ function Recover-LibreSpotAssetCacheTransaction {
     function Recover-Internal {
         param([Parameter(Mandatory = $true)][string]$CacheRoot)
 
+        Test-CacheRoot -Path $CacheRoot
         $configRoot = [System.IO.Path]::GetDirectoryName($CacheRoot)
         if ([string]::IsNullOrWhiteSpace($configRoot)) { throw 'The asset-cache directory has no parent configuration directory.' }
         $markerPath = Join-Path $configRoot $markerName

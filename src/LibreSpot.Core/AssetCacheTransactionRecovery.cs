@@ -27,6 +27,7 @@ internal static class AssetCacheTransactionRecovery
     internal static void Recover(string cacheDirectory)
     {
         var cacheRoot = Path.GetFullPath(cacheDirectory);
+        AssetCacheLease.ValidateCacheRoot(cacheRoot);
         var configRoot = GetConfigRoot(cacheRoot);
         var markerPath = Path.Combine(configRoot, MarkerFileName);
         if (!File.Exists(markerPath))

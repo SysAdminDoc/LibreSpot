@@ -37,7 +37,7 @@ function Update-AssetCacheIndexEntry {
                     throw 'The asset-cache index uses an unsupported schema version.'
                 }
                 $entriesProperty = $existingDoc.PSObject.Properties['entries']
-                if ($null -eq $entriesProperty -or $null -eq $entriesProperty.Value) {
+                if ($null -eq $entriesProperty -or $null -eq $entriesProperty.Value -or $entriesProperty.Value -isnot [array]) {
                     throw 'The asset-cache index has no entries array.'
                 }
                 $entries = @($entriesProperty.Value)

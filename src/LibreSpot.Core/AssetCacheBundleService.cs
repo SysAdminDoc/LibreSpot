@@ -25,14 +25,18 @@ public sealed class AssetCacheBundleService
     };
 
     private readonly Action<AssetCacheBundleTransactionStage>? transactionObserver;
+    private readonly Action<string, string>? durableCopyObserver;
 
     public AssetCacheBundleService()
     {
     }
 
-    internal AssetCacheBundleService(Action<AssetCacheBundleTransactionStage> transactionObserver)
+    internal AssetCacheBundleService(
+        Action<AssetCacheBundleTransactionStage>? transactionObserver,
+        Action<string, string>? durableCopyObserver = null)
     {
         this.transactionObserver = transactionObserver;
+        this.durableCopyObserver = durableCopyObserver;
     }
 
     public AssetCacheBundleResult Export(string cacheDirectory, string outputPath, string productVersion)
@@ -219,13 +223,14 @@ public sealed class AssetCacheBundleService
             Directory.CreateDirectory(replacementRoot);
             if (Directory.Exists(cacheRoot))
             {
-                CopyDirectoryWithoutLinks(cacheRoot, replacementRoot);
+                CopyDirectoryWithoutLinks(cacheRoot, replacementRoot, durableCopyObserver);
             }
             foreach (var entry in manifest.Entries)
             {
                 CopyFileDurably(
                     Path.Combine(stagingRoot, entry.Sha256),
-                    Path.Combine(replacementRoot, entry.Sha256));
+                    Path.Combine(replacementRoot, entry.Sha256),
+                    durableCopyObserver);
             }
 
             WriteIndexAtomically(replacementRoot, existingEntries.Values.OrderBy(entry => entry.Sha256, StringComparer.Ordinal).ToArray(), now);
@@ -406,7 +411,15 @@ public sealed class AssetCacheBundleService
         }
 
         using var stream = new FileStream(indexPath, FileMode.Open, FileAccess.Read, FileShare.Read);
-        var index = JsonSerializer.Deserialize<AssetCacheIndexDocument>(stream, JsonOptions);
+        AssetCacheIndexDocument? index;
+        try
+        {
+            index = JsonSerializer.Deserialize<AssetCacheIndexDocument>(stream, JsonOptions);
+        }
+        catch (JsonException ex)
+        {
+            throw new AssetCacheBundleException($"The asset-cache index is malformed: {ex.Message}", ex);
+        }
         if (index is null || index.SchemaVersion != SchemaVersion || index.Entries is null || index.Entries.Count > MaxEntryCount)
         {
             throw new AssetCacheBundleException("The asset-cache index is malformed or uses an unsupported schema version.");
@@ -540,7 +553,10 @@ public sealed class AssetCacheBundleService
         }
     }
 
-    private static void CopyDirectoryWithoutLinks(string sourceRoot, string destinationRoot)
+    private static void CopyDirectoryWithoutLinks(
+        string sourceRoot,
+        string destinationRoot,
+        Action<string, string>? durableCopyObserver = null)
     {
         if ((File.GetAttributes(sourceRoot) & FileAttributes.ReparsePoint) != 0)
         {
@@ -559,21 +575,25 @@ public sealed class AssetCacheBundleService
             if ((attributes & FileAttributes.Directory) != 0)
             {
                 Directory.CreateDirectory(destinationPath);
-                CopyDirectoryWithoutLinks(sourcePath, destinationPath);
+                CopyDirectoryWithoutLinks(sourcePath, destinationPath, durableCopyObserver);
             }
             else
             {
-                File.Copy(sourcePath, destinationPath, overwrite: false);
+                CopyFileDurably(sourcePath, destinationPath, durableCopyObserver);
             }
         }
     }
 
-    private static void CopyFileDurably(string sourcePath, string destinationPath)
+    private static void CopyFileDurably(
+        string sourcePath,
+        string destinationPath,
+        Action<string, string>? durableCopyObserver = null)
     {
         using var source = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-        using var destination = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None);
+        using var destination = new FileStream(destinationPath, FileMode.CreateNew, FileAccess.Write, FileShare.None);
         source.CopyTo(destination);
         destination.Flush(flushToDisk: true);
+        durableCopyObserver?.Invoke(sourcePath, destinationPath);
     }
 
     private void CommitPreparedCache(

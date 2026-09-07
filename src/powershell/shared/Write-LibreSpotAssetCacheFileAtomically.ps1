@@ -22,6 +22,10 @@ function Write-LibreSpotAssetCacheFileAtomically {
     if (-not (Test-Path -LiteralPath $parent -PathType Container)) {
         New-Item -Path $parent -ItemType Directory -Force -ErrorAction Stop | Out-Null
     }
+    $parentInfo = Get-Item -LiteralPath $parent -Force -ErrorAction Stop
+    if (($parentInfo.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+        throw "The asset-cache destination parent is a reparse point: $parent"
+    }
 
     $existingDestination = Get-Item -LiteralPath $resolvedDestination -Force -ErrorAction SilentlyContinue
     if ($existingDestination -and (($existingDestination.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0)) {

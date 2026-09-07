@@ -167,6 +167,54 @@ Describe 'PowerShell asset-cache bundle import transaction' {
         [System.IO.File]::ReadAllText($indexPath) | Should -Be $before
     }
 
+    It 'rejects a missing, null, or scalar entries property before changing the cache' {
+        $indexPath = Join-Path $script:TargetCache 'asset-cache-index.json'
+        foreach ($json in @(
+                '{"schemaVersion":1}',
+                '{"schemaVersion":1,"entries":null}',
+                '{"schemaVersion":1,"entries":{"sha256":"not-an-array"}}')) {
+            [System.IO.File]::WriteAllText($indexPath, $json, [System.Text.UTF8Encoding]::new($false))
+            $beforeObject = @(Get-TestCacheSnapshot -CachePath $script:TargetCache)
+            { Import-LibreSpotAssetCacheBundle -BundlePath $script:BundlePath } |
+                Should -Throw -ExpectedMessage '*entries array*'
+            [System.IO.File]::ReadAllText($indexPath) | Should -Be $json
+            @(Get-TestCacheSnapshot -CachePath $script:TargetCache) | Should -Be $beforeObject
+
+            $exportPath = Join-Path $script:TestRoot ('invalid-index-' + [guid]::NewGuid().ToString('N') + '.zip')
+            { Export-LibreSpotAssetCacheBundle -OutputPath $exportPath -ProductVersion 'test' } |
+                Should -Throw -ExpectedMessage '*entries array*'
+            (Test-Path -LiteralPath $exportPath) | Should -BeFalse
+        }
+    }
+
+    It 'rejects a cache-root junction before writing through it' {
+        $external = Join-Path $script:TestRoot 'external-cache'
+        $sentinel = Join-Path $external 'sentinel.txt'
+        New-Item -Path $external -ItemType Directory -Force | Out-Null
+        [System.IO.File]::WriteAllText($sentinel, 'leave me', [System.Text.UTF8Encoding]::new($false))
+        Remove-Item -LiteralPath $script:TargetCache -Recurse -Force
+        $null = & cmd.exe /d /c "mklink /J `"$($script:TargetCache)`" `"$external`""
+        $LASTEXITCODE | Should -Be 0
+
+        try {
+            { Recover-LibreSpotAssetCacheTransaction -CacheDirectory $script:TargetCache } |
+                Should -Throw -ExpectedMessage '*reparse*'
+            $source = Join-Path $script:TestRoot 'junction-source.bin'
+            [System.IO.File]::WriteAllText($source, 'source bytes', [System.Text.UTF8Encoding]::new($false))
+            $hash = Get-FileSha256Lower -Path $source
+            Save-ToAssetCache -SourcePath $source -SHA256Hash $hash -Label 'junction guard'
+            (Test-Path -LiteralPath (Join-Path $external $hash) -PathType Leaf) | Should -BeFalse
+            [System.IO.File]::ReadAllText($sentinel) | Should -BeExactly 'leave me'
+        } finally {
+            if (Test-Path -LiteralPath $script:TargetCache) {
+                $junction = Get-Item -LiteralPath $script:TargetCache -Force
+                if (($junction.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+                    $junction.Delete()
+                }
+            }
+        }
+    }
+
     It 'serializes distinct concurrent saves while retaining both verified objects and entries' {
         $concurrentRoot = Join-Path $script:TestRoot 'concurrent'
         $concurrentCache = Join-Path $concurrentRoot 'cache'
