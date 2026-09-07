@@ -4,6 +4,10 @@ All notable changes to LibreSpot will be documented in this file.
 
 ## [Unreleased]
 
+### Security
+
+- The downloader's Windows PowerShell 5.1 patch check now tracks all three advisories that reach it instead of only the December 2025 one. It anchors on the 2026-07-14 cumulative update, the fix for CVE-2026-40400 (a relative path traversal that executes code over a network), and it also names CVE-2026-26170. A host behind that date is told which of the three are still unfixed at its own patch level rather than being called patched.
+
 ### Fixed
 
 - Shared Spotify controls now expose their explanatory text through `aria-describedby`, including live versus desktop application limits. Store filtering announces one result or empty-state message through a polite status region.

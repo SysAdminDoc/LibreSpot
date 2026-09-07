@@ -88,10 +88,20 @@ LibreSpot's pinned Spicetify v2.44.0 flow does not read the v3 support document.
 **Mitigations in LibreSpot:**
 
 - **SHA256 pinning**, every download is verified against a pinned hash before use. This guarantees the *integrity* of the payload (a tampered or substituted file is rejected) but does **not** by itself remove the parse-time execution vector on an unpatched PowerShell 5.1 host.
-- **Patch-level preflight**, the downloader runs a non-blocking check (`Get-DownloaderCveExposure`) the first time it fetches anything. On Windows PowerShell 5.1 (Desktop edition) it inspects the host's most recent Windows update and logs a `WARN` when the host predates the December 2025 patch wave. It never blocks the install, it tells you to update Windows.
+- **Patch-level preflight**, the downloader runs a non-blocking check (`Get-DownloaderCveExposure`) the first time it fetches anything. On Windows PowerShell 5.1 (Desktop edition) it inspects the host's most recent Windows update and logs a `WARN` when the host predates the newest tracked fix, naming every advisory below and the ones still unfixed at that host's patch level. It never blocks the install, it tells you to update Windows.
 - **PowerShell 7+ is unaffected**, PowerShell 7 (Core) is a separate product and isn't affected by this CVE, so the preflight skips it.
 
-**Required action for users:** keep Windows fully updated. Hosts on the December 2025 cumulative update or later have the fix; older hosts should install pending updates before using LibreSpot's PowerShell script path.
+**Required action for users:** keep Windows fully updated. Hosts on the December 2025 cumulative update or later have this fix; the two 2026 advisories below need a later update still.
+
+### CVE-2026-26170: Windows PowerShell local elevation of privilege
+
+[CVE-2026-26170](https://nvd.nist.gov/vuln/detail/CVE-2026-26170) is an improper-input-validation flaw (CVSS 7.8, CWE-20) that lets an authorized attacker elevate privileges locally through Windows PowerShell. Microsoft published it on **2026-04-14** and ships the fix in that month's Windows cumulative updates. It affects the same in-box interpreter the LibreSpot script path runs on, across Windows 10, Windows 11, and Windows Server.
+
+### CVE-2026-40400: Windows PowerShell relative path traversal
+
+[CVE-2026-40400](https://nvd.nist.gov/vuln/detail/CVE-2026-40400) is a relative-path-traversal flaw (CVSS 8.0, CWE-23) that lets an authorized attacker execute code over a network through Windows PowerShell. Microsoft published it on **2026-07-14** with that month's cumulative updates. It is the newest fix among the three, so it is the date the preflight anchors on: a host whose most recent update predates 2026-07-14 gets the warning.
+
+The three advisories share one mitigation story. SHA256 pinning protects payload integrity in every case and removes none of the interpreter-side vectors, so the patch level of the host is what closes them. LibreSpot warns and continues. It never installs Windows updates for you.
 
 ### PowerShell 7.6.0 through 7.6.4 security floor
 

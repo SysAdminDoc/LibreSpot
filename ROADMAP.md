@@ -15,13 +15,6 @@ Added 2026-09-07 from RESEARCH.md. IDs continue the RD scheme; RD-252 was the la
   Acceptance: WHEN `LIBRESPOT_XPUI_FIXTURES` points at a local directory holding extracted `xpui.spa` contents for 1.2.93.667 and 1.2.99.317 after a SpotX conversion, the Pester suite SHALL run the detector and the repair against both and SHALL fail on any anchor that does not match; the baseline SHALL carry a `routeWiringVerified` list of builds with the date and anchor set, `-Validate` SHALL fail when the README names a build absent from that list, and WHEN the fixture variable is unset the tests SHALL skip with a message rather than pass. A committed Spotify bundle is not acceptable; the fixture stays outside the repository.
   Complexity: M
 
-- [ ] P1: RD-254: Move the Windows PowerShell 5.1 exposure preflight to the July 2026 patch wave and document both newer CVEs
-  Why: `Get-DownloaderCveExposure` anchors on 2025-12-09 for CVE-2025-54100 and reports a host at or past that date as fixed, but CVE-2026-40400 (relative path traversal, network code execution, CVSS 8.0, fixed by the 2026-07-14 cumulative update) and CVE-2026-26170 (local elevation, CVSS 7.8, 2026-04-14) affect the same host and the same download primitive; a host patched to January 2026 is told it is fine while exposed to a newer remote-execution class.
-  Evidence: `src/powershell/shared/Get-DownloaderCveExposure.ps1:20-44`; `SECURITY.md:79-89` names only CVE-2025-54100; NVD entries for CVE-2026-40400 and CVE-2026-26170.
-  Touches: `src/powershell/shared/Get-DownloaderCveExposure.ps1`, both composed hosts via `-ComposeHosts`, `SECURITY.md`, `tests/powershell/LibreSpot.Tests.ps1`.
-  Acceptance: WHEN the newest installed update predates 2026-07-14 on Windows PowerShell 5.1, the preflight SHALL warn and name all three CVEs with their fix dates; WHEN it is at or past that date it SHALL say so; PowerShell 7 hosts SHALL keep the existing 7.6.5 floor message; `SECURITY.md` SHALL carry both 2026 advisories under Host platform advisories; a Pester fixture SHALL feed an update dated 2026-01-15 and require the warning.
-  Complexity: S
-
 ### P2: Next
 
 - [ ] P2: RD-255: Check WCAG 2.2 Focus Not Obscured in the offscreen scan, starting with the Settings action bar

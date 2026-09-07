@@ -2229,8 +2229,19 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("'Patched'", body);
         Assert.Contains("'PossiblyExposed'", body);
         Assert.Contains("'Unknown'", body);
-        // The discriminator is the December 2025 patch wave.
-        Assert.Contains("2025-12-09", body);
+        // Every tracked Windows PowerShell 5.1 advisory must be named, and the
+        // fix dates must stay oldest-first because the discriminator is the
+        // last entry in the table (the July 2026 patch wave).
+        Assert.Contains("CVE-2025-54100", body);
+        Assert.Contains("CVE-2026-26170", body);
+        Assert.Contains("CVE-2026-40400", body);
+
+        var fixDates = string.Empty;
+        foreach (Match fix in Regex.Matches(body, @"\[datetime\]'(?<date>\d{4}-\d{2}-\d{2})'"))
+        {
+            fixDates += (fixDates.Length == 0 ? string.Empty : ",") + fix.Groups["date"].Value;
+        }
+        Assert.Equal("2025-12-09,2026-04-14,2026-07-14", fixDates);
     }
 
     [Theory]
@@ -2281,10 +2292,20 @@ public sealed class PowerShellRegressionTests
     public void SecurityPolicy_DocumentsDownloaderCve()
     {
         var security = ReadFile("SECURITY.md");
-        Assert.Contains("CVE-2025-54100", security);
-        Assert.Contains("December 2025", security);
+        var start = security.IndexOf("## Host platform advisories", StringComparison.Ordinal);
+        Assert.True(start >= 0, "SECURITY.md has no Host platform advisories section.");
+        var next = security.IndexOf("\n## ", start + 1, StringComparison.Ordinal);
+        var advisories = next < 0 ? security.Substring(start) : security.Substring(start, next - start);
+
+        Assert.Contains("CVE-2025-54100", advisories);
+        Assert.Contains("December 2025", advisories);
+        // Both 2026 Windows PowerShell advisories the preflight also tracks.
+        Assert.Contains("CVE-2026-26170", advisories);
+        Assert.Contains("2026-04-14", advisories);
+        Assert.Contains("CVE-2026-40400", advisories);
+        Assert.Contains("2026-07-14", advisories);
         // The two named mitigations are hash pinning and patch level.
-        Assert.Contains("SHA256", security);
+        Assert.Contains("SHA256", advisories);
     }
 
     // ---------------------------------------------------------------------

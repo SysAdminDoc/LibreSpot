@@ -4852,3 +4852,61 @@ Describe 'Staged package transactions' {
         }
     }
 }
+
+Describe 'Downloader CVE preflight' {
+    BeforeAll {
+        $sharedRoot = Join-Path $PSScriptRoot '..\..\src\powershell\shared'
+        $cveSource = Get-Content -LiteralPath (Join-Path $sharedRoot 'Get-DownloaderCveExposure.ps1') -Raw
+        $prologue = @'
+param([string]$InstalledOn)
+function Get-HotFix { [pscustomobject]@{ HotFixID = 'KB5099999'; InstalledOn = [datetime]$InstalledOn } }
+'@
+        $epilogue = @'
+$exposure = Get-DownloaderCveExposure
+[pscustomobject]@{
+    Exposed = [bool]$exposure.Exposed
+    Status  = [string]$exposure.Status
+    Reason  = [string]$exposure.Reason
+    Edition = [string]$exposure.Edition
+} | ConvertTo-Json -Compress
+'@
+        $script:cveHarness = Join-Path $TestDrive 'cve-exposure-harness.ps1'
+        Set-Content -LiteralPath $script:cveHarness -Value ($prologue + "`n" + $cveSource + "`n" + $epilogue) -Encoding UTF8
+
+        # $PSVersionTable is a constant, AllScope variable, so a Desktop-edition
+        # verdict cannot be faked in-process. Run the real function in a child
+        # Windows PowerShell 5.1 host with Get-HotFix stubbed to a chosen date.
+        function Get-CveVerdict {
+            param([string]$InstalledOn)
+            $raw = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script:cveHarness -InstalledOn $InstalledOn 2>&1
+            $lines = @($raw | ForEach-Object { [string]$_ } | Where-Object { $_.TrimStart().StartsWith('{') })
+            if ($lines.Count -eq 0) { throw "No verdict from the CVE harness: $(@($raw) -join ' | ')" }
+            return ($lines[0] | ConvertFrom-Json)
+        }
+    }
+
+    It 'warns a host that predates the 2026-07-14 wave and names every tracked advisory' {
+        $verdict = Get-CveVerdict -InstalledOn '2026-01-15'
+        $verdict.Edition | Should -Be 'Desktop'
+        $verdict.Exposed | Should -BeTrue
+        $verdict.Status | Should -Be 'PossiblyExposed'
+        foreach ($token in @('CVE-2025-54100', '2025-12-09', 'CVE-2026-26170', '2026-04-14', 'CVE-2026-40400', '2026-07-14')) {
+            $verdict.Reason | Should -Match $token
+        }
+        # A January 2026 host already carries the December 2025 fix.
+        $verdict.Reason | Should -Match 'Still unfixed at this host''s patch level: CVE-2026-26170, CVE-2026-40400'
+    }
+
+    It 'lists every advisory as unfixed on a host older than all three' {
+        $verdict = Get-CveVerdict -InstalledOn '2025-06-01'
+        $verdict.Status | Should -Be 'PossiblyExposed'
+        $verdict.Reason | Should -Match 'Still unfixed at this host''s patch level: CVE-2025-54100, CVE-2026-26170, CVE-2026-40400'
+    }
+
+    It 'reports a host at the 2026-07-14 wave as patched' {
+        $verdict = Get-CveVerdict -InstalledOn '2026-07-14'
+        $verdict.Exposed | Should -BeFalse
+        $verdict.Status | Should -Be 'Patched'
+        $verdict.Reason | Should -Match '2026-07-14 cumulative update'
+    }
+}
