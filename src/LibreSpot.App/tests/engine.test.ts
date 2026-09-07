@@ -231,4 +231,41 @@ describe("LibreSpot engine", () => {
     expect(engine.state).toEqual(captured);
     expect(JSON.parse(values.get(ENGINE_STORAGE_KEY) ?? "null")).toEqual(captured);
   });
+
+  it("defers a background performance sample without lowering effects", async () => {
+    const originalVisibility = Object.getOwnPropertyDescriptor(
+      document,
+      "visibilityState",
+    );
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      value: "hidden",
+    });
+    try {
+      const state = createDefaultState();
+      state.autoEffects = true;
+      state.effectsTier = "glass";
+      state.schemes = {
+        Dark: { main: "000000", text: "FFFFFF" },
+      };
+      const engine = new LibreSpotEngine({
+        document,
+        window,
+        store: new EngineStore(memoryStorage()),
+        initialState: state,
+      });
+      await engine.start({ probePerformance: false });
+
+      await expect(engine.probePerformance()).resolves.toBeNull();
+      expect(engine.state.effectsTier).toBe("glass");
+      expect(engine.state.lastMeasuredFps).toBeNull();
+      engine.stop();
+    } finally {
+      if (originalVisibility) {
+        Object.defineProperty(document, "visibilityState", originalVisibility);
+      } else {
+        Reflect.deleteProperty(document, "visibilityState");
+      }
+    }
+  });
 });

@@ -197,6 +197,13 @@ export type LibreSpotRuntimeApi = {
   ): void;
 };
 
+export type LibreSpotEngineBootstrapStatus = {
+  phase: "loading" | "ready" | "error";
+  message: string | null;
+  attempt: number;
+  revision: number;
+};
+
 declare global {
   const Spicetify: SpicetifyApi;
 
@@ -204,6 +211,9 @@ declare global {
     Spicetify?: Partial<SpicetifyApi>;
     LibreSpot?: LibreSpotRuntimeApi;
     __libreSpotEngineLoaded?: boolean;
+    __libreSpotEngineBooting?: boolean;
+    __libreSpotEngineStatus?: LibreSpotEngineBootstrapStatus;
+    __libreSpotEngineRetry?: () => void;
     __libreSpotDesktopBootstrap?: {
       payloadBase64: string;
       revision: string;

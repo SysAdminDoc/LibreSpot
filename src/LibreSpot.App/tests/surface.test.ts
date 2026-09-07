@@ -325,5 +325,26 @@ describe("LibreSpot surface contract", () => {
       .toBeLessThan(extension.lastIndexOf("if (runtimeIsReady())"));
     expect(extension.indexOf("await engine.start"))
       .toBeLessThan(extension.indexOf("window.__libreSpotEngineLoaded = true"));
+    expect(extension).toContain("window.__libreSpotEngineBooting");
+    expect(extension).toContain("window.__libreSpotEngineStatus");
+  });
+
+  it("surfaces bounded startup failures and can bind a replacement runtime", () => {
+    const app = readFileSync(resolve(import.meta.dirname, "../src/app.ts"), "utf8");
+    const extension = readFileSync(
+      resolve(import.meta.dirname, "../src/extensions/librespot-engine.ts"),
+      "utf8",
+    );
+
+    expect(app).toContain("readReadyRuntime");
+    expect(app).toContain("__libreSpotEngineStatus");
+    expect(app).toContain('role: "alert"');
+    expect(app).toContain("Retry engine startup");
+    expect(app).toContain('window.addEventListener(ENGINE_STATUS_EVENT');
+    expect(app).not.toContain("window.setInterval");
+    expect(extension).toContain("COMPANION_API_TIMEOUT_MS = 30_000");
+    expect(extension).toContain("__libreSpotEngineRetry");
+    expect(extension).toContain('publishEngineStatus("error", message)');
+    expect(extension).toContain("startedEngine.stop()");
   });
 });

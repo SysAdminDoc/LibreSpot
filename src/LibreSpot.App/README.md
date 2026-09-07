@@ -10,6 +10,7 @@ The engine keeps one managed style element for the active palette and another fo
 - `../../schemas/librespot-customization.json` is the shared catalog. It records 348 flags from the pinned Spotify `xpui.js`, 31 SpotX controls, 21 Spicetify options, reviewed CSS, themes, extensions, custom apps, and source pins.
 - `src/app.ts` is the Spotify custom app. Its rail opens Look, Tweaks, Features, Extensions, Presets, and Health.
 - `src/extensions/librespot-engine.ts` keeps the engine loaded on every Spotify route and supplies a menu entry when custom-app navigation is unavailable.
+- Companion startup has a 30-second API deadline and publishes an accessible error with a retry action. The app binds only after the engine's loaded marker is true, and frame measurement runs after startup with a timeout that defers hidden or stalled samples.
 - `src/panels` contains the six native React surfaces. The controls update the live runtime or clearly identify settings that need a desktop apply.
 - `tests` uses Vitest with happy-dom. Files run one at a time to stay within the Spotify fixture memory limit.
 - `vendor` holds pinned upstream source parts. See [third-party notices](THIRD_PARTY_NOTICES.md).

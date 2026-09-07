@@ -13,6 +13,7 @@ import { PresetsPanel } from "./panels/presets.ts";
 import { StorePanel } from "./panels/store.ts";
 import { TweaksPanel } from "./panels/tweaks.ts";
 import type {
+  LibreSpotEngineBootstrapStatus,
   LibreSpotRuntimeApi,
   LibreSpotRuntimeSnapshot,
   UiNode,
@@ -28,6 +29,7 @@ import type {
   PanelComponent,
   PanelProperties,
 } from "./surface/panel-types.ts";
+import { readReadyRuntime } from "./surface/runtime-readiness.ts";
 import { h } from "./surface/ui.ts";
 
 const PANELS: Record<PanelId, PanelComponent> = {
@@ -48,6 +50,14 @@ const PANEL_ICONS: Record<PanelDefinition["icon"], string> = {
   health: heartPulseIcon,
 };
 
+const ENGINE_STATUS_EVENT = "librespot-engine-status";
+const DEFAULT_ENGINE_STATUS: LibreSpotEngineBootstrapStatus = {
+  phase: "loading",
+  message: null,
+  attempt: 0,
+  revision: 0,
+};
+
 function PanelIcon(properties: { icon: PanelDefinition["icon"] }): UiNode {
   return h("span", {
     className: "librespot-rail__icon",
@@ -56,25 +66,40 @@ function PanelIcon(properties: { icon: PanelDefinition["icon"] }): UiNode {
   });
 }
 
+function readEngineStatus(): LibreSpotEngineBootstrapStatus {
+  const status = window.__libreSpotEngineStatus;
+  return status ?? DEFAULT_ENGINE_STATUS;
+}
+
+function useEngineStatus(): LibreSpotEngineBootstrapStatus {
+  const React = Spicetify.React;
+  const [status, setStatus] = React.useState(readEngineStatus);
+  React.useEffect(() => {
+    const sync = () => {
+      setStatus(readEngineStatus());
+    };
+    window.addEventListener(ENGINE_STATUS_EVENT, sync);
+    sync();
+    return () => {
+      window.removeEventListener(ENGINE_STATUS_EVENT, sync);
+    };
+  }, []);
+  return status;
+}
+
 function useRuntime(): LibreSpotRuntimeApi | null {
   const React = Spicetify.React;
-  const [runtime, setRuntime] = React.useState<LibreSpotRuntimeApi | null>(
-    () => window.LibreSpot ?? null,
-  );
+  const [runtime, setRuntime] = React.useState(readReadyRuntime);
   React.useEffect(() => {
-    if (runtime) {
-      return;
-    }
-    const timer = window.setInterval(() => {
-      if (window.LibreSpot) {
-        setRuntime(window.LibreSpot);
-        window.clearInterval(timer);
-      }
-    }, 100);
-    return () => {
-      window.clearInterval(timer);
+    const sync = () => {
+      setRuntime(readReadyRuntime());
     };
-  }, [runtime]);
+    window.addEventListener(ENGINE_STATUS_EVENT, sync);
+    sync();
+    return () => {
+      window.removeEventListener(ENGINE_STATUS_EVENT, sync);
+    };
+  }, []);
   return runtime;
 }
 
@@ -94,6 +119,64 @@ function useSnapshot(
     return runtime.subscribe(setSnapshot);
   }, [runtime]);
   return snapshot;
+}
+
+function LoadingSurface(properties: {
+  status: LibreSpotEngineBootstrapStatus;
+}): UiNode {
+  return h(
+    "main",
+    {
+      className: "librespot-app librespot-loading",
+      "data-librespot-app": "loading",
+    },
+    h("div", { className: "librespot-loading__mark", "aria-hidden": "true" }),
+    h("h1", null, "LibreSpot"),
+    h(
+      "p",
+      null,
+      properties.status.attempt > 0
+        ? "Waiting for Spotify's live APIs to become available."
+        : "Waiting for the live engine to finish loading.",
+    ),
+  );
+}
+
+function EngineErrorSurface(properties: {
+  status: LibreSpotEngineBootstrapStatus;
+}): UiNode {
+  const retry = window.__libreSpotEngineRetry;
+  return h(
+    "main",
+    {
+      className: "librespot-app librespot-loading librespot-loading--error",
+      "data-librespot-app": "error",
+    },
+    h("div", { className: "librespot-loading__mark is-error", "aria-hidden": "true" }),
+    h("h1", null, "LibreSpot could not start"),
+    h(
+      "div",
+      {
+        className: "librespot-loading__error",
+        role: "alert",
+        "aria-live": "assertive",
+      },
+      h("p", null, properties.status.message ?? "The live engine stopped before it was ready."),
+      retry
+        ? h(
+            "button",
+            {
+              type: "button",
+              className: "librespot-button",
+              onClick: () => {
+                retry();
+              },
+            },
+            "Retry engine startup",
+          )
+        : null,
+    ),
+  );
 }
 
 function usePanel(): PanelId {
@@ -117,19 +200,6 @@ function usePanel(): PanelId {
     };
   }, [history]);
   return panel;
-}
-
-function LoadingSurface(): UiNode {
-  return h(
-    "main",
-    {
-      className: "librespot-app librespot-loading",
-      "data-librespot-app": "loading",
-    },
-    h("div", { className: "librespot-loading__mark", "aria-hidden": "true" }),
-    h("h1", null, "LibreSpot"),
-    h("p", null, "Waiting for the live engine to finish loading."),
-  );
 }
 
 function AppShell(properties: PanelProperties & { activePanel: PanelId }): UiNode {
@@ -258,11 +328,15 @@ function AppShell(properties: PanelProperties & { activePanel: PanelId }): UiNod
 }
 
 export default function LibreSpotApp(): UiNode {
+  const status = useEngineStatus();
   const runtime = useRuntime();
   const snapshot = useSnapshot(runtime);
   const activePanel = usePanel();
   if (!runtime || !snapshot) {
-    return h(LoadingSurface);
+    return h(
+      status.phase === "error" ? EngineErrorSurface : LoadingSurface,
+      { status },
+    );
   }
   const normalizedPath = panelPath(activePanel);
   if (

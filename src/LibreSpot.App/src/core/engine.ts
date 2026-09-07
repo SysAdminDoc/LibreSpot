@@ -92,7 +92,10 @@ export class LibreSpotEngine extends EventTarget {
     await this.refreshAccent();
     await this.applyFlags(options.previousFeatureOverrides);
     if (options.probePerformance ?? true) {
-      await this.probePerformance();
+      // Performance sampling is best effort. A background Spotify window can
+      // throttle animation frames, so it must never hold up the engine's
+      // normal listeners and controls.
+      void this.probePerformance().catch(() => undefined);
     }
   }
 
@@ -233,6 +236,9 @@ export class LibreSpotEngine extends EventTarget {
       return this.#state.lastMeasuredFps;
     }
     const fps = await probeFrameRate(browserFrameClock(this.#window));
+    if (fps === null) {
+      return this.#state.lastMeasuredFps;
+    }
     this.update((draft) => {
       draft.lastMeasuredFps = fps;
       const recommended = classifyFrameRate(fps);

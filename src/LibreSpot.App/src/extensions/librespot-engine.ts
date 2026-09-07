@@ -25,6 +25,7 @@ import {
   type StorageAdapter,
 } from "../core/index.ts";
 import type {
+  LibreSpotEngineBootstrapStatus,
   LibreSpotRuntimeApi,
   LibreSpotRuntimeSnapshot,
 } from "../spicetify-globals.d.ts";
@@ -38,6 +39,25 @@ import { panelPath, type PanelId } from "../surface/navigation.ts";
 import { isCompanionApiReady } from "./companion-readiness.ts";
 
 const DESKTOP_BOOTSTRAP_REVISION_KEY = "librespot:desktop-bootstrap-revision";
+const COMPANION_API_TIMEOUT_MS = 30_000;
+const COMPANION_API_POLL_MS = 100;
+const ENGINE_STATUS_EVENT = "librespot-engine-status";
+
+let bootstrapAttempt = 0;
+
+function publishEngineStatus(
+  phase: LibreSpotEngineBootstrapStatus["phase"],
+  message: string | null,
+): void {
+  const previous = window.__libreSpotEngineStatus;
+  window.__libreSpotEngineStatus = {
+    phase,
+    message,
+    attempt: bootstrapAttempt,
+    revision: (previous?.revision ?? 0) + 1,
+  };
+  window.dispatchEvent(new CustomEvent(ENGINE_STATUS_EVENT));
+}
 
 type DesktopBootstrapPayload = {
   schemaVersion: number;
@@ -359,32 +379,46 @@ function registerAccessEntries(): void {
 }
 
 async function waitForApi(): Promise<void> {
-  for (let attempt = 0; attempt < 300; attempt += 1) {
+  const deadline = Date.now() + COMPANION_API_TIMEOUT_MS;
+  while (Date.now() < deadline) {
     if (isCompanionApiReady(window.Spicetify)) {
       return;
     }
+    const delay = Math.min(COMPANION_API_POLL_MS, deadline - Date.now());
     await new Promise<void>((resolve) => {
-      window.setTimeout(resolve, 100);
+      window.setTimeout(resolve, delay);
     });
   }
-  throw new Error("Spotify APIs did not become ready.");
+  if (isCompanionApiReady(window.Spicetify)) {
+    return;
+  }
+  throw new Error("Spotify APIs did not become ready within 30 seconds.");
 }
 
 function runtimeIsReady(): boolean {
-  return window.LibreSpot !== undefined;
+  return window.__libreSpotEngineLoaded === true && window.LibreSpot !== undefined;
 }
 
 async function bootstrap(): Promise<void> {
   if (runtimeIsReady()) {
     return;
   }
+  if (window.__libreSpotEngineBooting) {
+    return;
+  }
+  window.__libreSpotEngineBooting = true;
+  bootstrapAttempt = Math.max(
+    bootstrapAttempt,
+    window.__libreSpotEngineStatus?.attempt ?? 0,
+  ) + 1;
   window.__libreSpotEngineLoaded = false;
+  publishEngineStatus("loading", null);
   let claimedRuntime: LibreSpotRuntimeApi | undefined;
+  let startedEngine: LibreSpotEngine | undefined;
   try {
     await waitForApi();
-    // Spicetify loads this file once as the always-on companion and can load it
-    // again as a custom-app subfile. Let both attempts reach API readiness, then
-    // allow the first complete runtime to own the page.
+    // A second companion copy can enter after this wait in older clients. The
+    // ready check keeps the first completed runtime as the owner.
     if (runtimeIsReady()) {
       return;
     }
@@ -418,6 +452,7 @@ async function bootstrap(): Promise<void> {
       artworkUri,
       osAccent,
     });
+    startedEngine = engine;
     let librespotRoute = routeFromWindow("librespot");
     let marketplaceRoute = routeFromWindow("marketplace");
     let health: HealthReport = runHealth();
@@ -912,6 +947,7 @@ async function bootstrap(): Promise<void> {
       previousFeatureOverrides: stored.featureOverrides,
     });
     window.__libreSpotEngineLoaded = true;
+    publishEngineStatus("ready", null);
     refreshArrangements();
     health = runHealth();
     emit();
@@ -949,15 +985,29 @@ async function bootstrap(): Promise<void> {
     await refreshRoutes();
     console.info("[LibreSpot] live engine ready");
   } catch (error) {
+    if (startedEngine) {
+      try {
+        startedEngine.stop();
+      } catch {
+        // Keep the original startup failure visible when visual cleanup also fails.
+      }
+    }
     if (claimedRuntime && window.LibreSpot === claimedRuntime) {
       delete window.LibreSpot;
     }
     window.__libreSpotEngineLoaded = false;
     const message =
       error instanceof Error ? error.message : "Live engine failed to start.";
+    publishEngineStatus("error", message);
     console.error("[LibreSpot]", error);
     notify(`LibreSpot engine: ${message}`, true);
+  } finally {
+    window.__libreSpotEngineBooting = false;
   }
 }
+
+window.__libreSpotEngineRetry = () => {
+  void bootstrap();
+};
 
 void bootstrap();

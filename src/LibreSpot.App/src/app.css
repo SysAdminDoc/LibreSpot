@@ -2436,6 +2436,28 @@
   color: var(--ls-muted);
 }
 
+.librespot-loading__error {
+  align-items: center;
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+  max-width: 520px;
+}
+
+.librespot-loading__error p {
+  margin: 0;
+}
+
+.librespot-loading__mark.is-error {
+  animation: none;
+  border-color: color-mix(in srgb, var(--ls-danger) 55%, var(--ls-border));
+  border-top-color: var(--ls-danger);
+}
+
+.librespot-loading--error .librespot-button {
+  min-width: 190px;
+}
+
 .librespot-loading__mark {
   border: 3px solid var(--ls-border);
   border-radius: 10px;

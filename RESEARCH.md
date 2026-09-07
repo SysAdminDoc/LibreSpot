@@ -14,7 +14,7 @@ Priority order:
 4. Make backup restoration and Marketplace reset preserve recoverable data (RD-228, RD-229).
 5. Serialize mutations across hosts, own installer descendants, and replace installed assets through staging and rollback (RD-230 through RD-232).
 6. Repair Marketplace storage lifecycle and migration handling, then make cache writes survive concurrent work and process death (RD-234 through RD-237).
-7. Finish recovery and accessibility inside Spotify: bounded startup, render fallback, coherent dynamic colors and truthful preset state (RD-238 through RD-242).
+7. Finish recovery and accessibility inside Spotify: render fallback, coherent dynamic colors and truthful preset state (RD-239 through RD-242).
 8. Make diagnostics observable and test the Windows crash artifact itself (RD-233, RD-243 through RD-245); correct contradictory public documentation (RD-246).
 
 These are recommendations, not implemented fixes. Findings marked **Verified** were traced in source; exercised findings identify their synthetic reproduction. **Likely** describes a failure consequence not reproduced on a real installation. **Needs live validation** means a fixture or static check cannot establish the installed-client result.
@@ -99,7 +99,7 @@ Pinned [Marketplace Storage.ts](https://raw.githubusercontent.com/spicetify/mark
 
 **Prioritization:** P1 is Now: data preservation, privacy and ownership before mutation. P2 is Next: precise recovery, observability and accessibility, with small root-cause fixes first. Larger product additions remain Later or Under Consideration where `Roadmap_Blocked.md` already records their prerequisites. The recommendations are reliability parity within the existing architecture; no framework rewrite is justified. Dependency order is explicit in `ROADMAP.md`.
 
-**In-client lifecycle:** `app.ts:useRuntime` polls indefinitely after the companion's bounded API wait ends. If it captures the runtime published before `engine.start()` fails, it retains that failed object even after the companion removes the global. `core/performance.ts` waits entirely on animation frames, so background rendering can stall the measurement awaited by startup. There is no panel error boundary. Bound startup, invalidate failed instances and preserve repair access (RD-238, RD-239).
+**Implemented and exercised (RD-238):** the companion API wait now has a 30-second deadline and publishes a persistent loading, ready or error status. The in-client surface listens for that status, binds a runtime only after the loaded marker is true, removes a failed pre-start runtime, and offers an accessible retry action. Frame probes have a 1.5-second deadline, defer while the document is hidden or frames never arrive, and run after engine initialization without blocking listener setup. A deferred sample leaves the current effects tier unchanged. There is no panel error boundary yet (RD-239).
 
 **Verified, exercised color defects:** `core/engine.ts:refreshAccent` accepts older artwork results after newer ones. A controlled promise-order test changed the accent back to the old track. `apply` also overwrites a derived Material palette with the base scheme; the companion calls it on navigation and every minute. These need generation-aware results and consistent reapplication (RD-240).
 

@@ -8,13 +8,6 @@ Incomplete, implementer-actionable work only. Operator-dependent decisions remai
 
 ### P2: Next
 
-- [ ] P2: RD-238. Bound engine readiness and background frame measurement
-  Why: Impact 4/5. Failed companion startup leaves endless polling or a cached failed runtime; frame measurement can also wait forever.
-  Evidence: RESEARCH.md; app.ts useRuntime; companion waitForApi; core/performance.ts; engine.start awaits the frame probe.
-  Touches: Component startup/readiness contract, app.ts, core/performance.ts and engine.ts; engine/surface tests.
-  Acceptance: Missing APIs, failed startup and no animation frames reach a persistent, accessible error or deferred-measurement state within a defined deadline. Test a runtime published before start fails: invalidate the captured object, clean up and bind the replacement on retry. Retry can recover when APIs arrive. Hidden windows skip/defer FPS measurement and do not permanently lower effects based on a background sample. No pending measurement may prevent normal listener setup.
-  Complexity: M
-
 - [ ] P2: RD-239. Contain panel render failures within the LibreSpot surface
   Why: Impact 4/5. A panel exception currently has no local error boundary or persistent repair route.
   Evidence: RESEARCH.md; src/LibreSpot.App/src/app.ts mounts panels without a boundary; React Component error-boundary documentation.
