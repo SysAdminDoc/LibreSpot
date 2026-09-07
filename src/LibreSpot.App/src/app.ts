@@ -16,6 +16,7 @@ import type {
   LibreSpotEngineBootstrapStatus,
   LibreSpotRuntimeApi,
   LibreSpotRuntimeSnapshot,
+  SpicetifyApi,
   UiNode,
 } from "./spicetify-globals.d.ts";
 import {
@@ -121,6 +122,129 @@ function useSnapshot(
   return snapshot;
 }
 
+type PanelErrorBoundaryProperties = PanelProperties & {
+  children?: UiNode;
+  panelLabel: string;
+  key?: string;
+};
+
+type PanelErrorBoundaryState = {
+  error: unknown;
+};
+
+type PanelErrorBoundaryInstance = {
+  props: PanelErrorBoundaryProperties;
+  state: PanelErrorBoundaryState;
+  setState(next: PanelErrorBoundaryState): void;
+};
+
+type PanelErrorBoundaryBase = new (
+  properties: PanelErrorBoundaryProperties,
+) => PanelErrorBoundaryInstance;
+
+type PanelErrorBoundaryComponent = (
+  properties: PanelErrorBoundaryProperties,
+) => UiNode;
+
+let panelErrorBoundaryReact: SpicetifyApi["React"] | undefined;
+let panelErrorBoundaryComponent: PanelErrorBoundaryComponent | undefined;
+
+function PanelErrorSurface(properties: {
+  panelLabel: string;
+  onRetry: () => void;
+  onOpenHealth: () => void;
+}): UiNode {
+  return h(
+    "section",
+    {
+      className: "librespot-panel-error",
+      role: "alert",
+      "aria-live": "assertive",
+    },
+    h("h2", null, `${properties.panelLabel} panel unavailable`),
+    h(
+      "p",
+      null,
+      "LibreSpot could not display this panel. Your saved settings are still safe.",
+    ),
+    h(
+      "div",
+      { className: "librespot-panel-error__actions" },
+      h(
+        "button",
+        {
+          type: "button",
+          className: "librespot-button",
+          onClick: properties.onRetry,
+        },
+        "Retry panel",
+      ),
+      h(
+        "button",
+        {
+          type: "button",
+          className: "librespot-button librespot-button--secondary",
+          onClick: properties.onOpenHealth,
+        },
+        "Open Health",
+      ),
+    ),
+  );
+}
+
+function PanelErrorBoundaryFallback(
+  properties: PanelErrorBoundaryProperties,
+): UiNode {
+  return properties.children;
+}
+
+function panelErrorBoundaryFor(
+  React: SpicetifyApi["React"],
+): PanelErrorBoundaryComponent {
+  if (panelErrorBoundaryReact === React && panelErrorBoundaryComponent) {
+    return panelErrorBoundaryComponent;
+  }
+  const BaseComponent = (
+    React as unknown as { Component?: PanelErrorBoundaryBase }
+  ).Component;
+  if (!BaseComponent) {
+    return PanelErrorBoundaryFallback;
+  }
+  class PanelErrorBoundary extends BaseComponent {
+    public override state: PanelErrorBoundaryState = { error: null };
+
+    public static getDerivedStateFromError(
+      error: unknown,
+    ): PanelErrorBoundaryState {
+      return { error };
+    }
+
+    public componentDidCatch(error: unknown): void {
+      const detail = error instanceof Error ? error.message : "unknown error";
+      console.error(`[LibreSpot] ${this.props.panelLabel} panel failed: ${detail}`);
+    }
+
+    public render(): UiNode {
+      if (this.state.error !== null) {
+        return h(PanelErrorSurface, {
+          panelLabel: this.props.panelLabel,
+          onRetry: () => {
+            this.setState({ error: null });
+          },
+          onOpenHealth: () => {
+            this.props.runtime.openPanel("health");
+          },
+        });
+      }
+      return this.props.children;
+    }
+  }
+  panelErrorBoundaryReact = React;
+  panelErrorBoundaryComponent =
+    PanelErrorBoundary as unknown as PanelErrorBoundaryComponent;
+  return panelErrorBoundaryComponent;
+}
+
 function LoadingSurface(properties: {
   status: LibreSpotEngineBootstrapStatus;
 }): UiNode {
@@ -208,6 +332,7 @@ function AppShell(properties: PanelProperties & { activePanel: PanelId }): UiNod
     (panel) => panel.id === properties.activePanel,
   );
   const Panel = PANELS[properties.activePanel];
+  const PanelErrorBoundary = panelErrorBoundaryFor(Spicetify.React);
   const problemCount = properties.snapshot.health.checks.filter(
     (check) => check.status === "broken" || check.status === "warning",
   ).length;
@@ -319,10 +444,19 @@ function AppShell(properties: PanelProperties & { activePanel: PanelId }): UiNod
         h("span", { "aria-hidden": "true" }, "/"),
         h("strong", null, activeDefinition?.label ?? "Look"),
       ),
-      h(Panel, {
-        runtime: properties.runtime,
-        snapshot: properties.snapshot,
-      }),
+      h(
+        PanelErrorBoundary,
+        {
+          key: properties.activePanel,
+          panelLabel: activeDefinition?.label ?? "Selected",
+          runtime: properties.runtime,
+          snapshot: properties.snapshot,
+        },
+        h(Panel, {
+          runtime: properties.runtime,
+          snapshot: properties.snapshot,
+        }),
+      ),
     ),
   );
 }

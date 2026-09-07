@@ -6,6 +6,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Fixed
 
+- Panel render failures are now contained inside the LibreSpot surface. Navigation and Health stay available, the error view omits raw exception details, and Retry panel leaves saved settings untouched.
 - Live engine startup now has a 30-second companion API deadline and a persistent retry surface. Failed pre-start runtimes are cleaned up before a retry, and background or stalled frame probes defer without blocking listener setup.
 - Asset-cache objects now stage to flushed temporary files before publication, and index updates re-read under a shared cache lease across the PowerShell and Core lanes. Concurrent saves retain both verified entries, interrupted index writes leave the prior JSON intact, and malformed indexes are retained and reported.
 - Asset-cache directory swaps now write a bounded transaction marker before renaming. Core and PowerShell recover abandoned staging, rollback, and replacement paths after process death, verify every imported object before keeping a replacement, and preserve unindexed files and unrelated configuration siblings.

@@ -8,13 +8,6 @@ Incomplete, implementer-actionable work only. Operator-dependent decisions remai
 
 ### P2: Next
 
-- [ ] P2: RD-239. Contain panel render failures within the LibreSpot surface
-  Why: Impact 4/5. A panel exception currently has no local error boundary or persistent repair route.
-  Evidence: RESEARCH.md; src/LibreSpot.App/src/app.ts mounts panels without a boundary; React Component error-boundary documentation.
-  Touches: Component app shell and panel wrapper; spicetify-globals declarations as needed; tests/surface.test.ts.
-  Acceptance: Throw from each panel fixture and retain navigation, a concise accessible error, and retry/Health access. Valid panels remain usable. Do not clear saved settings or expose raw sensitive data in the error view. Verify using the React version supplied by the host.
-  Complexity: M
-
 - [ ] P2: RD-240. Preserve the newest dynamic palette through reapplication
   Why: Impact 4/5. Older artwork results overwrite newer colors, and normal navigation/timer apply replaces Material colors with the base palette.
   Evidence: RESEARCH.md; exercised reversed artwork completion and apply-after-Material fixtures; core/engine.ts refreshAccent/apply and companion navigation/minute callbacks.

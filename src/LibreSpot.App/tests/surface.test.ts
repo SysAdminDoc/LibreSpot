@@ -347,4 +347,18 @@ describe("LibreSpot surface contract", () => {
     expect(extension).toContain('publishEngineStatus("error", message)');
     expect(extension).toContain("startedEngine.stop()");
   });
+
+  it("keeps panel failures inside a retryable boundary", () => {
+    const app = readFileSync(resolve(import.meta.dirname, "../src/app.ts"), "utf8");
+    const css = readFileSync(resolve(import.meta.dirname, "../src/app.css"), "utf8");
+
+    expect(app).toContain("getDerivedStateFromError");
+    expect(app).toContain("componentDidCatch");
+    expect(app).toContain("Your saved settings are still safe.");
+    expect(app).toContain('this.props.runtime.openPanel("health")');
+    expect(app).toContain('"Retry panel"');
+    expect(app).toContain('"Open Health"');
+    expect(app).toContain("key: properties.activePanel");
+    expect(css).toContain(".librespot-panel-error");
+  });
 });

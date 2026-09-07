@@ -11,6 +11,7 @@ The engine keeps one managed style element for the active palette and another fo
 - `src/app.ts` is the Spotify custom app. Its rail opens Look, Tweaks, Features, Extensions, Presets, and Health.
 - `src/extensions/librespot-engine.ts` keeps the engine loaded on every Spotify route and supplies a menu entry when custom-app navigation is unavailable.
 - Companion startup has a 30-second API deadline and publishes an accessible error with a retry action. The app binds only after the engine's loaded marker is true, and frame measurement runs after startup with a timeout that defers hidden or stalled samples.
+- Each panel is mounted inside a React error boundary. A failed panel shows a redacted retry view while the rail and Health route remain available.
 - `src/panels` contains the six native React surfaces. The controls update the live runtime or clearly identify settings that need a desktop apply.
 - `tests` uses Vitest with happy-dom. Files run one at a time to stay within the Spotify fixture memory limit.
 - `vendor` holds pinned upstream source parts. See [third-party notices](THIRD_PARTY_NOTICES.md).

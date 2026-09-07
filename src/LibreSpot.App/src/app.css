@@ -2458,6 +2458,34 @@
   min-width: 190px;
 }
 
+.librespot-panel-error {
+  align-content: center;
+  background: color-mix(in srgb, var(--ls-danger) 7%, var(--ls-surface));
+  border: 1px solid color-mix(in srgb, var(--ls-danger) 42%, var(--ls-border));
+  border-radius: 12px;
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+  margin: 24px 0;
+  min-height: 260px;
+  padding: 28px;
+}
+
+.librespot-panel-error h2,
+.librespot-panel-error p {
+  margin: 0;
+}
+
+.librespot-panel-error p {
+  color: var(--ls-muted);
+}
+
+.librespot-panel-error__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .librespot-loading__mark {
   border: 3px solid var(--ls-border);
   border-radius: 10px;
