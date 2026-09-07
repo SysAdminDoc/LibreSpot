@@ -21,6 +21,7 @@
   <ItemGroup>
     <InternalsVisibleTo Include="LibreSpot.Desktop.Tests" />
     <InternalsVisibleTo Include="LibreSpot.Core.Tests" />
+    <InternalsVisibleTo Include="LibreSpot.AssetCacheRecoveryFixture" />
   </ItemGroup>
 
   <ItemGroup>

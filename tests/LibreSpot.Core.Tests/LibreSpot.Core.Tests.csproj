@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\LibreSpot.Core\LibreSpot.Core.csproj" />
+    <ProjectReference Include="..\LibreSpot.AssetCacheRecoveryFixture\LibreSpot.AssetCacheRecoveryFixture.csproj" />
     <Compile Include="..\LibreSpot.Desktop.Tests\AppCatalogTests.cs" Link="AppCatalogTests.cs" />
     <Compile Include="..\LibreSpot.Desktop.Tests\CommunityAssetDriftServiceTests.cs" Link="CommunityAssetDriftServiceTests.cs" />
     <Compile Include="..\LibreSpot.Desktop.Tests\CustomizationCatalogTests.cs" Link="CustomizationCatalogTests.cs" />

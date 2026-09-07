@@ -611,14 +611,18 @@ public sealed class AssetCacheBundleService
         {
             if (Directory.Exists(cacheRoot))
             {
+                transactionObserver?.Invoke(AssetCacheBundleTransactionStage.BeforeExistingCacheMove);
                 Directory.Move(cacheRoot, rollbackRoot);
                 originalMoved = true;
                 transactionObserver?.Invoke(AssetCacheBundleTransactionStage.ExistingCacheMoved);
             }
 
             transaction.MarkExistingMoved();
+            transactionObserver?.Invoke(AssetCacheBundleTransactionStage.BeforeReplacementMove);
             Directory.Move(replacementRoot, cacheRoot);
+            transactionObserver?.Invoke(AssetCacheBundleTransactionStage.ReplacementMoved);
             transaction.MarkCommitted();
+            transactionObserver?.Invoke(AssetCacheBundleTransactionStage.CommittedMarkerWritten);
             transaction.Complete();
         }
         catch (Exception commitError)
@@ -736,5 +740,9 @@ public sealed class AssetCacheBundleException : Exception
 
 internal enum AssetCacheBundleTransactionStage
 {
-    ExistingCacheMoved
+    BeforeExistingCacheMove,
+    ExistingCacheMoved,
+    BeforeReplacementMove,
+    ReplacementMoved,
+    CommittedMarkerWritten
 }

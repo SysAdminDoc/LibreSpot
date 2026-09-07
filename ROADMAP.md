@@ -6,13 +6,6 @@ Incomplete, implementer-actionable work only. Operator-dependent decisions remai
 
 ### P2: Next
 
-- [ ] P2: RD-250. Exercise cache recovery across real process termination
-  Why: Impact 3/5. Core tests named for process death only move directories in one process, leaving rename and marker boundaries untested under termination.
-  Evidence: Fresh verifier review of tests/LibreSpot.Core.Tests/AssetCacheBundleServiceTests.cs and the five-boundary PowerShell fixture.
-  Touches: Core recovery test fixtures and subprocess harness; AssetCacheBundleService recovery hooks.
-  Acceptance: A disposable helper process is terminated at each publication boundary, then a fresh process recovers and verifies the cache and index without relying on in-process observers.
-  Complexity: M
-
 - [ ] P2: RD-251. Require callable companion APIs before bootstrap
   Why: Impact 4/5. Truthy placeholder objects can pass readiness while required React, History, LocalStorage, or Player methods are still unavailable.
   Evidence: Fresh verifier review of src/LibreSpot.App/src/extensions/companion-readiness.ts and companion-readiness.test.ts.

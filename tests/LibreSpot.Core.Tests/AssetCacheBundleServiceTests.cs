@@ -269,18 +269,100 @@ public sealed class AssetCacheBundleServiceTests
         var bundlePath = Path.Combine(fixture.Root, "rollback.zip");
         new AssetCacheBundleService().Export(fixture.SourceCache, bundlePath, "4.5.0");
         var original = SnapshotFiles(fixture.TargetCache);
+        var observedExistingMove = false;
         var service = new AssetCacheBundleService(stage =>
         {
-            Assert.Equal(AssetCacheBundleTransactionStage.ExistingCacheMoved, stage);
-            throw new IOException("Simulated commit interruption.");
+            if (stage == AssetCacheBundleTransactionStage.ExistingCacheMoved)
+            {
+                observedExistingMove = true;
+                throw new IOException("Simulated commit interruption.");
+            }
         });
 
         var error = Assert.Throws<AssetCacheBundleException>(() => service.Import(fixture.TargetCache, bundlePath));
 
         Assert.Contains("Simulated commit interruption", error.Message, StringComparison.Ordinal);
+        Assert.True(observedExistingMove);
         Assert.Equal(original, SnapshotFiles(fixture.TargetCache));
         Assert.False(File.Exists(Path.Combine(fixture.TargetCache, imported.Hash)));
         Assert.Empty(Directory.EnumerateDirectories(Path.GetDirectoryName(fixture.TargetCache)!, ".asset-cache-rollback-*"));
+    }
+
+    [Fact]
+    public void Import_RecoversAfterHelperProcessTerminationAtEveryPublicationBoundary()
+    {
+        using var fixture = new Fixture();
+        var imported = fixture.AddSourceAsset("Imported", "https://example.invalid/imported", "imported bytes");
+        fixture.AddTargetAsset("Existing", "https://example.invalid/existing", "existing bytes");
+        File.WriteAllText(Path.Combine(fixture.TargetCache, "unindexed-note.txt"), "preserve me");
+        var bundlePath = Path.Combine(fixture.Root, "process-death.zip");
+        new AssetCacheBundleService().Export(fixture.SourceCache, bundlePath, "4.5.0");
+        var original = SnapshotFiles(fixture.TargetCache);
+        var stages = new[]
+        {
+            (Name: "before-first-move", Imported: false),
+            (Name: "after-first-move", Imported: false),
+            (Name: "before-second-move", Imported: false),
+            (Name: "after-second-move", Imported: true),
+            (Name: "after-commit-marker", Imported: true)
+        };
+
+        foreach (var stage in stages)
+        {
+            var stageRoot = Path.Combine(fixture.Root, "process-death", stage.Name);
+            var cachePath = Path.Combine(stageRoot, "cache");
+            CopyDirectory(fixture.TargetCache, cachePath);
+
+            using (var importProcess = StartRecoveryFixture("import", stage.Name, bundlePath, cachePath))
+            {
+                var exited = importProcess.WaitForExit(TimeSpan.FromSeconds(30));
+                if (!exited)
+                {
+                    importProcess.Kill(entireProcessTree: true);
+                    importProcess.WaitForExit();
+                }
+
+                Assert.True(exited, $"The recovery fixture did not terminate at {stage.Name}.");
+                Assert.NotEqual(0, importProcess.ExitCode);
+            }
+
+            using (var recoveryProcess = StartRecoveryFixture(
+                       "recover",
+                       cachePath,
+                       imported.Hash,
+                       stage.Imported.ToString()))
+            {
+                var exited = recoveryProcess.WaitForExit(TimeSpan.FromSeconds(30));
+                if (!exited)
+                {
+                    recoveryProcess.Kill(entireProcessTree: true);
+                    recoveryProcess.WaitForExit();
+                }
+
+                var output = recoveryProcess.StandardOutput.ReadToEnd();
+                var error = recoveryProcess.StandardError.ReadToEnd();
+                Assert.True(exited, $"The recovery fixture did not finish for {stage.Name}. {error}");
+                Assert.True(
+                    recoveryProcess.ExitCode == 0,
+                    $"{stage.Name}: {output}{Environment.NewLine}{error}");
+            }
+
+            if (stage.Imported)
+            {
+                Assert.Equal(imported.Bytes, File.ReadAllBytes(Path.Combine(cachePath, imported.Hash)));
+                Assert.Equal("preserve me", File.ReadAllText(Path.Combine(cachePath, "unindexed-note.txt")));
+                using var index = JsonDocument.Parse(File.ReadAllText(Path.Combine(cachePath, "asset-cache-index.json")));
+                Assert.Equal(2, index.RootElement.GetProperty("entries").GetArrayLength());
+            }
+            else
+            {
+                Assert.Equal(original, SnapshotFiles(cachePath));
+            }
+
+            var configDirectory = Path.GetDirectoryName(cachePath)!;
+            Assert.False(File.Exists(Path.Combine(configDirectory, AssetCacheTransactionRecovery.MarkerFileName)));
+            Assert.Empty(Directory.EnumerateDirectories(configDirectory, ".asset-cache-*", SearchOption.TopDirectoryOnly));
+        }
     }
 
     [Fact]
@@ -490,6 +572,49 @@ public sealed class AssetCacheBundleServiceTests
                 path => Path.GetRelativePath(root, path),
                 path => Convert.ToBase64String(File.ReadAllBytes(path)),
                 StringComparer.OrdinalIgnoreCase);
+
+    private static Process StartRecoveryFixture(params string[] arguments)
+    {
+        var fixturePath = FindRecoveryFixture();
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = fixturePath.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) ? "dotnet" : fixturePath,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true
+        };
+
+        if (fixturePath.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+            startInfo.ArgumentList.Add(fixturePath);
+        foreach (var argument in arguments)
+            startInfo.ArgumentList.Add(argument);
+
+        return Process.Start(startInfo) ?? throw new InvalidOperationException("Could not start the asset-cache recovery fixture.");
+    }
+
+    private static string FindRecoveryFixture()
+    {
+        var repoRoot = ResolveRepoRoot();
+        var candidates = new[]
+        {
+            Path.Combine(AppContext.BaseDirectory, "LibreSpot.AssetCacheRecoveryFixture.exe"),
+            Path.Combine(AppContext.BaseDirectory, "LibreSpot.AssetCacheRecoveryFixture.dll"),
+            Path.Combine(repoRoot, "tests", "LibreSpot.AssetCacheRecoveryFixture", "bin", "Debug", "net10.0-windows", "LibreSpot.AssetCacheRecoveryFixture.exe"),
+            Path.Combine(repoRoot, "tests", "LibreSpot.AssetCacheRecoveryFixture", "bin", "Debug", "net10.0-windows", "LibreSpot.AssetCacheRecoveryFixture.dll")
+        };
+
+        return candidates.FirstOrDefault(File.Exists)
+            ?? throw new FileNotFoundException("The asset-cache recovery fixture was not built.");
+    }
+
+    private static string ResolveRepoRoot()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "README.md")))
+            directory = directory.Parent;
+        return directory?.FullName ?? throw new DirectoryNotFoundException("Could not locate the LibreSpot repository root.");
+    }
 
     private static string ReadEntry(ZipArchiveEntry entry)
     {
