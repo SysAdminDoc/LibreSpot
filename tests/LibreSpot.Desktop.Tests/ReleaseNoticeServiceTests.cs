@@ -439,8 +439,8 @@ public sealed class ReleaseNoticeServiceTests
     {
         var body = JsonSerializer.Serialize(new
         {
-            tag_name = "v4.5.0",
-            html_url = "https://github.com/SysAdminDoc/LibreSpot/releases/tag/v4.5.0",
+            tag_name = "v4.5.1",
+            html_url = "https://github.com/SysAdminDoc/LibreSpot/releases/tag/v4.5.1",
             prerelease = false,
             draft = false,
             assets = new[]
@@ -454,8 +454,8 @@ public sealed class ReleaseNoticeServiceTests
         var lookup = await new GitHubReleaseNoticeClient(http).TryGetLatestStableAsync(null, CancellationToken.None);
 
         Assert.Equal(ReleaseNoticeLookupStatus.Found, lookup.Status);
-        Assert.Equal("v4.5.0", lookup.TagName);
-        Assert.Equal("https://github.com/SysAdminDoc/LibreSpot/releases/tag/v4.5.0", lookup.HtmlUrl);
+        Assert.Equal("v4.5.1", lookup.TagName);
+        Assert.Equal("https://github.com/SysAdminDoc/LibreSpot/releases/tag/v4.5.1", lookup.HtmlUrl);
         Assert.False(lookup.IsPrerelease);
         Assert.Equal("\"etag-release\"", lookup.ETag);
         Assert.Equal(DesktopDigest, lookup.DesktopAssetDigest);
@@ -466,11 +466,11 @@ public sealed class ReleaseNoticeServiceTests
     {
         var bodies = new[]
         {
-            JsonSerializer.Serialize(new { tag_name = "v4.5.0", assets = Array.Empty<object>() }),
-            JsonSerializer.Serialize(new { tag_name = "v4.5.0", assets = new[] { new { name = ReleaseNoticeService.DesktopAssetName, digest = "sha256:not-a-hash" } } }),
+            JsonSerializer.Serialize(new { tag_name = "v4.5.1", assets = Array.Empty<object>() }),
+            JsonSerializer.Serialize(new { tag_name = "v4.5.1", assets = new[] { new { name = ReleaseNoticeService.DesktopAssetName, digest = "sha256:not-a-hash" } } }),
             JsonSerializer.Serialize(new
             {
-                tag_name = "v4.5.0",
+                tag_name = "v4.5.1",
                 assets = new[]
                 {
                     new { name = ReleaseNoticeService.DesktopAssetName, digest = DesktopDigest },

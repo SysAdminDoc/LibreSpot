@@ -14,7 +14,7 @@ export type ThemeExport = {
   "theme.js": string;
 };
 
-export const ENGINE_VERSION = "4.5.0";
+export const ENGINE_VERSION = "4.5.1";
 export const MAX_PROFILE_BYTES = 2 * 1024 * 1024;
 
 const EFFECTS_TIERS = ["glass", "eco", "flat"] as const;

@@ -1819,14 +1819,14 @@ $global:CommunityCustomApps = [ordered]@{
         BundledFileName = 'librespot-engine.zip'
         DisplayName = 'LibreSpot'
         Description = 'Live themes, snippets, feature flags, presets, and health checks inside Spotify.'
-        Url         = 'https://github.com/SysAdminDoc/LibreSpot/releases/download/v4.5.0/librespot-engine.zip'
+        Url         = 'https://github.com/SysAdminDoc/LibreSpot/releases/download/v4.5.1/librespot-engine.zip'
         Source      = 'SysAdminDoc/LibreSpot'
-        Version     = '4.5.0'
-        ReleaseTag  = 'v4.5.0'
+        Version     = '4.5.1'
+        ReleaseTag  = 'v4.5.1'
         AssetPath   = 'librespot'
         RequiredFiles = @('manifest.json', 'index.js', 'style.css', 'librespot-engine.js', 'LICENSE', 'THIRD_PARTY_NOTICES.md')
         CompanionExtension = 'librespot-engine.js'
-        SHA256      = '117aa5665844ce339ecac5c3cfc11a82509f9d9c46c867f4af9fbd9e932f40e6'
+        SHA256      = '614ca0d2b6cf8ecd71d5d3b6f9a55ef2e6dc001784db479dfd1ccee9993c874a'
     }
 }
 

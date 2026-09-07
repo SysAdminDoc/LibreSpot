@@ -51,7 +51,7 @@ public sealed class DocumentationContractTests
         Assert.Contains("\"name\": \"createdump.exe\"", contract, StringComparison.Ordinal);
         Assert.Contains("`createdump.exe` helper", ReadFile("CHANGELOG.md"), StringComparison.Ordinal);
 
-        Assert.Contains("Version 4.5.0 is prepared in this repository and has not been published", readme, StringComparison.Ordinal);
+        Assert.Contains("Version 4.5.1 is prepared in this repository and has not been published", readme, StringComparison.Ordinal);
         Assert.Contains("public latest stable release, v4.4.0", readme, StringComparison.Ordinal);
     }
 

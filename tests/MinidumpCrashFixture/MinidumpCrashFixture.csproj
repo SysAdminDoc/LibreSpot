@@ -12,10 +12,10 @@
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <RestorePackagesWithLockFile>false</RestorePackagesWithLockFile>
-    <Version>4.5.0</Version>
-    <AssemblyVersion>4.5.0.0</AssemblyVersion>
-    <FileVersion>4.5.0.0</FileVersion>
-    <InformationalVersion>4.5.0</InformationalVersion>
+    <Version>4.5.1</Version>
+    <AssemblyVersion>4.5.1.0</AssemblyVersion>
+    <FileVersion>4.5.1.0</FileVersion>
+    <InformationalVersion>4.5.1</InformationalVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
 </Project>

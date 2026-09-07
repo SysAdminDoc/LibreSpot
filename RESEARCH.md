@@ -4,7 +4,7 @@ Date: 2026-09-07. Replaces all prior research.
 
 ## Executive Summary
 
-LibreSpot is a Windows Spotify customization manager with a WPF desktop, fleet CLI, PowerShell host, and an in-client Store and live engine. The strongest direction is dependable recovery around its curated, pinned integrations. Source v4.5.0 is prepared; the immutable public release is v4.4.0. The previous compatibility, update-status and WPF accessibility findings have been addressed. This plan instead concentrates on reproduced failures in profile persistence and support-export privacy, followed by interruptions and concurrent operations. Sources: `README.md`, `CHANGELOG.md`, `schemas/release-artifact-contract.json`, [published release](https://github.com/SysAdminDoc/LibreSpot/releases/tag/v4.4.0).
+LibreSpot is a Windows Spotify customization manager with a WPF desktop, fleet CLI, PowerShell host, and an in-client Store and live engine. The strongest direction is dependable recovery around its curated, pinned integrations. Source v4.5.1 is prepared; the immutable public release is v4.4.0. The previous compatibility, update-status and WPF accessibility findings have been addressed. This plan instead concentrates on reproduced failures in profile persistence and support-export privacy, followed by interruptions and concurrent operations. Sources: `README.md`, `CHANGELOG.md`, `schemas/release-artifact-contract.json`, [published release](https://github.com/SysAdminDoc/LibreSpot/releases/tag/v4.4.0).
 
 Priority order:
 

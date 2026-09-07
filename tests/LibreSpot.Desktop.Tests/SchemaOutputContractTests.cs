@@ -121,7 +121,7 @@ public sealed class SchemaOutputContractTests
             }));
 
         var bundlePath = scratch.At("bundle.zip");
-        new AssetCacheBundleService().Export(cacheDirectory, bundlePath, "4.5.0");
+        new AssetCacheBundleService().Export(cacheDirectory, bundlePath, "4.5.1");
 
         using var archive = ZipFile.OpenRead(bundlePath);
         using var manifestStream = archive.GetEntry("manifest.json")!.Open();
