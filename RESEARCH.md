@@ -89,7 +89,7 @@ RD-230 gives the desktop backend, standalone CLI workers, and both watcher hosts
 
 ### Marketplace storage
 
-**Verified, exercised:** `core/backup.ts` ignores a database connection arriving after its open timeout instead of closing it. **Verified source/spec consequence:** rejecting a blocked or timed-out delete promise does not cancel the IndexedDB request; deletion can finish after the UI says it did not reset anything. [IndexedDB deletion](https://www.w3.org/TR/IndexedDB-3/#delete-a-database) waits for existing connections to close before continuing (RD-234).
+**Implemented and exercised (RD-234):** `core/backup.ts` closes a database connection arriving after its open attempt settles. Delete requests expose pending, watchdog, success, and terminal-error states, keep the request alive after a watchdog, and reuse the in-flight operation for duplicate calls. Health disables the reset action while the request is pending and announces that a watchdog did not cancel it. Focused fixtures cover blocked-then-success, timeout-then-success, terminal error, late-open cleanup, and unrelated storage canaries. [IndexedDB deletion](https://www.w3.org/TR/IndexedDB-3/#delete-a-database) waits for existing connections to close before continuing.
 
 Pinned [Marketplace Storage.ts](https://raw.githubusercontent.com/spicetify/marketplace/v1.0.11/src/logic/Storage.ts) migrates surviving `marketplace:` keys when the new database lacks its migration marker, and uses localStorage when IndexedDB is unavailable. Successful migration normally removes legacy keys. LibreSpot's database-only backup/reset therefore misses a conditional but real storage mode (RD-235). Preserve unrelated Spotify and LibreSpot keys.
 

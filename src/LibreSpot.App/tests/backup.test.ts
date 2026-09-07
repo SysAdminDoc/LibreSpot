@@ -359,47 +359,169 @@ describe("backup", () => {
     });
   });
 
-  it("reports a blocked delete instead of hanging the reset", async () => {
-    // deleteDatabase never completes while another connection is open, and an
-    // unbounded wait would leave the Health button spinning forever.
-    const blocked: IDBFactory = {
-      deleteDatabase: () => {
-        const request = { onsuccess: null, onerror: null, onblocked: null };
-        queueMicrotask(() => {
-          (request.onblocked as unknown as () => void)();
-        });
+  it("closes a late open connection after timeout without touching a canary", async () => {
+    let request: {
+      result: IDBDatabase | null;
+      onsuccess: (() => void) | null;
+      onerror: (() => void) | null;
+      onblocked: (() => void) | null;
+      onupgradeneeded: (() => void) | null;
+    } | undefined;
+    let closeCount = 0;
+    const canary = { value: "untouched" };
+    const factory: IDBFactory = {
+      open: () => {
+        request = {
+          result: null,
+          onsuccess: null,
+          onerror: null,
+          onblocked: null,
+          onupgradeneeded: null,
+        };
         return request as unknown as IDBOpenDBRequest;
       },
     } as unknown as IDBFactory;
 
-    await expect(indexedDbMarketplaceStore(blocked, 200).deleteAll()).rejects.toThrow(
-      /open in another Spotify window/,
-    );
+    const store = indexedDbMarketplaceStore(factory, 10);
+    await expect(store.readAll()).resolves.toEqual({
+      available: false,
+      entries: {},
+    });
+    await new Promise((resolve) => setTimeout(resolve, 15));
+
+    const lateRequest = request;
+    if (!lateRequest) throw new Error("The open request fixture was not created.");
+    lateRequest.result = {
+      objectStoreNames: { contains: () => true },
+      close: () => {
+        closeCount += 1;
+      },
+    } as unknown as IDBDatabase;
+    lateRequest.onsuccess?.();
+
+    expect(closeCount).toBe(1);
+    expect(canary).toEqual({ value: "untouched" });
   });
 
-  it("gives up on a delete that never answers", async () => {
-    const stalledDelete: IDBFactory = {
-      deleteDatabase: () => ({ onsuccess: null, onerror: null, onblocked: null }) as unknown as IDBOpenDBRequest,
+  it("keeps a blocked delete pending, reuses it, and completes after the canary closes", async () => {
+    let deleteCalls = 0;
+    let request: {
+      onsuccess: (() => void) | null;
+      onerror: (() => void) | null;
+      onblocked: (() => void) | null;
+    } | undefined;
+    const canary = { value: "untouched" };
+    const factory: IDBFactory = {
+      deleteDatabase: () => {
+        deleteCalls += 1;
+        const current: {
+          onsuccess: (() => void) | null;
+          onerror: (() => void) | null;
+          onblocked: (() => void) | null;
+        } = { onsuccess: null, onerror: null, onblocked: null };
+        request = current;
+        queueMicrotask(() => current.onblocked?.());
+        return current as unknown as IDBOpenDBRequest;
+      },
     } as unknown as IDBFactory;
+    const store = indexedDbMarketplaceStore(factory, 100);
+    const statuses: string[] = [];
+    const unsubscribe = store.subscribeDeleteStatus((status) => {
+      statuses.push(status.phase);
+    });
 
-    await expect(indexedDbMarketplaceStore(stalledDelete, 50).deleteAll()).rejects.toThrow(
-      /still open somewhere/,
-    );
+    const first = store.deleteAll();
+    const duplicate = store.deleteAll();
+    expect(duplicate).toBe(first);
+    await Promise.resolve();
+    expect(store.getDeleteStatus().phase).toBe("pending");
+    expect(deleteCalls).toBe(1);
+    expect(canary).toEqual({ value: "untouched" });
+
+    const blockedRequest = request;
+    if (!blockedRequest) throw new Error("The delete request fixture was not created.");
+    blockedRequest.onsuccess?.();
+    await expect(first).resolves.toBeUndefined();
+    expect(store.getDeleteStatus()).toEqual({
+      phase: "succeeded",
+      detail: "Marketplace storage was reset.",
+    });
+    expect(statuses).toEqual(["idle", "pending", "pending", "succeeded"]);
+    expect(canary).toEqual({ value: "untouched" });
+    unsubscribe();
   });
 
-  it("resolves once the delete succeeds", async () => {
+  it("marks a timed-out delete pending and resolves when it eventually succeeds", async () => {
+    let request: {
+      onsuccess: (() => void) | null;
+      onerror: (() => void) | null;
+      onblocked: (() => void) | null;
+    } | undefined;
+    const canary = { value: "untouched" };
     const succeeding: IDBFactory = {
       deleteDatabase: () => {
-        const request = { onsuccess: null, onerror: null, onblocked: null };
-        queueMicrotask(() => {
-          (request.onsuccess as unknown as () => void)();
-        });
-        return request as unknown as IDBOpenDBRequest;
+        const current: {
+          onsuccess: (() => void) | null;
+          onerror: (() => void) | null;
+          onblocked: (() => void) | null;
+        } = { onsuccess: null, onerror: null, onblocked: null };
+        request = current;
+        queueMicrotask(() => current.onblocked?.());
+        return current as unknown as IDBOpenDBRequest;
       },
     } as unknown as IDBFactory;
+    const store = indexedDbMarketplaceStore(succeeding, 10);
+    let settled = false;
+    const operation = store.deleteAll().then(() => {
+      settled = true;
+    });
 
-    await expect(indexedDbMarketplaceStore(succeeding, 200).deleteAll()).resolves.toBeUndefined();
+    await new Promise((resolve) => setTimeout(resolve, 15));
+    expect(store.getDeleteStatus().phase).toBe("timed-out");
+    expect(settled).toBe(false);
+    expect(canary).toEqual({ value: "untouched" });
+
+    const timedOutRequest = request;
+    if (!timedOutRequest) throw new Error("The delete request fixture was not created.");
+    timedOutRequest.onsuccess?.();
+    await operation;
+    expect(settled).toBe(true);
+    expect(store.getDeleteStatus().phase).toBe("succeeded");
+    expect(canary).toEqual({ value: "untouched" });
   });
+
+  it("reports a terminal delete error after a blocked wait", async () => {
+    let request: {
+      onsuccess: (() => void) | null;
+      onerror: (() => void) | null;
+      onblocked: (() => void) | null;
+    } | undefined;
+    const canary = { value: "untouched" };
+    const failing: IDBFactory = {
+      deleteDatabase: () => {
+        const current: {
+          onsuccess: (() => void) | null;
+          onerror: (() => void) | null;
+          onblocked: (() => void) | null;
+        } = { onsuccess: null, onerror: null, onblocked: null };
+        request = current;
+        queueMicrotask(() => current.onblocked?.());
+        return current as unknown as IDBOpenDBRequest;
+      },
+    } as unknown as IDBFactory;
+    const store = indexedDbMarketplaceStore(failing, 100);
+    const operation = store.deleteAll();
+    await Promise.resolve();
+    expect(store.getDeleteStatus().phase).toBe("pending");
+    const failingRequest = request;
+    if (!failingRequest) throw new Error("The delete request fixture was not created.");
+    failingRequest.onerror?.();
+
+    await expect(operation).rejects.toThrow(/could not be reset/);
+    expect(store.getDeleteStatus().phase).toBe("failed");
+    expect(canary).toEqual({ value: "untouched" });
+  });
+
   it("gives up on a Marketplace database that never opens", async () => {
     // A blocked or stalled open used to hang the panel button forever.
     const stalled: IDBFactory = {

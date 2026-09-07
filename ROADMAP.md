@@ -8,13 +8,6 @@ Incomplete, implementer-actionable work only. Operator-dependent decisions remai
 
 ### P2: Next
 
-- [ ] P2: RD-234. Track IndexedDB operations through late completion
-  Why: Impact 4/5. A timed-out open leaks a later connection; a blocked delete can finish after the UI declares that nothing was reset.
-  Evidence: RESEARCH.md; exercised late-success open fixture; core/backup.ts open/deleteAll; IndexedDB deletion algorithm waits for other connections before continuing.
-  Touches: src/LibreSpot.App/src/core/backup.ts; reset status contract and Health; tests/backup.test.ts and surface.test.ts.
-  Acceptance: Close every connection delivered after a settled open attempt. Keep blocked deletion visibly pending until terminal completion, prevent duplicate reset requests, and handle eventual success after another connection closes. A timeout must not claim cancellation. Test blocked-then-success, timeout-then-success and terminal-error paths with unrelated storage canaries.
-  Complexity: M
-
 - [ ] P2: RD-235. Include Marketplace legacy and fallback storage in recovery
   Why: Impact 4/5. Upstream v1.0.11 can migrate surviving legacy keys back after reset and uses localStorage when IndexedDB is unavailable.
   Evidence: Marketplace #1231 and pinned v1.0.11 src/logic/Storage.ts; LibreSpot core/backup.ts reads/deletes IndexedDB only.

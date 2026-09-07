@@ -164,6 +164,25 @@ export type MarketplaceReadResult = {
   entries: MarketplaceEntries;
 };
 
+export type MarketplaceDeletePhase =
+  | "idle"
+  | "pending"
+  | "timed-out"
+  | "succeeded"
+  | "failed";
+
+export type MarketplaceDeleteStatus = {
+  phase: MarketplaceDeletePhase;
+  detail: string | null;
+};
+
+export type MarketplaceStatusStore = {
+  getDeleteStatus(): MarketplaceDeleteStatus;
+  subscribeDeleteStatus(
+    listener: (status: MarketplaceDeleteStatus) => void,
+  ): () => void;
+};
+
 export type MarketplaceStore = {
   readAll(createIfMissing?: boolean): Promise<MarketplaceReadResult>;
   /**
@@ -195,12 +214,36 @@ export type MarketplaceStore = {
 export function indexedDbMarketplaceStore(
   factory: IDBFactory,
   timeoutMs = 8000,
-): MarketplaceStore {
+): MarketplaceStore & MarketplaceStatusStore {
+  let deleteStatus: MarketplaceDeleteStatus = {
+    phase: "idle",
+    detail: null,
+  };
+  let pendingDelete: Promise<void> | null = null;
+  const deleteStatusListeners = new Set<
+    (status: MarketplaceDeleteStatus) => void
+  >();
+  const setDeleteStatus = (
+    phase: MarketplaceDeletePhase,
+    detail: string | null,
+  ): void => {
+    deleteStatus = { phase, detail };
+    const current = { ...deleteStatus };
+    for (const listener of deleteStatusListeners) {
+      listener(current);
+    }
+  };
+
   const open = (createIfMissing = false) =>
     new Promise<IDBDatabase | null>((resolve) => {
       let settled = false;
       const finish = (database: IDBDatabase | null) => {
-        if (settled) return;
+        if (settled) {
+          // A timed-out request can still deliver a live connection later.
+          // The caller no longer owns it, so close it at the event boundary.
+          database?.close();
+          return;
+        }
         settled = true;
         resolve(database);
       };
@@ -230,6 +273,10 @@ export function indexedDbMarketplaceStore(
       };
       request.onupgradeneeded = () => {
         const database = request.result;
+        if (settled) {
+          database.close();
+          return;
+        }
         if (database.objectStoreNames.contains(MARKETPLACE_STORE)) {
           return;
         }
@@ -381,52 +428,83 @@ export function indexedDbMarketplaceStore(
         database.close();
       }
     },
-    deleteAll: () =>
-      new Promise<void>((resolve, reject) => {
-        // Bounded like open(): a delete blocks while any other connection
-        // holds the database, and an unbounded wait would hang the button.
-        let settled = false;
-        const finish = (error?: Error) => {
-          if (settled) return;
-          settled = true;
-          clearTimeout(timer);
-          if (error) reject(error);
-          else resolve();
-        };
-        const timer = setTimeout(() => {
-          finish(
-            new Error(
-              "Marketplace's database is still open somewhere, so it was not reset. Close other Spotify windows and try again.",
-            ),
-          );
-        }, timeoutMs);
+    getDeleteStatus: () => ({ ...deleteStatus }),
+    subscribeDeleteStatus: (listener) => {
+      deleteStatusListeners.add(listener);
+      listener({ ...deleteStatus });
+      return () => {
+        deleteStatusListeners.delete(listener);
+      };
+    },
+    deleteAll: () => {
+      if (pendingDelete) {
+        return pendingDelete;
+      }
 
-        let request: IDBOpenDBRequest;
-        try {
-          request = factory.deleteDatabase(MARKETPLACE_DATABASE);
-        } catch (error) {
-          finish(
-            error instanceof Error
-              ? error
-              : new Error("Marketplace's database could not be reset."),
-          );
+      let resolveDelete!: () => void;
+      let rejectDelete!: (reason?: unknown) => void;
+      const operation = new Promise<void>((resolve, reject) => {
+        resolveDelete = resolve;
+        rejectDelete = reject;
+      });
+      pendingDelete = operation;
+      setDeleteStatus(
+        "pending",
+        "Marketplace storage reset is waiting for the database request to finish.",
+      );
+
+      let settled = false;
+      const timer = setTimeout(() => {
+        if (settled) return;
+        // A timeout is diagnostic only. IndexedDB has no cancellation for an
+        // in-flight delete request, so keep the operation pending until its
+        // success or error event arrives.
+        setDeleteStatus(
+          "timed-out",
+          "Marketplace storage reset is still pending. The timeout did not cancel the request; close other Spotify windows to let it finish.",
+        );
+      }, timeoutMs);
+      const finish = (error?: Error): void => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        pendingDelete = null;
+        if (error) {
+          setDeleteStatus("failed", error.message);
+          rejectDelete(error);
           return;
         }
+        setDeleteStatus("succeeded", "Marketplace storage was reset.");
+        resolveDelete();
+      };
 
-        request.onsuccess = () => {
-          finish();
-        };
-        request.onerror = () => {
-          finish(new Error("Marketplace's database could not be reset."));
-        };
-        request.onblocked = () => {
-          finish(
-            new Error(
-              "Marketplace's database is open in another Spotify window, so it was not reset.",
-            ),
-          );
-        };
-      }),
+      let request: IDBOpenDBRequest;
+      try {
+        request = factory.deleteDatabase(MARKETPLACE_DATABASE);
+      } catch (error) {
+        finish(
+          error instanceof Error
+            ? error
+            : new Error("Marketplace's database could not be reset."),
+        );
+        return operation;
+      }
+
+      request.onsuccess = () => {
+        finish();
+      };
+      request.onerror = () => {
+        finish(new Error("Marketplace's database could not be reset."));
+      };
+      request.onblocked = () => {
+        if (settled || deleteStatus.phase === "timed-out") return;
+        setDeleteStatus(
+          "pending",
+          "Marketplace's database is open in another Spotify window. The reset is waiting for that connection to close.",
+        );
+      };
+      return operation;
+    },
   };
 }
 

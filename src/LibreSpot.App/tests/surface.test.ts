@@ -301,10 +301,17 @@ describe("LibreSpot surface contract", () => {
     expect(extension).toContain("createMarketplaceIfMissing");
     expect(extension).toContain("exportRecovery: async ()");
     expect(extension).toContain("discardRecovery: ()");
+    expect(extension).toContain("marketplaceStore.subscribeDeleteStatus");
+    expect(reset).toContain("if (marketplaceResetPromise)");
+    expect(reset).toContain("marketplaceResetPromise = operation");
     expect(health).toContain('title: "Durable recovery copy available"');
     expect(health).toContain('label: "Restore recovery copy"');
     expect(health).toContain('label: "Export recovery copy"');
     expect(health).toContain('label: "Dismiss"');
+    expect(health).toContain('role: "status"');
+    expect(health).toContain('marketplaceReset.phase === "timed-out"');
+    expect(health).toContain('label: marketplaceResetPending');
+    expect(health).toContain('"Reset Marketplace storage pending"');
   });
 
   it("lets duplicate companion loads converge on one ready runtime", () => {

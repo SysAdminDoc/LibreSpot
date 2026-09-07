@@ -3,6 +3,7 @@ import type {
   CapturedFeature,
   EngineState,
   HealthReport,
+  MarketplaceDeleteStatus,
 } from "./core/index.ts";
 
 export type UiNode = unknown;
@@ -163,6 +164,7 @@ export type LibreSpotRuntimeSnapshot = {
         incomplete: string[];
       }
     | null;
+  marketplaceReset: MarketplaceDeleteStatus;
 };
 
 export type LibreSpotRuntimeApi = {

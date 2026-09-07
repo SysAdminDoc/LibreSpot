@@ -19,6 +19,7 @@ import {
   type ArrangementItem,
   type FeatureOverrideRuntime,
   type HealthReport,
+  type MarketplaceDeleteStatus,
   type RecoveryRecord,
   type RouteState,
   type StorageAdapter,
@@ -424,6 +425,11 @@ async function bootstrap(): Promise<void> {
     let availableSidebarItems: ArrangementItem[] = [];
     let arrangementTimer: number | undefined;
     const listeners = new Set<(snapshot: LibreSpotRuntimeSnapshot) => void>();
+    let marketplaceResetStatus: MarketplaceDeleteStatus = {
+      phase: "idle",
+      detail: null,
+    };
+    let marketplaceResetPromise: Promise<void> | undefined;
 
     function sameArrangementItems(
       left: readonly ArrangementItem[],
@@ -507,6 +513,7 @@ async function bootstrap(): Promise<void> {
                 message: recovery.message,
                 incomplete: [...recovery.incomplete],
               },
+        marketplaceReset: { ...marketplaceResetStatus },
       };
     }
 
@@ -542,6 +549,10 @@ async function bootstrap(): Promise<void> {
     }
 
     const marketplaceStore = indexedDbMarketplaceStore(window.indexedDB);
+    marketplaceStore.subscribeDeleteStatus((status) => {
+      marketplaceResetStatus = status;
+      emit();
+    });
 
     function syncRecovery(): void {
       recovery = store.readRecovery();
@@ -586,68 +597,82 @@ async function bootstrap(): Promise<void> {
     }
 
     async function resetMarketplace(): Promise<void> {
+      if (marketplaceResetPromise) {
+        return marketplaceResetPromise;
+      }
+
       // Stale records from an older install survive a full Spicetify
       // reinstall and can put back themes the user removed. Upstream closed
       // that report as not planned, so the reset lives here.
-      try {
-        const marketplace = await marketplaceStore.readAll();
-        if (!marketplace.available) {
-          notify(
-            "Marketplace's settings could not be read, so nothing was reset. Close any other Spotify window and try again.",
-            true,
-          );
-          return;
-        }
-
-        const createdAt = new Date();
-        const file = serializeBackup(
-          createBackup(engine.state, marketplace.entries, createdAt),
-        );
-        const pending: RecoveryRecord = {
-          schemaVersion: RECOVERY_RECORD_SCHEMA_VERSION,
-          kind: "marketplace-reset",
-          createdAt: createdAt.toISOString(),
-          message: "Marketplace reset recovery copy is pending.",
-          incomplete: ["marketplace"],
-          raw: file,
-        };
-
-        // The owned copy must be verified before clipboard access or deletion.
-        // The Clipboard API is user-controlled and can be replaced immediately.
-        store.writeRecovery(pending);
-        syncRecovery();
-        emit();
-        await copyThroughPlatform(file);
-        await marketplaceStore.deleteAll();
-
-        const count = Object.keys(marketplace.entries).length;
-        const completed: RecoveryRecord = {
-          ...pending,
-          message:
-            "Marketplace storage was reset. Restore or export this copy from Health when you need it.",
-          incomplete: [],
-        };
-        let statusUpdated = true;
+      const operation = (async (): Promise<void> => {
         try {
-          store.writeRecovery(completed);
-        } catch {
-          // The verified pending copy remains usable when storage refuses the
-          // status update after deletion.
-          statusUpdated = false;
+          const marketplace = await marketplaceStore.readAll();
+          if (!marketplace.available) {
+            notify(
+              "Marketplace's settings could not be read, so nothing was reset. Close any other Spotify window and try again.",
+              true,
+            );
+            return;
+          }
+
+          const createdAt = new Date();
+          const file = serializeBackup(
+            createBackup(engine.state, marketplace.entries, createdAt),
+          );
+          const pending: RecoveryRecord = {
+            schemaVersion: RECOVERY_RECORD_SCHEMA_VERSION,
+            kind: "marketplace-reset",
+            createdAt: createdAt.toISOString(),
+            message: "Marketplace reset recovery copy is pending.",
+            incomplete: ["marketplace"],
+            raw: file,
+          };
+
+          // The owned copy must be verified before clipboard access or deletion.
+          // The Clipboard API is user-controlled and can be replaced immediately.
+          store.writeRecovery(pending);
+          syncRecovery();
+          emit();
+          await copyThroughPlatform(file);
+          await marketplaceStore.deleteAll();
+
+          const count = Object.keys(marketplace.entries).length;
+          const completed: RecoveryRecord = {
+            ...pending,
+            message:
+              "Marketplace storage was reset. Restore or export this copy from Health when you need it.",
+            incomplete: [],
+          };
+          let statusUpdated = true;
+          try {
+            store.writeRecovery(completed);
+          } catch {
+            // The verified pending copy remains usable when storage refuses the
+            // status update after deletion.
+            statusUpdated = false;
+          }
+          syncRecovery();
+          emit();
+          notify(
+            statusUpdated
+              ? `Marketplace storage reset. A durable recovery copy and a clipboard backup hold this profile and ${count} Marketplace settings. Health can restore or export the durable copy.`
+              : `Marketplace storage reset. Health retained the recovery copy, but could not update its status. It can still restore or export ${count} Marketplace settings.`,
+          );
+        } catch (error) {
+          syncRecovery();
+          emit();
+          const message =
+            error instanceof Error ? error.message : "Marketplace reset failed.";
+          notify(message, true);
         }
-        syncRecovery();
-        emit();
-        notify(
-          statusUpdated
-            ? `Marketplace storage reset. A durable recovery copy and a clipboard backup hold this profile and ${count} Marketplace settings. Health can restore or export the durable copy.`
-            : `Marketplace storage reset. Health retained the recovery copy, but could not update its status. It can still restore or export ${count} Marketplace settings.`,
-        );
-      } catch (error) {
-        syncRecovery();
-        emit();
-        const message =
-          error instanceof Error ? error.message : "Marketplace reset failed.";
-        notify(message, true);
+      })();
+      marketplaceResetPromise = operation;
+      try {
+        await operation;
+      } finally {
+        if (marketplaceResetPromise === operation) {
+          marketplaceResetPromise = undefined;
+        }
       }
     }
 
