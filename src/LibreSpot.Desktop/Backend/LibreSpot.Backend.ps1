@@ -2297,9 +2297,8 @@ function Invoke-HeadlessReapply {
         Reapply-SavedSpicetifySetup -Config $Config
         Write-WatcherLog 'Auto-reapply completed successfully.' -Level 'SUCCESS'
     } finally {
-        # Cleared on exit so a later tick that fails before reaching this
-        # function cannot report the step an earlier one stopped at.
-        $global:LibreSpotReapplyStep = $null
+        # The watcher owns the marker lifetime. It must still be available to
+        # the outer catch while that catch records the failed stage.
         Stop-SpotifyWindowWatcher -Watcher $watcher
         if (-not [string]::IsNullOrWhiteSpace($customPatchesPath)) {
             Remove-Item -LiteralPath $customPatchesPath -Force -ErrorAction SilentlyContinue
@@ -2433,6 +2432,9 @@ function Invoke-AutoReapplyWatcher {
         return 0
     }
 
+    # Reset stale state before this tick starts. The marker remains set until
+    # the success or failure record has been written below.
+    $global:LibreSpotReapplyStep = $null
     try {
         Invoke-HeadlessReapply -Config $saved
         $now = Get-Date -Format 'o'
@@ -2449,24 +2451,27 @@ function Invoke-AutoReapplyWatcher {
         }
         foreach ($entry in (Get-LibreSpotWatcherClearedHoldState).GetEnumerator()) { $applied[$entry.Key] = $entry.Value }
         Set-WatcherState -State $applied
+        $global:LibreSpotReapplyStep = $null
         return 0
     } catch {
-        Write-WatcherLog "Reapply failed: $($_.Exception.Message)" -Level 'ERROR'
         $now = Get-Date -Format 'o'
         $message = [string]$_.Exception.Message
+        $failedStep = if ([string]::IsNullOrWhiteSpace($global:LibreSpotReapplyStep)) { 'reapply' } else { $global:LibreSpotReapplyStep }
+        $diagnostic = "$failedStep`: $message"
+        Write-WatcherLog "Reapply failed during $diagnostic" -Level 'ERROR'
         $failed = @{
             LastKnownVersion = $state.LastKnownVersion
             LastRunAt = $now
-            LastOutcome = "Error: $message"
+            LastOutcome = "Error: $diagnostic"
             LastAttemptedSpotifyVersion = $currentVersion
             LastApplyAt = $now
             LastApplyOutcome = 'WatcherFailed'
-            LastApplyError = $message
+            LastApplyError = $diagnostic
         }
-        $failedStep = if ([string]::IsNullOrWhiteSpace($global:LibreSpotReapplyStep)) { 'reapply' } else { $global:LibreSpotReapplyStep }
-        $counters = Get-LibreSpotWatcherFailureState -State $state -CurrentVersion $currentVersion -Reason "$failedStep`: $message" -Timestamp $now
+        $counters = Get-LibreSpotWatcherFailureState -State $state -CurrentVersion $currentVersion -Reason $diagnostic -Timestamp $now
         foreach ($entry in $counters.GetEnumerator()) { $failed[$entry.Key] = $entry.Value }
         Set-WatcherState -State $failed
+        $global:LibreSpotReapplyStep = $null
         return 1
     }
 }

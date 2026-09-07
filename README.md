@@ -124,6 +124,8 @@ Desktop setup, the standalone script, and the auto-reapply watcher now coordinat
 
 CLI, theme, and custom app installers now unpack pinned archives into a verified staging folder on the target volume. A single recoverable transaction swaps the package, companion extension, and Spicetify configuration together. Failed requested apps retain their existing config entries, required theme files are checked after staging, and a changed configuration target is left alone when recovery cannot prove that the transaction owns it.
 
+Auto-reapply watcher failures keep the originating download, parameter, patch, or Spicetify application stage in the saved diagnostics. The marker is cleared after the result is recorded, and the existing retry and hold behavior remains in place.
+
 ## What's New in v4.4.0
 
 The settings workspace inside Spotify has been rebuilt around six focused pages. A compact LibreSpot rail keeps Store, Look, Tweaks, Features, Presets, and Health easy to reach without competing with Spotify's own navigation. The settings cog in Spotify's top bar opens Look directly.

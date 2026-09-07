@@ -324,9 +324,8 @@ function Invoke-HeadlessReapply {
         Reapply-SavedSpicetifySetup -Config $Config
         Write-WatcherLog "Spicetify assets and managed routes reapplied" -Level 'SUCCESS'
     } finally {
-        # Cleared on exit so a later tick that fails before reaching this
-        # function cannot report the step an earlier one stopped at.
-        $global:LibreSpotReapplyStep = $null
+        # The watcher owns the marker lifetime. It must still be available to
+        # the outer catch while that catch records the failed stage.
         if (-not [string]::IsNullOrWhiteSpace($customPatchesPath)) {
             Remove-Item -LiteralPath $customPatchesPath -Force -ErrorAction SilentlyContinue
         }
@@ -393,23 +392,29 @@ function Invoke-AutoReapplyWatcher {
         return 0
     }
 
+    # Reset stale state before this tick starts. The marker remains set until
+    # the success or failure record has been written below.
+    $global:LibreSpotReapplyStep = $null
     try {
         Invoke-HeadlessReapply -Config $saved
         $applied = @{ LastKnownVersion = $currentVersion; LastRunAt = (Get-Date -Format 'o'); LastOutcome = 'Reapplied' }
         foreach ($entry in (Get-LibreSpotWatcherClearedHoldState).GetEnumerator()) { $applied[$entry.Key] = $entry.Value }
         Set-WatcherState -State $applied
+        $global:LibreSpotReapplyStep = $null
         return 0
     } catch {
-        Write-WatcherLog "Reapply failed: $($_.Exception.Message)" -Level 'ERROR'
         $now = Get-Date -Format 'o'
         $message = [string]$_.Exception.Message
+        $failedStep = if ([string]::IsNullOrWhiteSpace($global:LibreSpotReapplyStep)) { 'reapply' } else { $global:LibreSpotReapplyStep }
+        $diagnostic = "$failedStep`: $message"
+        Write-WatcherLog "Reapply failed during $diagnostic" -Level 'ERROR'
         # Keep LastKnownVersion unchanged so we'll retry next tick, until
         # the failure count for this build reaches the hold threshold.
-        $failed = @{ LastKnownVersion = $state.LastKnownVersion; LastRunAt = $now; LastOutcome = "Error: $message" }
-        $failedStep = if ([string]::IsNullOrWhiteSpace($global:LibreSpotReapplyStep)) { 'reapply' } else { $global:LibreSpotReapplyStep }
-        $counters = Get-LibreSpotWatcherFailureState -State $state -CurrentVersion $currentVersion -Reason "$failedStep`: $message" -Timestamp $now
+        $failed = @{ LastKnownVersion = $state.LastKnownVersion; LastRunAt = $now; LastOutcome = "Error: $diagnostic"; LastApplyError = $diagnostic }
+        $counters = Get-LibreSpotWatcherFailureState -State $state -CurrentVersion $currentVersion -Reason $diagnostic -Timestamp $now
         foreach ($entry in $counters.GetEnumerator()) { $failed[$entry.Key] = $entry.Value }
         Set-WatcherState -State $failed
+        $global:LibreSpotReapplyStep = $null
         return 1
     }
 }

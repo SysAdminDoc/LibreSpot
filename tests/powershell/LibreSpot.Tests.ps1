@@ -3776,7 +3776,168 @@ Describe 'Auto-reapply watcher hold' {
         }
     }
 
-    It 'clears the hold when a manual reapply succeeds' {
+    BeforeAll {
+        $sharedDir = (Resolve-Path (Join-Path $PSScriptRoot '..\..\src\powershell\shared')).Path
+        $script:LaneRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..\src\powershell')).Path
+        $script:BackendHostPath = (Resolve-Path (Join-Path $PSScriptRoot '..\..\src\LibreSpot.Desktop\Backend\LibreSpot.Backend.ps1')).Path
+        foreach ($name in @(
+                'Get-LibreSpotWatcherHoldDecision',
+                'Get-LibreSpotWatcherFailureState',
+                'Get-LibreSpotWatcherClearedHoldState')) {
+            . (Join-Path $sharedDir "$name.ps1")
+        }
+
+        function Invoke-WatcherTick {
+            param([hashtable]$State, [string]$Version, [switch]$Succeeds, [string]$Reason = 'spicetify apply failed')
+            $decision = Get-LibreSpotWatcherHoldDecision -State $State -CurrentVersion $Version
+            if ($decision.IsHeld) { return @{ State = $State; Attempted = $false } }
+            $next = @{}
+            foreach ($key in $State.Keys) { $next[$key] = $State[$key] }
+            $fields = if ($Succeeds) {
+                Get-LibreSpotWatcherClearedHoldState
+            } else {
+                Get-LibreSpotWatcherFailureState -State $State -CurrentVersion $Version -Reason $Reason -Timestamp '2026-09-04T10:00:00.0000000Z'
+            }
+            foreach ($entry in $fields.GetEnumerator()) { $next[$entry.Key] = $entry.Value }
+            return @{ State = $next; Attempted = $true }
+        }
+
+        function Invoke-LaneWatcherFailureScenario {
+            [CmdletBinding()]
+            param(
+                [Parameter(Mandatory = $true)][ValidateSet('gui', 'backend')][string]$Lane,
+                [Parameter(Mandatory = $true)][ValidateSet('download', 'parameters', 'patch', 'apply')][string]$FailureStage
+            )
+
+            $lanePath = Join-Path $script:LaneRoot "$Lane\lane-functions.ps1"
+            $laneSource = [System.IO.File]::ReadAllText($lanePath)
+            $headlessSource = Extract-FunctionBlock -Script $laneSource -FunctionName 'Invoke-HeadlessReapply'
+            $watcherSource = Extract-FunctionBlock -Script $laneSource -FunctionName 'Invoke-AutoReapplyWatcher'
+
+            $hadMarker = Test-Path -LiteralPath 'variable:global:LibreSpotReapplyStep'
+            $previousMarker = $global:LibreSpotReapplyStep
+            $hadTempDir = Test-Path -LiteralPath 'variable:global:TEMP_DIR'
+            $previousTempDir = $global:TEMP_DIR
+            $hadPinnedReleases = Test-Path -LiteralPath 'variable:global:PinnedReleases'
+            $previousPinnedReleases = $global:PinnedReleases
+            $hadSpotxUrl = Test-Path -LiteralPath 'variable:global:URL_SPOTX'
+            $previousSpotxUrl = $global:URL_SPOTX
+
+            $global:LibreSpotFixtureStage = $FailureStage
+            $global:LibreSpotFixtureRecordedState = $null
+            $global:LibreSpotReapplyStep = 'stale marker from a prior tick'
+            $global:PinnedReleases = [ordered]@{ SpotX = @{ SHA256 = 'fixture-hash' } }
+            $global:URL_SPOTX = 'https://fixture.invalid/spotx.ps1'
+            $global:TEMP_DIR = Join-Path ([System.IO.Path]::GetTempPath()) ('LibreSpotWatcherFixture.' + [Guid]::NewGuid().ToString('N'))
+
+            try {
+                return (& {
+                    param($HeadlessSource, $WatcherSource)
+
+                    Invoke-Expression $HeadlessSource
+                    Invoke-Expression $WatcherSource
+
+                    function Write-WatcherLog {
+                        param([string]$Message, [string]$Level = 'INFO')
+                    }
+
+                    function Get-InstalledSpotifyVersion { return '2.0.0.0' }
+                    function Get-WatcherState { return @{ LastKnownVersion = '1.0.0.0' } }
+                    function Set-WatcherState {
+                        param([hashtable]$State)
+                        $global:LibreSpotFixtureRecordedState = $State
+                    }
+                    function Load-LibreSpotConfig { return @{ AutoReapply_Enabled = $true } }
+                    function Normalize-LibreSpotConfig { param([hashtable]$Config) return $Config }
+                    function Test-SpotifyRunning { return $false }
+                    function Get-SpicetifyV3Conflict { return [pscustomobject]@{ IsConflict = $false; Message = '' } }
+                    function Start-SpotifyWindowWatcher { return $null }
+                    function Stop-SpotifyWindowWatcher { param($Watcher) }
+                    function New-LibreSpotTempFile {
+                        param([string]$Name)
+                        return (Join-Path ([System.IO.Path]::GetTempPath()) ('LibreSpotWatcherFixture.' + [Guid]::NewGuid().ToString('N') + '.' + $Name))
+                    }
+                    function Get-FromAssetCache {
+                        param([string]$SHA256Hash, [string]$DestinationPath, [string]$Label)
+                        if ($global:LibreSpotFixtureStage -eq 'download') { return $false }
+                        [System.IO.File]::WriteAllText($DestinationPath, 'exit 0')
+                        return $true
+                    }
+                    function Download-FileSafe {
+                        param([string]$Uri, [string]$OutFile)
+                        throw 'fixture download failure'
+                    }
+                    function Confirm-FileHash {
+                        param([string]$Path, [string]$ExpectedHash, [string]$Label)
+                    }
+                    function Save-ToAssetCache {
+                        param([string]$SourcePath, [string]$SHA256Hash, [string]$Label, [string]$SourceUrl)
+                    }
+                    function Build-SpotXParams {
+                        param([hashtable]$Config)
+                        if ($global:LibreSpotFixtureStage -eq 'parameters') { throw 'fixture parameter construction failure' }
+                        return '--fixture'
+                    }
+                    function New-SpotXCustomPatchesFile {
+                        param([hashtable]$Config)
+                        return ''
+                    }
+                    function Invoke-ExternalScriptIsolated {
+                        param([string]$FilePath, [string]$Arguments, [string]$ExpectedHash, [string]$Label)
+                        if ($global:LibreSpotFixtureStage -eq 'patch') { throw 'fixture SpotX patch failure' }
+                    }
+                    function Open-VerifiedScriptForExecution {
+                        param([string]$FilePath, [string]$ExpectedHash, [string]$Label, [string]$Arguments)
+                        if ($global:LibreSpotFixtureStage -eq 'patch') { throw 'fixture SpotX patch failure' }
+                        $guard = [pscustomobject]@{}
+                        $guard | Add-Member -MemberType ScriptMethod -Name Dispose -Value { }
+                        return $guard
+                    }
+                    function Reapply-SavedSpicetifySetup {
+                        param([hashtable]$Config)
+                        if ($global:LibreSpotFixtureStage -eq 'apply') { throw 'fixture Spicetify application failure' }
+                    }
+
+                    $exitCode = Invoke-AutoReapplyWatcher
+                    [pscustomobject]@{
+                        ExitCode = [int]$exitCode
+                        State = $global:LibreSpotFixtureRecordedState
+                        MarkerAfterRecord = [string]$global:LibreSpotReapplyStep
+                    }
+                } $headlessSource $watcherSource)
+            } finally {
+                if ($hadMarker) { $global:LibreSpotReapplyStep = $previousMarker } else { Remove-Variable -Name LibreSpotReapplyStep -Scope Global -Force -ErrorAction SilentlyContinue }
+                if ($hadTempDir) { $global:TEMP_DIR = $previousTempDir } else { Remove-Variable -Name TEMP_DIR -Scope Global -Force -ErrorAction SilentlyContinue }
+                if ($hadPinnedReleases) { $global:PinnedReleases = $previousPinnedReleases } else { Remove-Variable -Name PinnedReleases -Scope Global -Force -ErrorAction SilentlyContinue }
+                if ($hadSpotxUrl) { $global:URL_SPOTX = $previousSpotxUrl } else { Remove-Variable -Name URL_SPOTX -Scope Global -Force -ErrorAction SilentlyContinue }
+                Remove-Variable -Name LibreSpotFixtureStage -Scope Global -Force -ErrorAction SilentlyContinue
+                Remove-Variable -Name LibreSpotFixtureRecordedState -Scope Global -Force -ErrorAction SilentlyContinue
+            }
+        }
+    }
+
+        It 'retains every failure stage through both watcher call chains' {
+            $expectedStages = [ordered]@{
+                download = 'SpotX download'
+                parameters = 'SpotX parameter build'
+                patch = 'SpotX patch'
+                apply = 'Spicetify reapply'
+            }
+
+            foreach ($lane in @('gui', 'backend')) {
+                foreach ($scenario in $expectedStages.GetEnumerator()) {
+                    $result = Invoke-LaneWatcherFailureScenario -Lane $lane -FailureStage $scenario.Key
+                    $result.ExitCode | Should -Be 1 -Because "$lane $($scenario.Key) failure must return a watcher failure"
+                    $result.State.LastKnownVersion | Should -Be '1.0.0.0'
+                    $result.State.LastApplyError | Should -Match ("^{0}: " -f [regex]::Escape($scenario.Value))
+                    $result.State.LastOutcome | Should -Match ("^Error: {0}: " -f [regex]::Escape($scenario.Value))
+                    $result.State.ReapplyFailureCount | Should -Be 1
+                    $result.MarkerAfterRecord | Should -BeNullOrEmpty -Because "$lane must clear the marker after recording $($scenario.Value)"
+                }
+            }
+        }
+
+        It 'clears the hold when a manual reapply succeeds' {
         # Update-ApplyState is the backend writer behind the Reapply action the
         # held Maintenance row offers. If it does not retire the hold, that
         # action is a no-op and the row never clears.
@@ -3808,13 +3969,16 @@ Describe 'Auto-reapply watcher hold' {
         $installBlock | Should -Match 'Get-LibreSpotWatcherClearedHoldState'
     }
 
-    It 'does not carry a step marker across ticks' {
+    It 'resets the marker at the watcher boundary and clears it after recording' {
         foreach ($lane in @('gui', 'backend')) {
             $text = [System.IO.File]::ReadAllText((Join-Path $script:LaneRoot "$lane\lane-functions.ps1"))
             $reapply = [regex]::Match($text, '(?ms)^function Invoke-HeadlessReapply\s*\{.+?^\}').Value
-            # A tick that fails before reaching the reapply would otherwise
-            # report the step the previous tick stopped at.
-            $reapply | Should -Match '\$global:LibreSpotReapplyStep = \$null' -Because "$lane must clear the marker on exit"
+            $watcher = [regex]::Match($text, '(?ms)^function Invoke-AutoReapplyWatcher\s*\{.+?^\}').Value
+            # A tick that fails before reaching the reapply must not report the
+            # step the previous tick stopped at.
+            $watcher | Should -Match '\$global:LibreSpotReapplyStep = \$null' -Because "$lane must reset the marker before a tick"
+            $reapply | Should -Not -Match 'Cleared on exit' -Because "$lane must leave the marker for the outer recorder"
+            $watcher | Should -Match 'Set-WatcherState -State \$failed\s+\$global:LibreSpotReapplyStep = \$null' -Because "$lane must clear the marker after recording a failure"
         }
     }
 

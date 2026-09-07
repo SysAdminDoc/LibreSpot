@@ -8,13 +8,6 @@ Incomplete, implementer-actionable work only. Operator-dependent decisions remai
 
 ### P2: Next
 
-- [ ] P2: RD-233. Preserve the watcher failure stage until it is recorded
-  Why: Impact 3/5. A finally block clears the stage before the caller reads it, replacing specific patch failures with generic reapply.
-  Evidence: RESEARCH.md; exercised Invoke-HeadlessReapply with no-op dependencies; both src/powershell/backend/lane-functions.ps1 and gui/lane-functions.ps1 share the ordering defect.
-  Touches: Both lane functions; shared failure result/exception data; tests/powershell/LibreSpot.Tests.ps1; composed hosts.
-  Acceptance: Fail download, parameter construction, patching and Spicetify application through the actual watcher call chain. Each retained diagnostic must name the originating stage; clear transient state only after recording it. Preserve the existing retry/hold policy.
-  Complexity: S
-
 - [ ] P2: RD-234. Track IndexedDB operations through late completion
   Why: Impact 4/5. A timed-out open leaks a later connection; a blocked delete can finish after the UI declares that nothing was reset.
   Evidence: RESEARCH.md; exercised late-success open fixture; core/backup.ts open/deleteAll; IndexedDB deletion algorithm waits for other connections before continuing.

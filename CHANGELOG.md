@@ -6,6 +6,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Fixed
 
+- Auto-reapply watcher failures now retain the download, parameter, patch, or Spicetify application stage through cleanup. The stage is written into the failure diagnostics before the transient marker is cleared, while retry and hold behavior stays unchanged.
 - CLI, theme, and custom app installs now stage complete pinned packages on the target volume, verify their contents, and commit package, companion extension, and configuration changes through one recoverable swap. Failed requested apps retain their existing config entries, required theme files are checked after staging, and recovery refuses a changed configuration target it cannot prove belongs to the transaction.
 - Desktop, standalone script, and auto-reapply watcher mutations now share a per-user lease keyed to the canonical Spotify and Spicetify installation. Calls against the same installation defer with a busy result before snapshots or shutdown, while separate installations can proceed independently and nested calls remain reentrant.
 - External PowerShell runs now own their complete process trees with a Windows Job Object. Timeout, cancellation, watchdog shutdown, and launcher exit terminate descendants before cleanup, containment failures are reported explicitly, and unrelated processes remain untouched.
