@@ -7,7 +7,7 @@
     "schemas/theme-preview-manifest.json"
   ],
   "sourceDigests": {
-    "schemas/community-assets.json": "756f763044405afeddb43b6360fb029aae4d6d0fc5f1cf6e8d1ed9c2beff5d16",
+    "schemas/community-assets.json": "825c4f4bcda7bb65ed5477e264bde5f651c1e1c7551c9b804d074b4be9465565",
     "schemas/theme-preview-manifest.json": "e51a003fbac978f8ac5bf78400d2e9a6eb902fbb2843d21f42f018aabacbafaa"
   },
   "counts": {
