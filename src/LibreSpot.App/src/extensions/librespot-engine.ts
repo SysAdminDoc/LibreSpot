@@ -548,7 +548,23 @@ async function bootstrap(): Promise<void> {
       emit();
     }
 
-    const marketplaceStore = indexedDbMarketplaceStore(window.indexedDB);
+    let marketplaceIndexedDb: IDBFactory | null = null;
+    try {
+      marketplaceIndexedDb = window.indexedDB;
+    } catch {
+      // A blocked IndexedDB getter leaves the localStorage backend usable.
+    }
+    let marketplaceLegacyStorage: Storage | null = null;
+    try {
+      marketplaceLegacyStorage = window.localStorage;
+    } catch {
+      // A blocked localStorage getter leaves the IndexedDB backend usable.
+    }
+    const marketplaceStore = indexedDbMarketplaceStore(
+      marketplaceIndexedDb,
+      8000,
+      marketplaceLegacyStorage,
+    );
     marketplaceStore.subscribeDeleteStatus((status) => {
       marketplaceResetStatus = status;
       emit();
@@ -617,7 +633,12 @@ async function bootstrap(): Promise<void> {
 
           const createdAt = new Date();
           const file = serializeBackup(
-            createBackup(engine.state, marketplace.entries, createdAt),
+            createBackup(
+              engine.state,
+              marketplace.entries,
+              createdAt,
+              marketplace.storage,
+            ),
           );
           const pending: RecoveryRecord = {
             schemaVersion: RECOVERY_RECORD_SCHEMA_VERSION,
@@ -783,7 +804,12 @@ async function bootstrap(): Promise<void> {
           }
 
           const file = serializeBackup(
-            createBackup(engine.state, marketplace.entries, new Date()),
+            createBackup(
+              engine.state,
+              marketplace.entries,
+              new Date(),
+              marketplace.storage,
+            ),
           );
           await copyThroughPlatform(file);
           const count = Object.keys(marketplace.entries).length;

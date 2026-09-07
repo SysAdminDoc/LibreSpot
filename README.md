@@ -128,6 +128,8 @@ Auto-reapply watcher failures keep the originating download, parameter, patch, o
 
 Marketplace reset now follows the IndexedDB request to its real terminal result. Health keeps the action visibly pending when another Spotify window blocks deletion or the local watchdog expires, reuses an in-flight request instead of starting a duplicate, and closes a database connection that arrives after an open attempt timed out.
 
+Marketplace backup and reset recovery now include its legacy localStorage fallback as well as IndexedDB. The pinned migration rule gives database values precedence and uses legacy values only when migration is incomplete or IndexedDB is unavailable. Reset clears only `marketplace:` keys and restores the captured backend state without changing unrelated Spotify or LibreSpot storage.
+
 ## What's New in v4.4.0
 
 The settings workspace inside Spotify has been rebuilt around six focused pages. A compact LibreSpot rail keeps Store, Look, Tweaks, Features, Presets, and Health easy to reach without competing with Spotify's own navigation. The settings cog in Spotify's top bar opens Look directly.

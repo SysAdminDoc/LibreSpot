@@ -91,7 +91,9 @@ RD-230 gives the desktop backend, standalone CLI workers, and both watcher hosts
 
 **Implemented and exercised (RD-234):** `core/backup.ts` closes a database connection arriving after its open attempt settles. Delete requests expose pending, watchdog, success, and terminal-error states, keep the request alive after a watchdog, and reuse the in-flight operation for duplicate calls. Health disables the reset action while the request is pending and announces that a watchdog did not cancel it. Focused fixtures cover blocked-then-success, timeout-then-success, terminal error, late-open cleanup, and unrelated storage canaries. [IndexedDB deletion](https://www.w3.org/TR/IndexedDB-3/#delete-a-database) waits for existing connections to close before continuing.
 
-Pinned [Marketplace Storage.ts](https://raw.githubusercontent.com/spicetify/marketplace/v1.0.11/src/logic/Storage.ts) migrates surviving `marketplace:` keys when the new database lacks its migration marker, and uses localStorage when IndexedDB is unavailable. Successful migration normally removes legacy keys. LibreSpot's database-only backup/reset therefore misses a conditional but real storage mode (RD-235). Preserve unrelated Spotify and LibreSpot keys.
+Pinned [Marketplace Storage.ts](https://raw.githubusercontent.com/spicetify/marketplace/v1.0.11/src/logic/Storage.ts) migrates surviving `marketplace:` keys when the new database lacks its migration marker, and uses localStorage when IndexedDB is unavailable. Successful migration normally removes legacy keys. This conditional storage path was the RD-235 recovery gap.
+
+**Implemented and exercised (RD-235):** the Marketplace adapter now reads only owned `marketplace:` keys from IndexedDB and localStorage, applies the pinned database and migration-marker precedence, and records backend availability separately from an empty store. Backup files retain both views, reset clears the owned keys in both backends, and restore replaces the captured state while preserving unrelated storage. Prior backup envelopes remain readable, and migration fixtures prove a removed theme does not return after reset and reload.
 
 ## Architecture Assessment
 

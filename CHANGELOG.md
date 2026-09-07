@@ -6,6 +6,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Fixed
 
+- Marketplace backups and reset recovery now capture the owned `marketplace:` keys from IndexedDB and the legacy localStorage fallback, honor the pinned migration precedence, and restore or clear those backends without touching Spotify or LibreSpot keys.
 - Marketplace reset now keeps its IndexedDB request alive through a blocked or watchdog state. Health shows that the reset is still pending, disables duplicate requests, closes a late database connection after an open timeout, and reports success or a terminal error when the request actually finishes.
 - Auto-reapply watcher failures now retain the download, parameter, patch, or Spicetify application stage through cleanup. The stage is written into the failure diagnostics before the transient marker is cleared, while retry and hold behavior stays unchanged.
 - CLI, theme, and custom app installs now stage complete pinned packages on the target volume, verify their contents, and commit package, companion extension, and configuration changes through one recoverable swap. Failed requested apps retain their existing config entries, required theme files are checked after staging, and recovery refuses a changed configuration target it cannot prove belongs to the transaction.

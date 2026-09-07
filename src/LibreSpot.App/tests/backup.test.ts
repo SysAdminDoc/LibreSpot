@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   BACKUP_SCHEMA_VERSION,
+  MARKETPLACE_MIGRATION_KEY,
   MAX_MARKETPLACE_BYTES,
   createBackup,
   parseBackup,
@@ -76,6 +77,147 @@ function stateFixture(now: Date): ReturnType<typeof createDefaultState> {
     Light: { text: "111111", main: "FFFFFF", button: "16843D", accent: "16843D" },
   };
   return state;
+}
+
+type FakeMarketplaceRequest<T> = {
+  result: T;
+  onsuccess: (() => void) | null;
+  onerror: (() => void) | null;
+  onblocked: (() => void) | null;
+  onupgradeneeded?: (() => void) | null;
+};
+
+function fakeWebStorage(seed: Record<string, string> = {}) {
+  const values = new Map(Object.entries(seed));
+  return {
+    get length() {
+      return values.size;
+    },
+    key: (index: number) => [...values.keys()][index] ?? null,
+    getItem: (key: string) => values.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      values.set(key, value);
+    },
+    removeItem: (key: string) => {
+      values.delete(key);
+    },
+    entries: () => Object.fromEntries(values),
+  } as unknown as Storage & { entries(): Record<string, string> };
+}
+
+function fakeMarketplaceIndexedDb(seed: unknown[] = []) {
+  const records = [...seed];
+  let deleteCalls = 0;
+  let completeScheduled = false;
+  let transaction: {
+    objectStore: () => {
+      getAll: () => FakeMarketplaceRequest<unknown[]>;
+      put: (record: unknown) => unknown;
+      delete: (key: string) => unknown;
+    };
+    oncomplete: (() => void) | null;
+    onerror: (() => void) | null;
+    onabort: (() => void) | null;
+  };
+
+  const scheduleComplete = () => {
+    if (completeScheduled) return;
+    completeScheduled = true;
+    queueMicrotask(() => transaction.oncomplete?.());
+  };
+
+  const createTransaction = () => {
+    completeScheduled = false;
+    const store = {
+      getAll: () => {
+        const request: FakeMarketplaceRequest<unknown[]> = {
+          result: [...records],
+          onsuccess: null,
+          onerror: null,
+          onblocked: null,
+        };
+        queueMicrotask(() => {
+          request.onsuccess?.();
+          scheduleComplete();
+        });
+        return request;
+      },
+      put: (record: unknown) => {
+        const value = record as { key?: unknown };
+        const index = records.findIndex(
+          (candidate) =>
+            typeof candidate === "object" &&
+            candidate !== null &&
+            (candidate as { key?: unknown }).key === value.key,
+        );
+        if (index >= 0) records[index] = record;
+        else records.push(record);
+        scheduleComplete();
+        return {};
+      },
+      delete: (key: string) => {
+        const index = records.findIndex(
+          (candidate) =>
+            typeof candidate === "object" &&
+            candidate !== null &&
+            (candidate as { key?: unknown }).key === key,
+        );
+        if (index >= 0) records.splice(index, 1);
+        scheduleComplete();
+        return {};
+      },
+    };
+    transaction = {
+      objectStore: () => store,
+      oncomplete: null,
+      onerror: null,
+      onabort: null,
+    };
+    return transaction;
+  };
+
+  const factory: IDBFactory = {
+    open: () => {
+      const request: FakeMarketplaceRequest<IDBDatabase | null> = {
+        result: null,
+        onsuccess: null,
+        onerror: null,
+        onblocked: null,
+        onupgradeneeded: null,
+      };
+      queueMicrotask(() => {
+        request.result = {
+          objectStoreNames: { contains: () => true },
+          transaction: () => createTransaction(),
+          close: () => undefined,
+        } as unknown as IDBDatabase;
+        request.onsuccess?.();
+      });
+      return request as unknown as IDBOpenDBRequest;
+    },
+    deleteDatabase: () => {
+      deleteCalls += 1;
+      const request: FakeMarketplaceRequest<undefined> = {
+        result: undefined,
+        onsuccess: null,
+        onerror: null,
+        onblocked: null,
+      };
+      queueMicrotask(() => {
+        records.length = 0;
+        request.onsuccess?.();
+      });
+      return request as unknown as IDBOpenDBRequest;
+    },
+  } as unknown as IDBFactory;
+
+  return {
+    factory,
+    records,
+    get deleteCalls() {
+      return deleteCalls;
+    },
+  };
 }
 
 function restoreEngineFixture(initial: ReturnType<typeof stateFixture>, storage: StorageAdapter) {
@@ -253,7 +395,6 @@ describe("backup", () => {
     expect(read.available).toBe(true);
     expect({ ...read.entries }).toEqual({
       "marketplace:active-tab": "Themes",
-      "internal:local-storage-migrated": "1",
     });
 
     await store.writeAll({ "marketplace:active-tab": "Extensions" });
@@ -262,10 +403,10 @@ describe("backup", () => {
 
     await store.restoreKeys(
       { "marketplace:active-tab": "Themes" },
-      ["marketplace:active-tab", "introduced"],
+      ["marketplace:active-tab", "marketplace:introduced"],
     );
     expect(puts.at(-1)).toEqual({ key: "marketplace:active-tab", value: "Themes" });
-    expect(deletes).toEqual(["introduced"]);
+    expect(deletes).toEqual(["marketplace:introduced"]);
   });
 
   it("creates the known Marketplace schema for explicit reset recovery", async () => {
@@ -331,7 +472,7 @@ describe("backup", () => {
     const marketplace = indexedDbMarketplaceStore(factory, 200);
     const read = await marketplace.readAll(true);
 
-    expect(read).toEqual({ available: true, entries: {} });
+    expect(read).toMatchObject({ available: true, entries: {} });
     expect(created).toBe(true);
     expect(aborted).toBe(false);
 
@@ -339,6 +480,194 @@ describe("backup", () => {
     expect(records).toEqual([
       { key: "marketplace:active-tab", value: "Themes" },
     ]);
+  });
+
+  it("reads only Marketplace keys and gives IndexedDB precedence before migration", async () => {
+    const legacy = fakeWebStorage({
+      "marketplace:active-tab": "Legacy",
+      "marketplace:legacy-only": "legacy",
+      "spotify:unrelated": "keep",
+    });
+    const indexed = fakeMarketplaceIndexedDb([
+      { key: "marketplace:active-tab", value: "Database" },
+      { key: "internal:other", value: "ignore" },
+    ]);
+    const store = indexedDbMarketplaceStore(indexed.factory, 200, legacy);
+
+    const beforeMigration = await store.readAll();
+    expect(beforeMigration.entries).toEqual({
+      "marketplace:active-tab": "Database",
+      "marketplace:legacy-only": "legacy",
+    });
+    expect(beforeMigration.storage).toMatchObject({
+      indexedDb: { "marketplace:active-tab": "Database" },
+      localStorage: {
+        "marketplace:active-tab": "Legacy",
+        "marketplace:legacy-only": "legacy",
+      },
+      indexedDbAvailable: true,
+      localStorageAvailable: true,
+      indexedDbMigrationComplete: false,
+    });
+    expect(beforeMigration.entries).not.toHaveProperty("internal:other");
+    expect(beforeMigration.entries).not.toHaveProperty("spotify:unrelated");
+
+    indexed.records.push({ key: MARKETPLACE_MIGRATION_KEY, value: "1" });
+    const afterMigration = await store.readAll();
+    expect(afterMigration.entries).toEqual({
+      "marketplace:active-tab": "Database",
+    });
+    expect(afterMigration.storage?.indexedDbMigrationComplete).toBe(true);
+    expect(legacy.entries()).toEqual({
+      "marketplace:active-tab": "Legacy",
+      "marketplace:legacy-only": "legacy",
+      "spotify:unrelated": "keep",
+    });
+  });
+
+  it("uses Marketplace localStorage when IndexedDB is unavailable and clears only owned keys", async () => {
+    const legacy = fakeWebStorage({
+      "marketplace:active-tab": "Themes",
+      "marketplace:theme-installed": "legacy-theme",
+      "spotify:unrelated": "keep",
+      "librespot:profile": "keep",
+    });
+    const unavailable: IDBFactory = {
+      open: () => {
+        throw new Error("IndexedDB disabled");
+      },
+    } as unknown as IDBFactory;
+    const store = indexedDbMarketplaceStore(unavailable, 20, legacy);
+
+    const read = await store.readAll();
+    expect(read).toMatchObject({
+      available: true,
+      entries: {
+        "marketplace:active-tab": "Themes",
+        "marketplace:theme-installed": "legacy-theme",
+      },
+    });
+    expect(read.storage).toMatchObject({
+      indexedDbAvailable: false,
+      localStorageAvailable: true,
+    });
+
+    await store.writeAll({ "marketplace:active-tab": "Extensions" });
+    expect(legacy.getItem("marketplace:active-tab")).toBe("Extensions");
+    await store.deleteAll();
+    expect(legacy.entries()).toEqual({
+      "spotify:unrelated": "keep",
+      "librespot:profile": "keep",
+    });
+  });
+
+  it("does not clear an unavailable captured backend as if it were empty", async () => {
+    const legacy = fakeWebStorage({
+      "marketplace:old": "before",
+      "spotify:unrelated": "keep",
+    });
+    const indexed = fakeMarketplaceIndexedDb([
+      { key: "marketplace:active-tab", value: "Database" },
+      { key: MARKETPLACE_MIGRATION_KEY, value: "1" },
+      { key: "internal:other", value: "keep" },
+    ]);
+    const store = indexedDbMarketplaceStore(indexed.factory, 200, legacy);
+
+    await store.writeSnapshot({
+      indexedDb: {},
+      localStorage: { "marketplace:restored": "fallback" },
+      indexedDbAvailable: false,
+      localStorageAvailable: true,
+      indexedDbMigrationComplete: false,
+    });
+
+    expect(indexed.records).toEqual([
+      { key: "marketplace:active-tab", value: "Database" },
+      { key: MARKETPLACE_MIGRATION_KEY, value: "1" },
+      { key: "internal:other", value: "keep" },
+    ]);
+    expect(legacy.entries()).toEqual({
+      "marketplace:restored": "fallback",
+      "spotify:unrelated": "keep",
+    });
+  });
+
+  it("refuses to restore a captured database when the target is unavailable", async () => {
+    const unavailable: IDBFactory = {
+      open: () => {
+        throw new Error("IndexedDB disabled");
+      },
+    } as unknown as IDBFactory;
+    const legacy = fakeWebStorage({ "spotify:unrelated": "keep" });
+    const store = indexedDbMarketplaceStore(unavailable, 20, legacy);
+
+    await expect(
+      store.writeSnapshot({
+        indexedDb: { "marketplace:active-tab": "Themes" },
+        localStorage: {},
+        indexedDbAvailable: true,
+        localStorageAvailable: true,
+        indexedDbMigrationComplete: true,
+      }),
+    ).rejects.toThrow(/database is not available/);
+    expect(legacy.entries()).toEqual({ "spotify:unrelated": "keep" });
+  });
+
+  it("round-trips a migration snapshot without resurrecting old themes after reset", async () => {
+    const legacy = fakeWebStorage({
+      "marketplace:active-tab": "Legacy",
+      "marketplace:old-theme": "theme-before-migration",
+      "spotify:unrelated": "keep",
+      "librespot:profile": "keep",
+    });
+    const indexed = fakeMarketplaceIndexedDb([
+      { key: "marketplace:active-tab", value: "Database" },
+      { key: MARKETPLACE_MIGRATION_KEY, value: "1" },
+      { key: "internal:other", value: "ignore" },
+    ]);
+    const store = indexedDbMarketplaceStore(indexed.factory, 200, legacy);
+    const captured = await store.readAll();
+    const state = stateFixture(new Date("2026-09-06T22:00:00.000Z"));
+    const parsed = parseBackup(
+      serializeBackup(
+        createBackup(
+          state,
+          captured.entries,
+          new Date("2026-09-06T22:00:00.000Z"),
+          captured.storage,
+        ),
+      ),
+    );
+
+    expect(parsed.marketplace).toEqual({
+      "marketplace:active-tab": "Database",
+    });
+    expect(parsed.marketplaceStorage?.indexedDbMigrationComplete).toBe(true);
+    await store.deleteAll();
+
+    const reloaded = indexedDbMarketplaceStore(indexed.factory, 200, legacy);
+    await expect(reloaded.readAll()).resolves.toMatchObject({
+      available: true,
+      entries: {},
+    });
+    expect(legacy.entries()).toEqual({
+      "spotify:unrelated": "keep",
+      "librespot:profile": "keep",
+    });
+
+    const marketplaceStorage = parsed.marketplaceStorage;
+    if (!marketplaceStorage) throw new Error("The backup storage snapshot was not retained.");
+    await reloaded.writeSnapshot(marketplaceStorage, true);
+    const restored = await reloaded.readAll();
+    expect(restored.entries).toEqual({
+      "marketplace:active-tab": "Database",
+    });
+    expect(legacy.entries()).toEqual({
+      "marketplace:active-tab": "Legacy",
+      "marketplace:old-theme": "theme-before-migration",
+      "spotify:unrelated": "keep",
+      "librespot:profile": "keep",
+    });
   });
 
   it("compensates exact Marketplace keys while preserving the merge boundary", async () => {
@@ -383,7 +712,7 @@ describe("backup", () => {
     } as unknown as IDBFactory;
 
     const store = indexedDbMarketplaceStore(factory, 10);
-    await expect(store.readAll()).resolves.toEqual({
+    await expect(store.readAll()).resolves.toMatchObject({
       available: false,
       entries: {},
     });

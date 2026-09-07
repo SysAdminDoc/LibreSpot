@@ -292,7 +292,7 @@ export function HealthPanel(properties: PanelProperties): UiNode {
     Section({
       title: "Back up and restore",
       description:
-        "One file holds this profile and the settings Marketplace keeps in its own database, which is what a cleared Spotify profile takes with it. The file stays on this machine.",
+        "One file holds this profile and Marketplace's owned settings from IndexedDB or its localStorage fallback. The file stays on this machine.",
       children: h(
         "div",
         { className: "librespot-repair-callout" },
@@ -304,7 +304,7 @@ export function HealthPanel(properties: PanelProperties): UiNode {
           h(
             "p",
             null,
-            "Reset Marketplace storage saves a durable copy before clearing Marketplace's own database. Use it when a theme you removed keeps coming back, or when Marketplace refuses to uninstall one. The copy stays in Health even if the clipboard changes.",
+            "Reset Marketplace storage saves a durable copy before clearing both Marketplace backends. Use it when a theme you removed keeps coming back, or when Marketplace refuses to uninstall one. The copy stays in Health even if the clipboard changes.",
           ),
           marketplaceResetStatus
             ? h(

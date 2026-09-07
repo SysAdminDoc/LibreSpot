@@ -8,13 +8,6 @@ Incomplete, implementer-actionable work only. Operator-dependent decisions remai
 
 ### P2: Next
 
-- [ ] P2: RD-235. Include Marketplace legacy and fallback storage in recovery
-  Why: Impact 4/5. Upstream v1.0.11 can migrate surviving legacy keys back after reset and uses localStorage when IndexedDB is unavailable.
-  Evidence: Marketplace #1231 and pinned v1.0.11 src/logic/Storage.ts; LibreSpot core/backup.ts reads/deletes IndexedDB only.
-  Touches: Component Marketplace storage adapter, backup schema/parser, reset/restore paths and Health coverage text.
-  Acceptance: Inspect and preserve only Marketplace-owned keys from both backends, with explicit precedence matching pinned upstream migration. After RD-228, RD-229 and RD-234, reset and reload through a migration fixture must not resurrect old themes. Restore the captured active/fallback state; unrelated Spotify and LibreSpot keys remain byte-identical. Keep prior backup files readable and distinguish unavailable storage from an empty store.
-  Complexity: M
-
 - [ ] P2: RD-236. Atomically publish cache objects and serialize index updates
   Why: Impact 4/5. Direct object overwrites and unlocked whole-index writes can truncate files or lose another writer's entries.
   Evidence: RESEARCH.md; Save-ToAssetCache.ps1 and Update-AssetCacheIndexEntry.ps1; C#/PowerShell import and cache-clear entry points.

@@ -21,6 +21,8 @@ export const MAX_MARKETPLACE_BYTES = 2 * 1024 * 1024;
 
 export const MARKETPLACE_DATABASE = "spicetify-marketplace";
 export const MARKETPLACE_STORE = "settings";
+export const MARKETPLACE_KEY_PREFIX = "marketplace:";
+export const MARKETPLACE_MIGRATION_KEY = "internal:local-storage-migrated";
 
 export type MarketplaceEntries = Record<string, unknown>;
 
@@ -31,6 +33,8 @@ export type LibreSpotBackup = {
   createdAt: string;
   engine: EngineState;
   marketplace: MarketplaceEntries;
+  /** Present in new backups so restore can reproduce both Marketplace backends. */
+  marketplaceStorage?: MarketplaceStorageSnapshot;
   /** The desktop reads this to import the backup as a profile. */
   profile: unknown;
 };
@@ -39,12 +43,66 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function emptyMarketplaceEntries(): MarketplaceEntries {
+  return Object.create(null) as MarketplaceEntries;
+}
+
+function ownedMarketplaceEntries(
+  source: Record<string, unknown>,
+): MarketplaceEntries {
+  const entries = emptyMarketplaceEntries();
+  for (const [key, value] of Object.entries(source)) {
+    if (!key.startsWith(MARKETPLACE_KEY_PREFIX)) continue;
+    Object.defineProperty(entries, key, {
+      value,
+      writable: true,
+      enumerable: true,
+      configurable: true,
+    });
+  }
+  return entries;
+}
+
+function serializeMarketplaceStorageValue(value: unknown): string {
+  if (typeof value === "string") return value;
+  return JSON.stringify(value);
+}
+
+function mergeMarketplaceEntries(
+  indexedDb: MarketplaceEntries,
+  localStorage: MarketplaceEntries,
+  indexedDbAvailable: boolean,
+  indexedDbMigrationComplete: boolean,
+): MarketplaceEntries {
+  const entries = emptyMarketplaceEntries();
+  if (!indexedDbAvailable || !indexedDbMigrationComplete) {
+    for (const [key, value] of Object.entries(localStorage)) {
+      Object.defineProperty(entries, key, {
+        value,
+        writable: true,
+        enumerable: true,
+        configurable: true,
+      });
+    }
+  }
+  for (const [key, value] of Object.entries(indexedDb)) {
+    Object.defineProperty(entries, key, {
+      value,
+      writable: true,
+      enumerable: true,
+      configurable: true,
+    });
+  }
+  return entries;
+}
+
 export function createBackup(
   state: EngineState,
   marketplace: MarketplaceEntries,
   createdAt: Date,
+  marketplaceStorage?: MarketplaceStorageSnapshot,
 ): LibreSpotBackup {
-  return {
+  const backup: LibreSpotBackup = {
     schemaVersion: BACKUP_SCHEMA_VERSION,
     generator: "LibreSpot-Spotify",
     generatorVersion: ENGINE_VERSION,
@@ -55,6 +113,17 @@ export function createBackup(
     // both places instead of two exports that can drift apart.
     profile: JSON.parse(serializeProfile(state)),
   };
+  if (marketplaceStorage) {
+    backup.marketplaceStorage = {
+      indexedDb: ownedMarketplaceEntries(marketplaceStorage.indexedDb),
+      localStorage: ownedMarketplaceEntries(marketplaceStorage.localStorage),
+      indexedDbAvailable: marketplaceStorage.indexedDbAvailable,
+      localStorageAvailable: marketplaceStorage.localStorageAvailable,
+      indexedDbMigrationComplete:
+        marketplaceStorage.indexedDbMigrationComplete,
+    };
+  }
+  return backup;
 }
 
 export function serializeBackup(backup: LibreSpotBackup): string {
@@ -64,6 +133,7 @@ export function serializeBackup(backup: LibreSpotBackup): string {
 export type ParsedBackup = {
   engine: EngineState;
   marketplace: MarketplaceEntries;
+  marketplaceStorage?: MarketplaceStorageSnapshot;
   createdAt: string | null;
 };
 
@@ -100,7 +170,7 @@ export function parseBackup(source: string): ParsedBackup {
 
   // A null-prototype object so a "__proto__" key is stored as data rather than
   // being swallowed by the prototype setter and lost from the restore.
-  const marketplace = Object.create(null) as MarketplaceEntries;
+  let marketplace = Object.create(null) as MarketplaceEntries;
   if ("marketplace" in parsed && !isRecord(parsed.marketplace)) {
     throw new Error("This backup has a malformed Marketplace section.");
   }
@@ -120,11 +190,59 @@ export function parseBackup(source: string): ParsedBackup {
     }
   }
 
-  return {
+  let marketplaceStorage: MarketplaceStorageSnapshot | undefined;
+  if ("marketplaceStorage" in parsed) {
+    if (!isRecord(parsed.marketplaceStorage)) {
+      throw new Error("This backup has a malformed Marketplace storage snapshot.");
+    }
+    const indexedDb = parsed.marketplaceStorage.indexedDb;
+    const localStorage = parsed.marketplaceStorage.localStorage;
+    if (
+      !isRecord(indexedDb) ||
+      !isRecord(localStorage) ||
+      typeof parsed.marketplaceStorage.indexedDbAvailable !== "boolean" ||
+      typeof parsed.marketplaceStorage.localStorageAvailable !== "boolean" ||
+      typeof parsed.marketplaceStorage.indexedDbMigrationComplete !== "boolean"
+    ) {
+      throw new Error("This backup has a malformed Marketplace storage snapshot.");
+    }
+    if (
+      new TextEncoder().encode(
+        JSON.stringify({ indexedDb, localStorage }),
+      ).length > MAX_MARKETPLACE_BYTES
+    ) {
+      throw new Error(
+        `Marketplace settings exceed the ${MAX_MARKETPLACE_BYTES}-byte backup limit.`,
+      );
+    }
+    marketplaceStorage = {
+      indexedDb: ownedMarketplaceEntries(indexedDb),
+      localStorage: ownedMarketplaceEntries(localStorage),
+      indexedDbAvailable: parsed.marketplaceStorage.indexedDbAvailable,
+      localStorageAvailable: parsed.marketplaceStorage.localStorageAvailable,
+      indexedDbMigrationComplete:
+        parsed.marketplaceStorage.indexedDbMigrationComplete,
+    };
+    // A snapshot is authoritative. Deriving the effective view here preserves
+    // the pinned Marketplace precedence even when a hand-edited envelope has
+    // a stale compatibility `marketplace` field.
+    marketplace = mergeMarketplaceEntries(
+      marketplaceStorage.indexedDb,
+      marketplaceStorage.localStorage,
+      marketplaceStorage.indexedDbAvailable,
+      marketplaceStorage.indexedDbMigrationComplete,
+    );
+  }
+
+  const result: ParsedBackup = {
     engine,
     marketplace,
     createdAt: typeof parsed.createdAt === "string" ? parsed.createdAt : null,
   };
+  if (marketplaceStorage) {
+    result.marketplaceStorage = marketplaceStorage;
+  }
+  return result;
 }
 
 export function parseRestoreSource(source: string): ParsedBackup {
@@ -162,6 +280,16 @@ export function parseRestoreSource(source: string): ParsedBackup {
 export type MarketplaceReadResult = {
   available: boolean;
   entries: MarketplaceEntries;
+  /** The owned values in each backend, plus the pinned migration state. */
+  storage?: MarketplaceStorageSnapshot;
+};
+
+export type MarketplaceStorageSnapshot = {
+  indexedDb: MarketplaceEntries;
+  localStorage: MarketplaceEntries;
+  indexedDbAvailable: boolean;
+  localStorageAvailable: boolean;
+  indexedDbMigrationComplete: boolean;
 };
 
 export type MarketplaceDeletePhase =
@@ -183,6 +311,14 @@ export type MarketplaceStatusStore = {
   ): () => void;
 };
 
+export type MarketplaceSnapshotStore = {
+  writeSnapshot(
+    snapshot: MarketplaceStorageSnapshot,
+    createIfMissing?: boolean,
+  ): Promise<void>;
+  restoreSnapshot(snapshot: MarketplaceStorageSnapshot): Promise<void>;
+};
+
 export type MarketplaceStore = {
   readAll(createIfMissing?: boolean): Promise<MarketplaceReadResult>;
   /**
@@ -198,6 +334,10 @@ export type MarketplaceStore = {
     entries: MarketplaceEntries,
     keys: readonly string[],
   ): Promise<void>;
+  /** Replaces both Marketplace-owned backends from a captured snapshot. */
+  writeSnapshot?: MarketplaceSnapshotStore["writeSnapshot"];
+  /** Restores both Marketplace-owned backends captured before a failed write. */
+  restoreSnapshot?: MarketplaceSnapshotStore["restoreSnapshot"];
   /**
    * Removes Marketplace's whole database. Stale records from an older
    * install survive a full Spicetify reinstall and can put back themes the
@@ -212,9 +352,10 @@ export type MarketplaceStore = {
  * modal reads the same keys.
  */
 export function indexedDbMarketplaceStore(
-  factory: IDBFactory,
+  factory: IDBFactory | null | undefined,
   timeoutMs = 8000,
-): MarketplaceStore & MarketplaceStatusStore {
+  legacyStorage?: Storage | null,
+): MarketplaceStore & MarketplaceStatusStore & MarketplaceSnapshotStore {
   let deleteStatus: MarketplaceDeleteStatus = {
     phase: "idle",
     detail: null,
@@ -231,6 +372,85 @@ export function indexedDbMarketplaceStore(
     const current = { ...deleteStatus };
     for (const listener of deleteStatusListeners) {
       listener(current);
+    }
+  };
+
+  const readLegacy = (): {
+    available: boolean;
+    entries: MarketplaceEntries;
+  } => {
+    const entries = emptyMarketplaceEntries();
+    if (!legacyStorage) {
+      return { available: false, entries };
+    }
+    try {
+      for (let index = 0; index < legacyStorage.length; index += 1) {
+        const key = legacyStorage.key(index);
+        if (!key?.startsWith(MARKETPLACE_KEY_PREFIX)) continue;
+        const value = legacyStorage.getItem(key);
+        if (value === null) continue;
+        Object.defineProperty(entries, key, {
+          value,
+          writable: true,
+          enumerable: true,
+          configurable: true,
+        });
+      }
+      return { available: true, entries };
+    } catch {
+      return { available: false, entries: emptyMarketplaceEntries() };
+    }
+  };
+
+  const ownedLegacyKeys = (): string[] => {
+    if (!legacyStorage) return [];
+    const keys: string[] = [];
+    for (let index = 0; index < legacyStorage.length; index += 1) {
+      const key = legacyStorage.key(index);
+      if (key?.startsWith(MARKETPLACE_KEY_PREFIX)) keys.push(key);
+    }
+    return keys;
+  };
+
+  const replaceLegacy = (entries: MarketplaceEntries): void => {
+    if (!legacyStorage) {
+      if (Object.keys(entries).length > 0) {
+        throw new Error(
+          "Marketplace's legacy storage is not available, so its fallback settings could not be restored.",
+        );
+      }
+      return;
+    }
+    try {
+      for (const key of ownedLegacyKeys()) {
+        legacyStorage.removeItem(key);
+      }
+      for (const [key, value] of Object.entries(entries)) {
+        legacyStorage.setItem(key, serializeMarketplaceStorageValue(value));
+      }
+    } catch (error) {
+      throw new Error(
+        `Marketplace's fallback settings could not be restored: ${
+          error instanceof Error ? error.message : "storage access failed"
+        }.`,
+        { cause: error },
+      );
+    }
+  };
+
+  const clearLegacy = (): void => {
+    if (!legacyStorage) return;
+    try {
+      for (const key of ownedLegacyKeys()) {
+        legacyStorage.removeItem(key);
+      }
+    } catch (error) {
+      throw new Error(
+        `Marketplace's fallback settings could not be cleared: ${
+          error instanceof Error ? error.message : "storage access failed"
+        }.`,
+        { cause: error },
+      );
     }
   };
 
@@ -260,6 +480,7 @@ export function indexedDbMarketplaceStore(
 
       let request: IDBOpenDBRequest;
       try {
+        if (!factory) throw new Error("IndexedDB is unavailable.");
         request = factory.open(MARKETPLACE_DATABASE);
       } catch {
         settle(null);
@@ -308,126 +529,300 @@ export function indexedDbMarketplaceStore(
       };
     });
 
-  return {
-    readAll: async (createIfMissing = false) => {
-      const database = await open(createIfMissing);
-      if (!database) return { available: false, entries: {} };
+  const readDatabase = (
+    database: IDBDatabase,
+  ): Promise<{
+    available: boolean;
+    entries: MarketplaceEntries;
+    migrationComplete: boolean;
+  }> =>
+    new Promise((resolve) => {
+      let request: IDBRequest<unknown[]>;
       try {
-        return await new Promise<MarketplaceReadResult>((resolve) => {
-          let request: IDBRequest<unknown[]>;
-          try {
-            const transaction = database.transaction(MARKETPLACE_STORE, "readonly");
-            request = transaction.objectStore(MARKETPLACE_STORE).getAll();
-            transaction.oncomplete = () => {
-              const entries: MarketplaceEntries = Object.create(null) as MarketplaceEntries;
-              for (const record of request.result) {
-                // Marketplace stores { key, value } records with an in-line key.
-                if (isRecord(record) && typeof record.key === "string") {
-                  entries[record.key] = record.value;
-                }
-              }
-              resolve({ available: true, entries });
-            };
-            transaction.onerror = () => {
-              resolve({ available: false, entries: {} });
-            };
-            transaction.onabort = () => {
-              resolve({ available: false, entries: {} });
-            };
-          } catch {
-            resolve({ available: false, entries: {} });
+        const transaction = database.transaction(MARKETPLACE_STORE, "readonly");
+        request = transaction.objectStore(MARKETPLACE_STORE).getAll();
+        transaction.oncomplete = () => {
+          const entries = emptyMarketplaceEntries();
+          let migrationComplete = false;
+          for (const record of request.result) {
+            if (!isRecord(record) || typeof record.key !== "string") continue;
+            if (record.key === MARKETPLACE_MIGRATION_KEY) {
+              migrationComplete = true;
+              continue;
+            }
+            if (!record.key.startsWith(MARKETPLACE_KEY_PREFIX)) continue;
+            Object.defineProperty(entries, record.key, {
+              value: record.value,
+              writable: true,
+              enumerable: true,
+              configurable: true,
+            });
           }
+          resolve({ available: true, entries, migrationComplete });
+        };
+        transaction.onerror = () => {
+          resolve({
+            available: false,
+            entries: emptyMarketplaceEntries(),
+            migrationComplete: false,
+          });
+        };
+        transaction.onabort = () => {
+          resolve({
+            available: false,
+            entries: emptyMarketplaceEntries(),
+            migrationComplete: false,
+          });
+        };
+      } catch {
+        resolve({
+          available: false,
+          entries: emptyMarketplaceEntries(),
+          migrationComplete: false,
         });
-      } finally {
-        database.close();
       }
-    },
-    writeAll: async (entries) => {
-      const database = await open();
-      if (!database) {
-        throw new Error(
-          "Marketplace's database is not available, so its settings were not restored. Open Marketplace once and try again.",
+    });
+
+  const writeDatabaseSnapshot = async (
+    database: IDBDatabase,
+    entries: MarketplaceEntries,
+    migrationComplete: boolean,
+  ): Promise<void> => {
+    await new Promise<void>((resolve, reject) => {
+      try {
+        const transaction = database.transaction(MARKETPLACE_STORE, "readwrite");
+        const store = transaction.objectStore(MARKETPLACE_STORE);
+        const request = store.getAll();
+        request.onsuccess = () => {
+          const existing = Array.isArray(request.result) ? request.result : [];
+          const nextKeys = new Set(Object.keys(entries));
+          for (const record of existing) {
+            if (!isRecord(record) || typeof record.key !== "string") continue;
+            if (
+              record.key === MARKETPLACE_MIGRATION_KEY ||
+              (record.key.startsWith(MARKETPLACE_KEY_PREFIX) &&
+                !nextKeys.has(record.key))
+            ) {
+              store.delete(record.key);
+            }
+          }
+          for (const [key, value] of Object.entries(entries)) {
+            store.put({ key, value });
+          }
+          if (migrationComplete) {
+            store.put({ key: MARKETPLACE_MIGRATION_KEY, value: "1" });
+          }
+        };
+        request.onerror = () => {
+          reject(new Error("Marketplace's settings could not be restored."));
+        };
+        transaction.oncomplete = () => {
+          resolve();
+        };
+        transaction.onerror = () => {
+          reject(new Error("Marketplace's settings could not be restored."));
+        };
+        transaction.onabort = () => {
+          reject(new Error("Marketplace's settings could not be restored."));
+        };
+      } catch (error) {
+        reject(
+          error instanceof Error
+            ? error
+            : new Error("Marketplace's settings could not be restored."),
         );
       }
+    });
+  };
+
+  const writeDatabaseKeys = async (
+    database: IDBDatabase,
+    entries: MarketplaceEntries,
+    keys: readonly string[],
+    errorText: string,
+  ): Promise<void> => {
+    await new Promise<void>((resolve, reject) => {
       try {
-        await new Promise<void>((resolve, reject) => {
-          // Anything thrown while queueing has to reject: a transaction whose
-          // body throws never fires oncomplete or onerror, which would leave
-          // this promise pending forever.
-          try {
-            const transaction = database.transaction(MARKETPLACE_STORE, "readwrite");
-            const store = transaction.objectStore(MARKETPLACE_STORE);
-            for (const [key, value] of Object.entries(entries)) {
-              // In-line key: the record carries its own key, and passing a second
-              // argument to put() is a DataError.
-              store.put({ key, value });
-            }
-            transaction.oncomplete = () => {
-              resolve();
-            };
-            transaction.onerror = () => {
-              reject(new Error("Marketplace's settings could not be written."));
-            };
-            transaction.onabort = () => {
-              reject(new Error("Marketplace's settings could not be written."));
-            };
-          } catch (error) {
-            reject(
-              error instanceof Error
-                ? error
-                : new Error("Marketplace's settings could not be written."),
+        const transaction = database.transaction(MARKETPLACE_STORE, "readwrite");
+        const store = transaction.objectStore(MARKETPLACE_STORE);
+        for (const key of keys) {
+          if (Object.prototype.hasOwnProperty.call(entries, key)) {
+            store.put({ key, value: entries[key] });
+          } else {
+            store.delete(key);
+          }
+        }
+        transaction.oncomplete = () => {
+          resolve();
+        };
+        transaction.onerror = () => {
+          reject(new Error(errorText));
+        };
+        transaction.onabort = () => {
+          reject(new Error(errorText));
+        };
+      } catch (error) {
+        reject(error instanceof Error ? error : new Error(errorText));
+      }
+    });
+  };
+
+  const writeSnapshot = async (
+    snapshot: MarketplaceStorageSnapshot,
+    createIfMissing = false,
+  ): Promise<void> => {
+    const indexedEntries = ownedMarketplaceEntries(snapshot.indexedDb);
+    const legacyEntries = ownedMarketplaceEntries(snapshot.localStorage);
+    // An unavailable backend is unknown state, not an empty store. Leave it
+    // untouched and avoid creating a schema while restoring a fallback-only
+    // snapshot.
+    const database = snapshot.indexedDbAvailable
+      ? await open(createIfMissing)
+      : null;
+    if (snapshot.indexedDbAvailable && !database) {
+      throw new Error(
+        "Marketplace's database is not available, so its captured settings could not be restored.",
+      );
+    }
+    try {
+      if (database) {
+        await writeDatabaseSnapshot(
+          database,
+          indexedEntries,
+          snapshot.indexedDbMigrationComplete,
+        );
+      }
+      if (snapshot.localStorageAvailable) {
+        replaceLegacy(legacyEntries);
+      } else if (Object.keys(legacyEntries).length > 0) {
+        replaceLegacy(legacyEntries);
+      }
+    } finally {
+      database?.close();
+    }
+  };
+
+  return {
+    readAll: async (createIfMissing = false) => {
+      const legacy = readLegacy();
+      const database = await open(createIfMissing);
+      let indexedDb = {
+        available: false,
+        entries: emptyMarketplaceEntries(),
+        migrationComplete: false,
+      };
+      if (database) {
+        try {
+          indexedDb = await readDatabase(database);
+        } finally {
+          database.close();
+        }
+      }
+      const storage: MarketplaceStorageSnapshot = {
+        indexedDb: indexedDb.entries,
+        localStorage: legacy.entries,
+        indexedDbAvailable: indexedDb.available,
+        localStorageAvailable: legacy.available,
+        indexedDbMigrationComplete: indexedDb.migrationComplete,
+      };
+      return {
+        available: indexedDb.available || legacy.available,
+        entries: mergeMarketplaceEntries(
+          indexedDb.entries,
+          legacy.entries,
+          indexedDb.available,
+          indexedDb.migrationComplete,
+        ),
+        storage,
+      };
+    },
+    writeAll: async (entries) => {
+      const owned = ownedMarketplaceEntries(entries);
+      const database = await open();
+      if (!database) {
+        if (!legacyStorage) {
+          throw new Error(
+            "Marketplace's storage is not available, so its settings were not restored. Open Marketplace once and try again.",
+          );
+        }
+        try {
+          for (const [key, value] of Object.entries(owned)) {
+            legacyStorage.setItem(
+              key,
+              serializeMarketplaceStorageValue(value),
             );
           }
-        });
+        } catch (error) {
+          throw new Error(
+            `Marketplace's fallback settings could not be written: ${
+              error instanceof Error ? error.message : "storage access failed"
+            }.`,
+            { cause: error },
+          );
+        }
+        return;
+      }
+      try {
+        await writeDatabaseKeys(
+          database,
+          owned,
+          Object.keys(owned),
+          "Marketplace's settings could not be written.",
+        );
       } finally {
         database.close();
       }
     },
     restoreKeys: async (entries, keys) => {
-      const distinctKeys = [...new Set(keys)];
+      const distinctKeys = [
+        ...new Set(keys.filter((key) => key.startsWith(MARKETPLACE_KEY_PREFIX))),
+      ];
       if (distinctKeys.length === 0) {
         return;
       }
 
       const database = await open();
       if (!database) {
-        throw new Error(
-          "Marketplace's database is not available, so its previous settings could not be restored.",
-        );
+        if (!legacyStorage) {
+          throw new Error(
+            "Marketplace's storage is not available, so its previous settings could not be restored.",
+          );
+        }
+        try {
+          for (const key of distinctKeys) {
+            if (Object.prototype.hasOwnProperty.call(entries, key)) {
+              const value = entries[key];
+              legacyStorage.setItem(
+                key,
+                serializeMarketplaceStorageValue(value),
+              );
+            } else {
+              legacyStorage.removeItem(key);
+            }
+          }
+        } catch (error) {
+          throw new Error(
+            `Marketplace's fallback settings could not be restored: ${
+              error instanceof Error ? error.message : "storage access failed"
+            }.`,
+            { cause: error },
+          );
+        }
+        return;
       }
       try {
-        await new Promise<void>((resolve, reject) => {
-          try {
-            const transaction = database.transaction(MARKETPLACE_STORE, "readwrite");
-            const store = transaction.objectStore(MARKETPLACE_STORE);
-            for (const key of distinctKeys) {
-              if (Object.prototype.hasOwnProperty.call(entries, key)) {
-                store.put({ key, value: entries[key] });
-              } else {
-                store.delete(key);
-              }
-            }
-            transaction.oncomplete = () => {
-              resolve();
-            };
-            transaction.onerror = () => {
-              reject(new Error("Marketplace's previous settings could not be restored."));
-            };
-            transaction.onabort = () => {
-              reject(new Error("Marketplace's previous settings could not be restored."));
-            };
-          } catch (error) {
-            reject(
-              error instanceof Error
-                ? error
-                : new Error("Marketplace's previous settings could not be restored."),
-            );
-          }
-        });
+        await writeDatabaseKeys(
+          database,
+          entries,
+          distinctKeys,
+          "Marketplace's previous settings could not be restored.",
+        );
       } finally {
         database.close();
       }
     },
+    writeSnapshot,
+    restoreSnapshot: (snapshot) => writeSnapshot(snapshot, true),
     getDeleteStatus: () => ({ ...deleteStatus }),
     subscribeDeleteStatus: (listener) => {
       deleteStatusListeners.add(listener);
@@ -478,6 +873,24 @@ export function indexedDbMarketplaceStore(
         resolveDelete();
       };
 
+      const finishLegacyOnly = (): void => {
+        try {
+          clearLegacy();
+          finish();
+        } catch (error) {
+          finish(
+            error instanceof Error
+              ? error
+              : new Error("Marketplace's fallback settings could not be cleared."),
+          );
+        }
+      };
+
+      if (!factory || typeof factory.deleteDatabase !== "function") {
+        finishLegacyOnly();
+        return operation;
+      }
+
       let request: IDBOpenDBRequest;
       try {
         request = factory.deleteDatabase(MARKETPLACE_DATABASE);
@@ -491,7 +904,16 @@ export function indexedDbMarketplaceStore(
       }
 
       request.onsuccess = () => {
-        finish();
+        try {
+          clearLegacy();
+          finish();
+        } catch (error) {
+          finish(
+            error instanceof Error
+              ? error
+              : new Error("Marketplace's fallback settings could not be cleared."),
+          );
+        }
       };
       request.onerror = () => {
         finish(new Error("Marketplace's database could not be reset."));
@@ -572,10 +994,10 @@ function restoreEngineExact(
 }
 
 /**
- * Restores a parsed backup as one recoverable operation. Marketplace's
- * writeAll intentionally keeps its merge behavior for the requested restore;
- * compensation uses restoreKeys so keys introduced by a failed write are
- * removed while unrelated keys remain untouched.
+ * Restores a parsed backup as one recoverable operation. New backups carry a
+ * two-backend Marketplace snapshot, so the requested restore replaces owned
+ * keys in both stores while preserving unrelated records. Older files keep the
+ * existing merge behavior, with exact-key compensation after a failed write.
  */
 export async function restoreBackupTransaction(
   restored: ParsedBackup,
@@ -587,11 +1009,14 @@ export async function restoreBackupTransaction(
   const beforeFlags = structuredClone(beforeEngine.featureOverrides);
   const targetKeys = Object.keys(restored.marketplace);
   let beforeMarketplace = Object.create(null) as MarketplaceEntries;
+  let beforeMarketplaceStorage: MarketplaceStorageSnapshot | undefined;
   let marketplaceRead = false;
 
   // Read the Marketplace snapshot before either store is touched. An
   // unavailable database is different from an empty one and must stop here.
-  if (targetKeys.length > 0) {
+  const marketplaceTargeted =
+    targetKeys.length > 0 || restored.marketplaceStorage !== undefined;
+  if (marketplaceTargeted) {
     const current = await options.marketplaceStore.readAll(
       options.createMarketplaceIfMissing === true,
     );
@@ -601,6 +1026,9 @@ export async function restoreBackupTransaction(
       );
     }
     beforeMarketplace = structuredClone(current.entries);
+    beforeMarketplaceStorage = current.storage
+      ? structuredClone(current.storage)
+      : undefined;
     marketplaceRead = true;
   }
 
@@ -612,11 +1040,21 @@ export async function restoreBackupTransaction(
   let flagsAttempted = false;
 
   try {
-    if (targetKeys.length > 0) {
+    if (marketplaceTargeted) {
       // This is deliberately a merge. Marketplace owns keys we do not know
       // about, so a normal restore never deletes unrelated settings.
       marketplaceAttempted = true;
-      await options.marketplaceStore.writeAll(restored.marketplace);
+      if (
+        restored.marketplaceStorage &&
+        options.marketplaceStore.writeSnapshot
+      ) {
+        await options.marketplaceStore.writeSnapshot(
+          restored.marketplaceStorage,
+          options.createMarketplaceIfMissing === true,
+        );
+      } else {
+        await options.marketplaceStore.writeAll(restored.marketplace);
+      }
     }
 
     engineAttempted = true;
@@ -653,7 +1091,14 @@ export async function restoreBackupTransaction(
       createdAt: now().toISOString(),
       message: "Restore compensation is pending.",
       incomplete: attempted,
-      raw: serializeBackup(createBackup(beforeEngine, beforeMarketplace, now())),
+      raw: serializeBackup(
+        createBackup(
+          beforeEngine,
+          beforeMarketplace,
+          now(),
+          beforeMarketplaceStorage,
+        ),
+      ),
     };
     let recoveryRetained = false;
     if (attempted.length > 0 && options.retainRecovery) {
@@ -680,7 +1125,17 @@ export async function restoreBackupTransaction(
     }
     if (marketplaceAttempted && marketplaceRead) {
       try {
-        await options.marketplaceStore.restoreKeys(beforeMarketplace, affectedKeys);
+        if (
+          beforeMarketplaceStorage &&
+          options.marketplaceStore.restoreSnapshot
+        ) {
+          await options.marketplaceStore.restoreSnapshot(beforeMarketplaceStorage);
+        } else {
+          await options.marketplaceStore.restoreKeys(
+            beforeMarketplace,
+            affectedKeys,
+          );
+        }
       } catch {
         incomplete.push("marketplace");
       }
