@@ -56,6 +56,15 @@ function targetValue(event: unknown): string {
     : "";
 }
 
+export function controlDescriptionId(label: string, description: string): string {
+  const slug = label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "control";
+  let hash = 0;
+  for (const character of `${label}\u0000${description}`) {
+    hash = (hash * 31 + character.charCodeAt(0)) >>> 0;
+  }
+  return `librespot-description-${slug}-${hash.toString(36)}`;
+}
+
 export function PanelIntro(properties: {
   eyebrow: string;
   title: string;
@@ -107,6 +116,7 @@ export function ToggleRow(properties: {
   /** Rendered after the control, for a per-row action such as Revert. */
   action?: UiNode;
 }): UiNode {
+  const descriptionId = controlDescriptionId(properties.label, properties.description);
   return h(
     "div",
     { className: "librespot-control-row" },
@@ -121,7 +131,7 @@ export function ToggleRow(properties: {
           ? h("span", { className: "librespot-badge" }, properties.badge)
           : null,
       ),
-      h("p", null, properties.description),
+      h("p", { id: descriptionId }, properties.description),
     ),
     h(
       "button",
@@ -131,6 +141,7 @@ export function ToggleRow(properties: {
         role: "switch",
         "aria-checked": String(properties.checked),
         "aria-label": properties.label,
+        "aria-describedby": descriptionId,
         disabled: properties.disabled ?? false,
         onClick: () => {
           properties.onChange(!properties.checked);
@@ -151,6 +162,7 @@ export function SelectRow(properties: {
   badge?: string;
   action?: UiNode;
 }): UiNode {
+  const descriptionId = controlDescriptionId(properties.label, properties.description);
   return h(
     "label",
     { className: "librespot-control-row" },
@@ -165,13 +177,14 @@ export function SelectRow(properties: {
           ? h("span", { className: "librespot-badge" }, properties.badge)
           : null,
       ),
-      h("p", null, properties.description),
+      h("p", { id: descriptionId }, properties.description),
     ),
     h(
       "select",
       {
         className: "librespot-select",
         "aria-label": properties.label,
+        "aria-describedby": descriptionId,
         value: properties.value,
         onChange: (event: unknown) => {
           properties.onChange(targetValue(event));
@@ -195,6 +208,7 @@ export function SliderRow(properties: {
   suffix?: string;
   onChange: (value: number) => void;
 }): UiNode {
+  const descriptionId = controlDescriptionId(properties.label, properties.description);
   return h(
     "label",
     { className: "librespot-control-row" },
@@ -202,7 +216,7 @@ export function SliderRow(properties: {
       "div",
       { className: "librespot-control-copy" },
       h("span", { className: "librespot-control-label" }, properties.label),
-      h("p", null, properties.description),
+      h("p", { id: descriptionId }, properties.description),
     ),
     h(
       "div",
@@ -215,6 +229,7 @@ export function SliderRow(properties: {
         max: String(properties.max),
         step: String(properties.step),
         "aria-label": properties.label,
+        "aria-describedby": descriptionId,
         onChange: (event: unknown) => {
           properties.onChange(Number(targetValue(event)));
         },
@@ -234,6 +249,7 @@ export function InputRow(properties: {
   badge?: string;
   action?: UiNode;
 }): UiNode {
+  const descriptionId = controlDescriptionId(properties.label, properties.description);
   return h(
     "label",
     { className: "librespot-control-row" },
@@ -248,11 +264,12 @@ export function InputRow(properties: {
           ? h("span", { className: "librespot-badge" }, properties.badge)
           : null,
       ),
-      h("p", null, properties.description),
+      h("p", { id: descriptionId }, properties.description),
     ),
     h("input", {
       className: "librespot-input",
       "aria-label": properties.label,
+      "aria-describedby": descriptionId,
       type: properties.type,
       value: String(properties.value),
       ...(properties.min === undefined ? {} : { min: String(properties.min) }),
@@ -272,6 +289,7 @@ export function ColorRow(properties: {
   onChange: (value: string) => void;
 }): UiNode {
   const value = `#${properties.value.replace(/^#/, "")}`;
+  const descriptionId = controlDescriptionId(properties.label, properties.description);
   return h(
     "label",
     { className: "librespot-control-row" },
@@ -279,7 +297,7 @@ export function ColorRow(properties: {
       "div",
       { className: "librespot-control-copy" },
       h("span", { className: "librespot-control-label" }, properties.label),
-      h("p", null, properties.description),
+      h("p", { id: descriptionId }, properties.description),
     ),
     h(
       "span",
@@ -288,6 +306,7 @@ export function ColorRow(properties: {
         type: "color",
         value,
         "aria-label": properties.label,
+        "aria-describedby": descriptionId,
         onChange: (event: unknown) => {
           properties.onChange(targetValue(event));
         },

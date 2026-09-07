@@ -253,6 +253,8 @@ The desktop shell keeps each workspace in a named UserControl. The Custom worksp
 
 Choose **LibreSpot** in Spotify's navigation after installing the LibreSpot custom app from the desktop app. Store is the first page. The companion extension keeps the selected state active while you move through Home, Search, Library, playlists, and Spotify settings.
 
+Every live control exposes its explanation to assistive technology. Store searches announce the result count or an empty state once as the list changes.
+
 <div align="center">
 
 <img width="1150" alt="LibreSpot Store inside Spotify" src="assets/screenshots/spotify-librespot-store.png" />

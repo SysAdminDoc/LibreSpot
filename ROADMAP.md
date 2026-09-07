@@ -22,13 +22,6 @@ Incomplete, implementer-actionable work only. Operator-dependent decisions remai
 
 ### P2: Next
 
-- [ ] P2: RD-242. Connect in-client descriptions and result changes to accessibility APIs
-  Why: Impact 4/5. Controls expose names but omit associated consequences/scope, and Store search changes are not announced.
-  Evidence: RESEARCH.md; src/LibreSpot.App/src/surface/ui.ts description renderers; Store versus Features result status; WCAG 4.1.3.
-  Touches: Component shared controls, Features descriptions and Store results; focused DOM accessibility tests.
-  Acceptance: Description IDs and aria-describedby connect explanatory text and live/desktop application limits to their controls. Store result count and empty-state changes announce once through a status region. Preserve tab/focus behavior and validate with an isolated screen reader before claiming live accessibility completion.
-  Complexity: M
-
 - [ ] P2: RD-243. Report file-logging failures without depending on the failed sink
   Why: Impact 3/5. Serilog catches sink failures internally, while CrashReporter provides no failure-listener or SelfLog path.
   Evidence: RESEARCH.md; src/LibreSpot.Desktop/Services/CrashReporter.cs Initialize; Serilog Reliability documentation and file-sink PR #342, already included by the pinned package.

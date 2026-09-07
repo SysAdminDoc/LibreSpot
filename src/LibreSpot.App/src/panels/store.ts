@@ -336,6 +336,16 @@ function matchesSearch(values: readonly (string | undefined)[], query: string): 
   return !normalized || values.some((value) => value?.toLocaleLowerCase().includes(normalized));
 }
 
+export function storeResultAnnouncement(
+  tab: StoreTab,
+  visibleCount: number,
+  search: string,
+): string {
+  return visibleCount === 0
+    ? `No results found in ${tab} for ${search || "the current search"}.`
+    : `${visibleCount} ${visibleCount === 1 ? "result" : "results"} found in ${tab}.`;
+}
+
 export function StorePanel(properties: PanelProperties): UiNode {
   const React = Spicetify.React;
   const initialTheme = STORE_THEMES.find((theme) => theme.id === properties.snapshot.state.theme) ?? STORE_THEMES[0];
@@ -420,6 +430,7 @@ export function StorePanel(properties: PanelProperties): UiNode {
     apps: CUSTOMIZATION_CATALOG.customApps.length,
   };
   const visibleCount = tab === "themes" ? filteredThemes.length : tab === "extensions" ? filteredExtensions.length : filteredApps.length;
+  const resultAnnouncement = storeResultAnnouncement(tab, visibleCount, search);
 
   const activateTab = (nextTab: StoreTab): void => {
     setTab(nextTab);
@@ -577,6 +588,16 @@ export function StorePanel(properties: PanelProperties): UiNode {
           },
         }),
       ),
+    ),
+    h(
+      "div",
+      {
+        className: "librespot-visually-hidden",
+        role: "status",
+        "aria-live": "polite",
+        "aria-atomic": "true",
+      },
+      resultAnnouncement,
     ),
     h(
       "div",

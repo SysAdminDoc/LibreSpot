@@ -9,6 +9,7 @@ import {
 import {
   countInstalledManagedAssets,
   STORE_THEMES,
+  storeResultAnnouncement,
   themeDescription,
 } from "../src/panels/store.ts";
 import {
@@ -31,6 +32,12 @@ import {
 } from "../src/surface/navigation.ts";
 import { displaySchemeName } from "../src/surface/labels.ts";
 import {
+  ColorRow,
+  InputRow,
+  SelectRow,
+  SliderRow,
+  ToggleRow,
+  controlDescriptionId,
   eventCurrentTarget,
   eventTarget,
 } from "../src/surface/ui.ts";
@@ -121,6 +128,79 @@ describe("LibreSpot surface contract", () => {
     state.theme = "Prism";
     state.scheme = "Dark";
     expect(isSurfacePresetApplied(state, preset)).toBe(false);
+  });
+
+  it("connects shared control descriptions to their inputs", () => {
+    type FakeNode = {
+      type: unknown;
+      props: Record<string, unknown> | null;
+      children: unknown[];
+    };
+    const makeNode = (
+      type: unknown,
+      props: Record<string, unknown> | null,
+      ...children: unknown[]
+    ): FakeNode => ({ type, props, children });
+    const findNode = (
+      node: unknown,
+      predicate: (candidate: FakeNode) => boolean,
+    ): FakeNode | undefined => {
+      if (typeof node !== "object" || node === null) return undefined;
+      const candidate = node as FakeNode;
+      if (predicate(candidate)) return candidate;
+      for (const child of candidate.children) {
+        const found = findNode(child, predicate);
+        if (found) return found;
+      }
+      return undefined;
+    };
+    const globals = globalThis as unknown as { Spicetify?: unknown };
+    const previous = globals.Spicetify;
+    Object.defineProperty(globalThis, "Spicetify", {
+      configurable: true,
+      value: { React: { createElement: makeNode } },
+    });
+    try {
+      const rows = [
+        ToggleRow({ label: "Live toggle", description: "Applies now.", checked: false, onChange: () => undefined }),
+        SelectRow({ label: "Scheme", description: "Controls the active palette.", value: "Dark", options: [{ value: "Dark", label: "Dark" }], onChange: () => undefined }),
+        SliderRow({ label: "Scale", description: "Changes the content size.", value: 1, min: 0.8, max: 1.2, step: 0.01, onChange: () => undefined }),
+        InputRow({ label: "Value", description: "Saved for desktop apply.", value: "x", type: "text", onChange: () => undefined }),
+        ColorRow({ label: "Accent", description: "Sets the fixed accent.", value: "1ED760", onChange: () => undefined }),
+      ];
+      for (const row of rows) {
+        const description = findNode(row, (node) => node.type === "p");
+        const control = findNode(row, (node) =>
+          node.type === "button" || node.type === "select" || node.type === "input",
+        );
+        expect(description?.props?.id).toBeDefined();
+        expect(control?.props?.["aria-describedby"]).toBe(description?.props?.id);
+      }
+      expect(controlDescriptionId("Scheme", "Controls the active palette.")).toMatch(
+        /^librespot-description-scheme-/,
+      );
+    } finally {
+      if (previous === undefined) {
+        Reflect.deleteProperty(globalThis, "Spicetify");
+      } else {
+        Object.defineProperty(globalThis, "Spicetify", {
+          configurable: true,
+          value: previous,
+        });
+      }
+    }
+  });
+
+  it("announces Store result and empty states through one status message", () => {
+    expect(storeResultAnnouncement("themes", 3, "blue")).toBe("3 results found in themes.");
+    expect(storeResultAnnouncement("apps", 1, "")).toBe("1 result found in apps.");
+    expect(storeResultAnnouncement("extensions", 0, "missing")).toBe(
+      "No results found in extensions for missing.",
+    );
+    const source = readFileSync(resolve(import.meta.dirname, "../src/panels/store.ts"), "utf8");
+    expect(source).toContain('role: "status"');
+    expect(source).toContain('"aria-live": "polite"');
+    expect(source).toContain('"aria-atomic": "true"');
   });
 
   it("keeps reviewed snippet metadata and hot-path CSS constraints", () => {
