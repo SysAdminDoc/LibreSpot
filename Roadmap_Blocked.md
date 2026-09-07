@@ -1087,3 +1087,32 @@ Verified while investigating, so a later pass does not repeat it:
 Return this to `ROADMAP.md` once the operator decides whether dropping Blackout is
 acceptable. If it is not, the honest alternative is to hold the pin and stop the
 update check treating a themes commit as actionable.
+
+## RD-257b: Retake the seven in-client screenshots
+
+Split out of RD-257 on 2026-09-07. The WPF half is done: the capture path now
+stamps the rail version it actually renders, the gate compares it against the
+assembly version and the README badge, and the four WPF captures were retaken
+from the current build. This is the half that cannot be done without an
+operator decision.
+
+The seven `assets/screenshots/spotify-librespot-*.png` captures show the
+LibreSpot app running inside Spotify. Retaking them needs two things this pass
+cannot supply:
+
+- **A Spotify client to drive.** The captures come from a real, patched Spotify
+  window, not from an offscreen WPF shell. Producing them means applying a
+  configuration to the machine's live Spotify install and photographing it,
+  which changes the operator's own setup rather than a test fixture.
+- **A decision about whose library appears.** The current Store hero shows the
+  maintainer's real playlists and a profile photo. RESEARCH.md raises this as an
+  open question: retake with a synthetic library, or accept publishing the real
+  one. Both are choices about what the project publishes, not engineering.
+
+Until both are settled the seven in-client captures stay as they are. They date
+from 2026-09-04 and predate the 4.5.1 companion status surface, the panel error
+boundaries and the control descriptions, so they under-sell the current build
+rather than misrepresenting it.
+
+Return this to `ROADMAP.md` with an answer on the library question and a machine
+whose Spotify install is expendable.

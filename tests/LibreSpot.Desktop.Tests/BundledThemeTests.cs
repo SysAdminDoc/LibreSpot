@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -38,6 +38,28 @@ public sealed class BundledThemeTests
         Assert.True(File.Exists(Path.Combine(ThemeDirectory, "color.ini")));
         Assert.True(File.Exists(Path.Combine(ThemeDirectory, "user.css")));
         Assert.True(File.Exists(Path.Combine(ThemeDirectory, "theme.js")));
+    }
+
+    [Fact]
+    public void UserCssMapsSpotifysHardCodedContextMenuWhitesToTheScheme()
+    {
+        // Spotify's own xpui.css sets .main-contextMenu-menuItemButton to
+        // #ffffffe6, disabled items to #ffffff80 and the expanded fill to
+        // #ffffff1a. replace_colors only rewrites --spice-* variables, so on a
+        // light scheme those literals stay white on near-white
+        // (spicetify/cli#3918). Prism maps them to the scheme's own text
+        // colour at the same alpha, which is identical on Dark and readable on
+        // Light. This fails if the override is dropped or hard-coded again.
+        var css = File.ReadAllText(Path.Combine(ThemeDirectory, "user.css"));
+
+        Assert.Contains(".main-contextMenu-menuItemButton", css, StringComparison.Ordinal);
+        Assert.Contains("rgba(var(--spice-rgb-text), 0.9)", css, StringComparison.Ordinal);
+        Assert.Contains("rgba(var(--spice-rgb-text), 0.5)", css, StringComparison.Ordinal);
+        Assert.Contains("rgba(var(--spice-rgb-text), 0.1)", css, StringComparison.Ordinal);
+
+        // A literal alpha white anywhere in the theme would reintroduce the
+        // defect the override exists to fix.
+        Assert.DoesNotMatch(new Regex(@"#ffffff[0-9a-f]{2}", RegexOptions.IgnoreCase), css);
     }
 
     [Fact]

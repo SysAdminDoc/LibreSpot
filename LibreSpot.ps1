@@ -1736,7 +1736,7 @@ $global:BundledThemes = [ordered]@{
         Files       = [ordered]@{
             'color.ini' = 'bacd6b54c170600488b79f310dd4f41a349db81c3cfdccd43c38be2d898b17bc'
             'theme.js'  = '9355ada53465cbcaed8894a35bef95db19b759330527e8d909ea7394ce154293'
-            'user.css'  = '05dce4408a12742388d9a20c3d8c1b7b36629c584a9e96774d3f6ded16700025'
+            'user.css'  = '47c71a0b49401077938e86272579d90ab200a7a15b6991939c5ee8ed43f263e5'
         }
     }
 }

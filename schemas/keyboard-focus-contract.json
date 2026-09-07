@@ -64,6 +64,25 @@
       "notes": "Destructive actions (Full reset, whose button reads Reset everything) use warning/danger styling as non-color-only indicators."
     }
   ],
+  "overlaySurfaces": {
+    "$comment": "WCAG 2.2 SC 2.4.11 (Focus Not Obscured) asks that a focused control is not entirely hidden by author-created content. Axe.Windows 2.4.2 has no rule for it. These are the only surfaces in the shell that may paint over content, so WpfUiAutomationSmokeTests checks focusable elements against exactly these; anything else that starts covering content is a defect, not an entry to add here.",
+    "mayOverlayContent": [
+      {
+        "automationId": "PromptDialogRoot",
+        "reason": "Modal prompt. Tab cycles inside it and cannot reach the content underneath, so covering that content is correct."
+      },
+      {
+        "automationId": "ActivityDialogRoot",
+        "reason": "Modal activity dialog. Same containment: focus stays inside while it is open."
+      }
+    ],
+    "notAnOverlay": [
+      {
+        "name": "Settings apply bar",
+        "reason": "The Apply custom profile bar looks sticky but is Grid.Row=1 of a two-row grid whose first row holds the scroll viewer, so it occupies its own space and cannot cover scrolling content. Recorded because a reading of the Settings screenshot suggested otherwise."
+      }
+    ]
+  },
   "focusVisuals": {
     "strategy": "Custom ring-based indicators replace system FocusVisualStyle on all interactive controls.",
     "controls": [

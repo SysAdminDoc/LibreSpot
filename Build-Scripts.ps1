@@ -1519,6 +1519,7 @@ function Test-ReadmeWpfScreenshotMetadata {
         }
 
         $shellVersion = Get-PngTextMetadataValue -Path $fullPath -Key 'LibreSpotShellVersion'
+        $railVersion = Get-PngTextMetadataValue -Path $fullPath -Key 'LibreSpotCaptureRailVersion'
         $assemblyVersion = Get-PngTextMetadataValue -Path $fullPath -Key 'LibreSpotCaptureAssemblyVersion'
         $state = Get-PngTextMetadataValue -Path $fullPath -Key 'LibreSpotCaptureState'
         $capturedAt = Get-PngTextMetadataValue -Path $fullPath -Key 'LibreSpotCaptureUtc'
@@ -1543,6 +1544,22 @@ function Test-ReadmeWpfScreenshotMetadata {
         }
         if ($assemblyVersion -ne $expectedAssemblyVersion) {
             $failures += "${relativePath}: LibreSpotCaptureAssemblyVersion '$assemblyVersion' does not match '$expectedAssemblyVersion'."
+        }
+        # What the reader sees, not what the process knew. This is read off the
+        # rail's automation peer at capture time, so a capture whose pixels show
+        # an older version cannot pass on a fresher stamp.
+        if ([string]::IsNullOrWhiteSpace($railVersion)) {
+            $failures += "${relativePath}: LibreSpotCaptureRailVersion is missing; recapture with a build that stamps the rendered rail version."
+        } else {
+            if ($railVersion -ne $expectedShellVersion) {
+                $failures += "${relativePath}: the navigation rail rendered '$railVersion' but the shell version is '$expectedShellVersion'."
+            }
+            if ($railVersion.TrimStart('v') -ne $expectedAssemblyVersion) {
+                $failures += "${relativePath}: the navigation rail rendered '$railVersion' but the assembly is '$expectedAssemblyVersion'."
+            }
+            if ($readme -notmatch [regex]::Escape("Version-$($railVersion.TrimStart('v'))-brightgreen")) {
+                $failures += "${relativePath}: the navigation rail rendered '$railVersion', which is not the version the README badge advertises."
+            }
         }
         if ($state -ne $expectedState) {
             $failures += "${relativePath}: LibreSpotCaptureState '$state' does not match '$expectedState'."

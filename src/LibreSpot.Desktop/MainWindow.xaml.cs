@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Automation.Peers;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using LibreSpot.Desktop.Models;
@@ -55,6 +56,29 @@ public partial class MainWindow : Window
     /// repeating the default-size pass.
     /// </summary>
     internal const string UiAutomationResponsiveTargetControlAutomationId = "TargetSizeControlNarrowOnlyButton";
+
+    /// <summary>
+    /// Automation id of a focusable button planted underneath an opaque
+    /// surface in the focus-obscured-control state. WCAG 2.2 success criterion
+    /// 2.4.11 asks that a focused control is not entirely hidden by
+    /// author-created content, and Axe.Windows 2.4.2 has no rule for it, so
+    /// this is what proves the obscuring check reports anything at all.
+    /// </summary>
+    internal const string UiAutomationObscuredFocusControlAutomationId = "FocusObscuredHiddenButton";
+
+    /// <summary>
+    /// Automation id of the opaque surface planted over that button. Named so
+    /// the check reports which surface did the covering rather than "something
+    /// somewhere", and so the assertion can require this exact pair.
+    /// </summary>
+    internal const string UiAutomationObscuringSurfaceAutomationId = "FocusObscuringPlantedSurface";
+
+    /// <summary>
+    /// Automation id of the version label in the navigation rail. The capture
+    /// path reads its automation name so the stamped version is the one the
+    /// screenshot shows.
+    /// </summary>
+    internal const string UiAutomationVersionLabelAutomationId = "SimpleShellVersionLabel";
 
     private readonly MainViewModel _viewModel;
     private readonly string? _uiAutomationSmokeState;
@@ -290,6 +314,50 @@ public partial class MainWindow : Window
                         undersizedButton,
                         UiAutomationTargetSizeControlAutomationId);
                     SimpleShellHost.Children.Add(undersizedButton);
+                }
+                if (string.Equals(uiAutomationSmokeState, "focus-obscured-control", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Positive control for the focus-not-obscured check. A
+                    // keyboard-focusable button, then an opaque surface added
+                    // after it in the same panel so it paints on top and its
+                    // rectangle fully contains the button's. Nothing in the
+                    // shipped shell does this; without the plant the check
+                    // could report nothing forever and look healthy.
+                    var hiddenButton = new System.Windows.Controls.Button
+                    {
+                        Width = 120,
+                        Height = 32,
+                        Content = "Reachable but covered",
+                        Margin = new Thickness(40, 40, 0, 0),
+                        HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
+                        VerticalAlignment = System.Windows.VerticalAlignment.Top
+                    };
+                    System.Windows.Automation.AutomationProperties.SetName(hiddenButton, "Obscured focus control");
+                    System.Windows.Automation.AutomationProperties.SetAutomationId(
+                        hiddenButton,
+                        UiAutomationObscuredFocusControlAutomationId);
+                    SimpleShellHost.Children.Add(hiddenButton);
+
+                    // A Label, not a Border: WPF gives no automation peer to a
+                    // bare Border, so the surface would be invisible to the
+                    // check that has to see it.
+                    var obscuringSurface = new System.Windows.Controls.Label
+                    {
+                        Width = 200,
+                        Height = 96,
+                        Margin = new Thickness(20, 20, 0, 0),
+                        Background = TryFindResource("SurfaceCardBrush") as System.Windows.Media.Brush,
+                        HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
+                        VerticalAlignment = System.Windows.VerticalAlignment.Top
+                    };
+                    System.Windows.Automation.AutomationProperties.SetName(obscuringSurface, "Planted obscuring surface");
+                    System.Windows.Automation.AutomationProperties.SetAutomationId(
+                        obscuringSurface,
+                        UiAutomationObscuringSurfaceAutomationId);
+                    System.Windows.Automation.AutomationProperties.SetIsOffscreenBehavior(
+                        obscuringSurface,
+                        System.Windows.Automation.IsOffscreenBehavior.Onscreen);
+                    SimpleShellHost.Children.Add(obscuringSurface);
                 }
                 if (string.Equals(uiAutomationSmokeState, "target-size-responsive-control", StringComparison.OrdinalIgnoreCase))
                 {
@@ -1077,6 +1145,7 @@ public partial class MainWindow : Window
         {
             ["LibreSpotShellVersion"] = _viewModel.ShellDisplayVersion,
             ["LibreSpotCaptureAssemblyVersion"] = GetAssemblyInformationalVersion(),
+            ["LibreSpotCaptureRailVersion"] = ReadRailVersionThroughAutomation(),
             ["LibreSpotCaptureState"] = _uiAutomationSmokeState ?? "live",
             ["LibreSpotCaptureCulture"] = _uiAutomationSmokeCulture,
             ["LibreSpotCaptureTheme"] = _uiAutomationSmokeTheme,
@@ -1166,6 +1235,49 @@ public partial class MainWindow : Window
         }
 
         return ~crc;
+    }
+
+    /// <summary>
+    /// The version string the navigation rail actually exposes, read through
+    /// its automation peer rather than off the view model. The stamp used to
+    /// come from the same property the rail binds, so a capture could carry a
+    /// version the rendered pixels did not show and the gate would still pass.
+    /// Empty when the label is absent, which is itself a reportable state.
+    /// </summary>
+    private string ReadRailVersionThroughAutomation()
+    {
+        var label = FindElementByAutomationId(this, UiAutomationVersionLabelAutomationId);
+        if (label is null)
+        {
+            return string.Empty;
+        }
+
+        var peer = UIElementAutomationPeer.CreatePeerForElement(label);
+        return peer?.GetName() ?? string.Empty;
+    }
+
+    private static UIElement? FindElementByAutomationId(DependencyObject root, string automationId)
+    {
+        if (root is UIElement candidate &&
+            string.Equals(
+                System.Windows.Automation.AutomationProperties.GetAutomationId(candidate),
+                automationId,
+                StringComparison.Ordinal))
+        {
+            return candidate;
+        }
+
+        var count = VisualTreeHelper.GetChildrenCount(root);
+        for (var index = 0; index < count; index++)
+        {
+            var found = FindElementByAutomationId(VisualTreeHelper.GetChild(root, index), automationId);
+            if (found is not null)
+            {
+                return found;
+            }
+        }
+
+        return null;
     }
 
     private static string GetAssemblyInformationalVersion() =>

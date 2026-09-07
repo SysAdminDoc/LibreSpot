@@ -503,6 +503,242 @@ public sealed class WpfUiAutomationSmokeTests
                 + string.Join(Environment.NewLine, undersized));
     }
 
+    /// <summary>
+    /// WCAG 2.2 success criterion 2.4.11 asks that a focused control is not
+    /// entirely hidden by author-created content. Axe.Windows 2.4.2 has no
+    /// rule for it, so a surface that grew over a focusable control would pass
+    /// every existing scan.
+    ///
+    /// The Settings "Apply custom profile" bar reads as a sticky overlay in a
+    /// screenshot, but it is Grid.Row=1 of a two-row grid whose first row is
+    /// the scroll viewer, so it takes its own space and cannot cover scrolling
+    /// content. That is recorded in the contract file. What this guards is the
+    /// change that would make it, or anything else, start covering.
+    /// </summary>
+    private sealed record FocusSurface(string AutomationId, string Name, Rect Bounds, bool IsKeyboardFocusable, IReadOnlyList<string> AncestorIds);
+
+    private static IReadOnlyList<string> DeclaredOverlaySurfaceIds()
+    {
+        using var contract = JsonDocument.Parse(File.ReadAllText(Path.Combine(ResolveRepoRoot(), "schemas", "keyboard-focus-contract.json")));
+        return contract.RootElement
+            .GetProperty("overlaySurfaces")
+            .GetProperty("mayOverlayContent")
+            .EnumerateArray()
+            .Select(entry => entry.GetProperty("automationId").GetString()!)
+            .ToArray();
+    }
+
+    private static List<FocusSurface> FocusSurfaces(AutomationElement window)
+    {
+        var surfaces = new List<FocusSurface>();
+        WalkForFocus(window, new List<string>(), surfaces, TreeWalker.RawViewWalker);
+        return surfaces;
+    }
+
+    private static void WalkForFocus(
+        AutomationElement element,
+        List<string> ancestors,
+        ICollection<FocusSurface> surfaces,
+        TreeWalker walker)
+    {
+        var automationId = TryGet(element, AutomationElement.AutomationIdProperty, string.Empty);
+        surfaces.Add(new FocusSurface(
+            automationId,
+            TryGet(element, AutomationElement.NameProperty, string.Empty),
+            TryGet(element, AutomationElement.BoundingRectangleProperty, Rect.Empty),
+            TryGet(element, AutomationElement.IsKeyboardFocusableProperty, false),
+            ancestors.ToArray()));
+
+        AutomationElement? child;
+        try
+        {
+            child = walker.GetFirstChild(element);
+        }
+        catch (ElementNotAvailableException)
+        {
+            return;
+        }
+
+        ancestors.Add(automationId);
+        while (child is not null)
+        {
+            WalkForFocus(child, ancestors, surfaces, walker);
+            try
+            {
+                child = walker.GetNextSibling(child);
+            }
+            catch (ElementNotAvailableException)
+            {
+                break;
+            }
+        }
+
+        ancestors.RemoveAt(ancestors.Count - 1);
+    }
+
+    /// <summary>
+    /// A focusable control is obscured when some other surface's rectangle
+    /// fully contains it and that surface is not one of its own ancestors.
+    /// Ancestors always contain their descendants, which is layout, not
+    /// covering.
+    /// </summary>
+    private static IReadOnlyList<string> ObscuredFocusableControls(
+        AutomationElement window,
+        IReadOnlyCollection<string> coveringSurfaceIds,
+        out int charted)
+    {
+        var surfaces = FocusSurfaces(window);
+        charted = surfaces.Count;
+
+        var covering = surfaces
+            .Where(surface => !string.IsNullOrEmpty(surface.AutomationId) && coveringSurfaceIds.Contains(surface.AutomationId))
+            .Where(surface => surface.Bounds.Width > 0 && surface.Bounds.Height > 0)
+            .ToArray();
+        if (covering.Length == 0)
+        {
+            return Array.Empty<string>();
+        }
+
+        var reported = new List<string>();
+        foreach (var focusable in surfaces.Where(surface => surface.IsKeyboardFocusable))
+        {
+            if (focusable.Bounds.Width <= 0 || focusable.Bounds.Height <= 0)
+            {
+                continue;
+            }
+
+            foreach (var surface in covering)
+            {
+                if (focusable.AncestorIds.Contains(surface.AutomationId, StringComparer.Ordinal))
+                {
+                    continue;
+                }
+
+                if (string.Equals(focusable.AutomationId, surface.AutomationId, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                if (surface.Bounds.Contains(focusable.Bounds))
+                {
+                    reported.Add($"{focusable.AutomationId}|{focusable.Name} is fully covered by {surface.AutomationId}");
+                }
+            }
+        }
+
+        return reported;
+    }
+
+    [Theory]
+    [MemberData(nameof(AccessibilityScanStates))]
+    public void FocusableControls_AreNotFullyCoveredByAnotherSurface(string state, string? size)
+    {
+        using var app = LaunchSmokeState(state, size: size);
+        var window = WaitForMainWindow(app.Process, MainWindowTimeout);
+        WaitForScanState(window, state, SmokeReadyTimeout);
+
+        // The declared overlays plus the planted surface. A shipped surface
+        // that is not declared cannot cover anything, which is the point of
+        // keeping the list in the contract file rather than in this test.
+        var covering = DeclaredOverlaySurfaceIds()
+            .Concat([MainWindow.UiAutomationObscuringSurfaceAutomationId])
+            .ToArray();
+
+        var obscured = ObscuredFocusableControls(window, covering, out var charted);
+
+        Assert.True(charted > 1, $"The walk charted {charted} elements for {state} at {size ?? "the default size"}, so this proved nothing.");
+        Assert.True(
+            obscured.Count == 0,
+            $"These focusable controls in the {state} state at {size ?? "the default size"} are entirely covered by "
+                + "another surface, which WCAG 2.2 success criterion 2.4.11 asks against:"
+                + Environment.NewLine
+                + string.Join(Environment.NewLine, obscured));
+    }
+
+    /// <summary>
+    /// The theme gallery used to be a bounded viewport, which put a second
+    /// scroll thumb beside the page's own and showed one and a half cards at
+    /// the smallest window. RD-186 made it grow with the page. The README
+    /// capture still shows the old shape, so this asserts the current one
+    /// rather than trusting a screenshot: every card whole, inside the
+    /// gallery, and no scrolling of its own.
+    /// </summary>
+    private const string ReadmeCaptureWindowSize = "1440x1024";
+
+    [Theory]
+    [InlineData(ReadmeCaptureWindowSize)]
+    [InlineData(MinimumWindowSize)]
+    public void ThemeGallery_ShowsWholeCardsAndDoesNotScrollOnItsOwn(string size)
+    {
+        using var app = LaunchSmokeState("custom", size: size);
+        var window = WaitForMainWindow(app.Process, MainWindowTimeout);
+        WaitForSnapshotContainingAutomationId(window, "SettingsThemeGallery", SmokeReadyTimeout);
+
+        var gallery = window.FindFirst(
+            TreeScope.Descendants,
+            new PropertyCondition(AutomationElement.AutomationIdProperty, "SettingsThemeGallery"));
+        Assert.NotNull(gallery);
+
+        var galleryBounds = TryGet(gallery, AutomationElement.BoundingRectangleProperty, Rect.Empty);
+        Assert.True(galleryBounds.Width > 0 && galleryBounds.Height > 0, "The theme gallery has no bounds, so this proved nothing.");
+
+        var cards = gallery
+            .FindAll(TreeScope.Children, new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.ListItem))
+            .OfType<AutomationElement>()
+            .Select(card => (
+                Name: TryGet(card, AutomationElement.NameProperty, string.Empty),
+                Bounds: TryGet(card, AutomationElement.BoundingRectangleProperty, Rect.Empty)))
+            .Where(card => card.Bounds.Width > 0 && card.Bounds.Height > 0)
+            .ToArray();
+
+        // Virtualisation would make "no clipped cards" true by there being no
+        // cards. The gallery ships more than twenty themes.
+        Assert.True(cards.Length > 1, $"The gallery charted {cards.Length} cards at {size}, so this proved nothing.");
+
+        var clipped = cards
+            .Where(card => !galleryBounds.Contains(card.Bounds))
+            .Select(card => $"{card.Name} at {card.Bounds} is not inside the gallery {galleryBounds}")
+            .ToArray();
+        Assert.True(
+            clipped.Length == 0,
+            $"These theme cards are clipped by the gallery at {size}:"
+                + Environment.NewLine
+                + string.Join(Environment.NewLine, clipped));
+
+        // The page scrolls the gallery; the gallery does not scroll itself.
+        if (gallery.TryGetCurrentPattern(ScrollPattern.Pattern, out var pattern) && pattern is ScrollPattern scroll)
+        {
+            Assert.False(scroll.Current.VerticallyScrollable, $"The theme gallery scrolls vertically on its own at {size}.");
+            Assert.False(scroll.Current.HorizontallyScrollable, $"The theme gallery scrolls horizontally on its own at {size}.");
+        }
+    }
+
+    [Fact]
+    public void FocusObscuringRule_ReportsAPlantedControlUnderAnOpaqueSurface()
+    {
+        // Without this the check above could report nothing because it looks
+        // for nothing, and a clean result in every state would mean nothing.
+        using var app = LaunchSmokeState("focus-obscured-control");
+        var window = WaitForMainWindow(app.Process, MainWindowTimeout);
+        WaitForSnapshotContainingAutomationId(
+            window,
+            MainWindow.UiAutomationObscuredFocusControlAutomationId,
+            SmokeReadyTimeout);
+
+        var covering = DeclaredOverlaySurfaceIds()
+            .Concat([MainWindow.UiAutomationObscuringSurfaceAutomationId])
+            .ToArray();
+        var obscured = ObscuredFocusableControls(window, covering, out var charted);
+
+        Assert.True(charted > 1, $"The walk charted {charted} elements, so this proved nothing.");
+        Assert.True(
+            obscured.Any(entry =>
+                entry.Contains(MainWindow.UiAutomationObscuredFocusControlAutomationId, StringComparison.Ordinal) &&
+                entry.Contains(MainWindow.UiAutomationObscuringSurfaceAutomationId, StringComparison.Ordinal)),
+            "The check did not report the button planted under the opaque surface, so it is not checking anything. "
+                + "Reported: " + string.Join(", ", obscured));
+    }
+
     [Fact]
     public void TargetSizeRule_OnlyReportsTheResponsiveControlAtTheMinimumWindow()
     {

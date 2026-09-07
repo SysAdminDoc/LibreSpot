@@ -65,6 +65,7 @@
                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                  ScrollViewer.VerticalScrollBarVisibility="Disabled"
                  KeyboardNavigation.DirectionalNavigation="Contained"
+                 AutomationProperties.AutomationId="SettingsThemeGallery"
                  AutomationProperties.Name="{services:Loc ThemePackLabel}"
                  AutomationProperties.HelpText="{services:Loc ThemePackHint}"
                  Margin="0">

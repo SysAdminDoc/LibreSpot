@@ -94,3 +94,35 @@ html.prism-contrast .Root__nav-bar {
   -webkit-backdrop-filter: none !important;
   background-color: var(--spice-player) !important;
 }
+
+/* ---- Context menu contrast on light schemes --------------------------
+ * Spotify's own stylesheet hard-codes alpha whites for the context menu:
+ * .main-contextMenu-menuItemButton is #ffffffe6, disabled items #ffffff80,
+ * subdued rows #ffffffb3 and the hover/expanded fill #ffffff1a. Spicetify's
+ * replace_colors only rewrites --spice-* variables, so those literals survive
+ * every scheme (spicetify/cli#3918). On a light scheme that is white on
+ * near-white, which is unreadable.
+ *
+ * Map them to the scheme's own text colour at the same alpha, which is what
+ * the upstream report proposes. On Dark --spice-rgb-text is 255,255,255, so
+ * this reproduces today's appearance exactly; on Light and HighContrast it
+ * follows the scheme instead of the hard-coded white.
+ */
+.main-contextMenu-menuItemButton {
+  color: rgba(var(--spice-rgb-text), 0.9);
+}
+.main-contextMenu-menuItemButton[aria-disabled="true"],
+.main-contextMenu-menuItemButton[disabled] {
+  color: rgba(var(--spice-rgb-text), 0.5);
+}
+.main-contextMenu-menuItemButton[aria-expanded="true"],
+.main-contextMenu-menuItemButton:hover,
+.main-contextMenu-menuItemButton:focus-visible {
+  background-color: rgba(var(--spice-rgb-text), 0.1);
+  color: rgba(var(--spice-rgb-text), 0.9);
+}
+.main-contextMenu-menu,
+.main-contextMenu-menuHeading {
+  background-color: var(--spice-main-elevated);
+  color: rgba(var(--spice-rgb-text), 0.7);
+}
