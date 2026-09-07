@@ -192,6 +192,24 @@ describe("LibreSpot surface contract", () => {
     }
   });
 
+  it("counts every catalog extension in the Store header, companion included", () => {
+    // The Store header reads the whole catalog while the README counts what a
+    // user can pick, so the two numbers differ by exactly the companion. The
+    // rule is written down in the catalog's $comment.
+    const companions = CUSTOMIZATION_CATALOG.extensions.filter(
+      (asset) => asset.source === "SysAdminDoc/LibreSpot",
+    );
+    expect(companions).toHaveLength(1);
+    expect(companions[0]?.id).toBe("librespot-engine.js");
+
+    // The header must bind to the unfiltered catalog. Pointing it at the
+    // filtered list would make the count move as someone types in the search
+    // box, which is the drift this pins.
+    const source = readFileSync(resolve(import.meta.dirname, "../src/panels/store.ts"), "utf8");
+    expect(source).toContain('h("strong", null, String(CUSTOMIZATION_CATALOG.extensions.length)),');
+    expect(source).toContain("extensions: CUSTOMIZATION_CATALOG.extensions.length,");
+  });
+
   it("warns on the Store card when the catalog records open upstream issues", () => {
     type FakeNode = {
       type: unknown;

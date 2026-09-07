@@ -22,13 +22,6 @@ Added 2026-09-07 from RESEARCH.md. IDs continue the RD scheme; RD-252 was the la
   Acceptance: the capture path SHALL stamp `LibreSpotCaptureRailVersion` from the value the rail's `SimpleShellVersionLabel` actually exposes through UI Automation at capture time; the gate SHALL fail when that value differs from the assembly version or from the README's Version badge; all eleven captures SHALL be retaken from the released 4.5.1 build with a synthetic Spotify library (Open Questions in RESEARCH.md), and the seven in-client captures SHALL show the 4.5.1 companion status surface.
   Complexity: S
 
-- [ ] P2: RD-259: Reconcile the extension count between the README, the Store header and the gate
-  Why: the Store counts 16 extensions because it includes the first-party companion `librespot-engine.js`, the README's gated sentence says 15 (ten built in and five community), and the README places the Store screenshot showing 16 three lines from that prose; the gate pins 15 against a source that excludes the companion, so it endorses the mismatch.
-  Evidence: `schemas/librespot-customization.json` extensions (16, including `librespot-engine.js`); `README.md:326`; `tests/LibreSpot.Desktop.Tests/ReleaseTruthTests.cs:206`; `assets/screenshots/spotify-librespot-store.png` header pills.
-  Touches: `README.md`, `src/LibreSpot.App/src/panels/store.ts`, `tests/LibreSpot.Desktop.Tests/ReleaseTruthTests.cs`, `src/LibreSpot.App/tests/surface.test.ts`.
-  Acceptance: one counting rule SHALL be chosen and written down in the catalog schema comment (companion counted or not); the README sentence, the Store header pill and the gate SHALL all derive from that rule, and a surface test SHALL fail when the Store header count differs from the catalog count under the rule.
-  Complexity: S
-
 - [ ] P2: RD-260: Add a catalog refresh proposal tool that stages candidate pins for review without applying them
   Why: the theme pin shipped Blackout for seven weeks after upstream removed it, the pin is five commits behind, and the only re-pin tooling is the SpotX policy review; spicetify-nix re-pins its whole set on a weekly automated commit, and LibreSpot's drift services detect but never propose.
   Evidence: spicetify/spicetify-themes #1283 (2026-07-14) against pin `df033493` (2026-05-31); `src/LibreSpot.Core/CommunityAssetDriftService.cs`; `Build-Scripts.ps1:3194` (`Test-SpotifyVersionDrift`); Gerg-L/spicetify-nix commit history; `schemas/community-assets.json` provenance fields.

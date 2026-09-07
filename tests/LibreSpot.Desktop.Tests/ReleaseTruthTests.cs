@@ -207,6 +207,29 @@ public sealed class ReleaseTruthTests
                     + $@"(?:{community}|{NumberWord(community)}) community,"),
             readme);
         Assert.Contains($"### {total} Extensions ({builtIn} Built-in + {community} Community)", readme, StringComparison.Ordinal);
+
+        // The Store counts the shared catalog, which also holds the first-party
+        // companion nobody selects, so it reads one higher than this total. The
+        // counting rule lives in the catalog's $comment; pin both ends of it so
+        // a new entry cannot quietly change either number.
+        using var catalog = System.Text.Json.JsonDocument.Parse(Read("schemas/librespot-customization.json"));
+        var catalogExtensions = catalog.RootElement.GetProperty("extensions").EnumerateArray().ToArray();
+        var companions = catalogExtensions
+            .Where(entry => string.Equals(entry.GetProperty("source").GetString(), "SysAdminDoc/LibreSpot", StringComparison.Ordinal))
+            .ToArray();
+        Assert.Single(companions);
+        Assert.Equal("librespot-engine.js", companions[0].GetProperty("id").GetString());
+        Assert.Equal(total + companions.Length, catalogExtensions.Length);
+
+        var rule = catalog.RootElement.GetProperty("$comment").GetString() ?? string.Empty;
+        Assert.Contains("librespot-engine.js", rule, StringComparison.Ordinal);
+        Assert.Contains("The Store header counts this list", rule, StringComparison.Ordinal);
+
+        // And the README has to say why the screenshot beside it reads higher.
+        Assert.Contains(
+            $"reads one higher than the {total} you can pick",
+            readme,
+            StringComparison.Ordinal);
     }
 
     private static int CountOrderedEntries(string script, string variableName)

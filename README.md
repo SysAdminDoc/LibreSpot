@@ -257,6 +257,8 @@ Choose **LibreSpot** in Spotify's navigation after installing the LibreSpot cust
 
 Every live control exposes its explanation to assistive technology. Store searches announce the result count or an empty state once as the list changes.
 
+The Store's extension tab counts everything the engine knows about, including the LibreSpot companion that installs with the engine itself. That is why it reads one higher than the 15 you can pick in Custom Install. The counting rule is recorded in `schemas/librespot-customization.json`.
+
 <div align="center">
 
 <img width="1150" alt="LibreSpot Store inside Spotify" src="assets/screenshots/spotify-librespot-store.png" />

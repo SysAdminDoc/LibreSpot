@@ -29,6 +29,6 @@ $global:CommunityCustomApps = [ordered]@{
         AssetPath   = 'librespot'
         RequiredFiles = @('manifest.json', 'index.js', 'style.css', 'librespot-engine.js', 'LICENSE', 'THIRD_PARTY_NOTICES.md')
         CompanionExtension = 'librespot-engine.js'
-        SHA256      = '8316d6cd61f33793d0250a131c14e6c26b40bc0e3ddd1e44621102d627f98fdd'
+        SHA256      = '8b3d71b08066d96a152fa387c4e55967aa65f0b2e7a7a3a2a20ee5969a81eb61'
     }
 }
