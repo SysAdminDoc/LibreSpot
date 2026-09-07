@@ -394,6 +394,7 @@
       "assetPath": "stats",
       "sha256": "c5611ff8caafe9c673ed43de07fbae77296d42fbd14fab868e9cbeac5d2b6cb7",
       "spdxLicense": "MIT",
+      "licenseEvidence": "The repository carries no LICENSE file; the MIT grant is declared in package.json at the pinned commit. Recorded here because GitHub reports no licence for this repository and the checklist would otherwise read it as NOASSERTION.",
       "copyrightHolder": "harbassan",
       "redistributionPosture": "download-only-not-redistributed",
       "supportState": "active",

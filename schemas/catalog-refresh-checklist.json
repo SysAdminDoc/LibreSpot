@@ -178,7 +178,7 @@
       "spotifyVersionNotes": "Glassmorphism effect. Requires theme.js",
       "networkBehavior": "local-only",
       "decision": "accept",
-      "reason": "Unique glassmorphism aesthetic, reasonable popularity, MIT.",
+      "reason": "Re-reviewed 2026-09-07. The June snapshot recorded MIT; the repository has no licence file, so it is NOASSERTION and stays eligible only under the download-only posture in community-assets.json. Pushed 2026-05-27, 444 stars, still the only glassmorphism theme in the set.",
       "evidenceUrls": ["https://github.com/Astromations/Hazy"]
     }
   ],

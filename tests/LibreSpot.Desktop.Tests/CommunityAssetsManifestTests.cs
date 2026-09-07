@@ -1128,6 +1128,25 @@ public sealed class CommunityAssetsManifestTests
                     asset.TryGetProperty("easyModeDefault", out var easy) && easy.ValueKind == JsonValueKind.True,
                     $"Asset '{id}' has open upstream issues recorded, so it must not be an Easy-mode default.");
 
+                // The flag above is a declaration. What Easy mode installs is
+                // the recommended configuration, and nothing tied the two
+                // together for custom apps, so a change there could ship an
+                // app with open defects while the flag still said false.
+                if (group == "customApps")
+                {
+                    Assert.DoesNotContain(
+                        id,
+                        AppCatalog.CreateRecommendedConfiguration().Spicetify_CustomApps,
+                        StringComparer.OrdinalIgnoreCase);
+                }
+                else if (group == "extensions")
+                {
+                    Assert.DoesNotContain(
+                        id,
+                        AppCatalog.CreateRecommendedConfiguration().Spicetify_Extensions,
+                        StringComparer.OrdinalIgnoreCase);
+                }
+
                 foreach (var issue in issues.EnumerateArray())
                 {
                     var url = issue.GetProperty("url").GetString()!;
@@ -1210,6 +1229,23 @@ public sealed class CommunityAssetsManifestTests
 
             matched++;
             Assert.Equal(spdx, candidate.GetProperty("license").GetString());
+        }
+
+        // The Hazy entry had its licence corrected to NOASSERTION while its
+        // rationale still said MIT, because the fields moved and the prose did
+        // not. Requiring the rationale to name its own evaluation date means a
+        // field update that leaves the prose behind cannot pass.
+        foreach (var candidate in candidates)
+        {
+            var name = candidate.GetProperty("candidate").GetString()!;
+            var evaluatedDate = candidate.GetProperty("evaluatedDate").GetString()!;
+            var reason = candidate.GetProperty("reason").GetString() ?? string.Empty;
+            Assert.Contains(
+                evaluatedDate,
+                reason);
+            Assert.False(
+                string.IsNullOrWhiteSpace(reason),
+                $"Checklist candidate '{name}' has no rationale.");
         }
 
         // Without this the licence half becomes a no-op the moment the checklist

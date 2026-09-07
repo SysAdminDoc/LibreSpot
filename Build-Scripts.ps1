@@ -60,6 +60,7 @@ param(
     [switch]$SkipStableExeIdentity,
     [switch]$ReleaseTruth,
     [switch]$CatalogTruth,
+    [switch]$ProposeCatalogRefresh,
     [switch]$WatcherIntegration
 )
 
@@ -762,6 +763,18 @@ function Test-PinnedCompatibilityBaseline {
                 $failures += 'Every routeWiring.verified entry needs a build and the evidence that proved it.'
                 continue
             }
+            # Without these the Pester proof cannot tell Spotify's bytes from a
+            # hand-written stand-in, and a build could be recorded on prose
+            # alone while the fixture lane stays skipped.
+            foreach ($hashField in @('preRepairSha256', 'repairedSha256')) {
+                $value = [string]$entry.$hashField
+                if ($value -notmatch '^[0-9a-f]{64}$') {
+                    $failures += "Route wiring entry '$($entry.build)' needs a lowercase 64-character $hashField so the fixture can be identified."
+                }
+            }
+            if ([string]::IsNullOrWhiteSpace([string]$entry.repairApp)) {
+                $failures += "Route wiring entry '$($entry.build)' needs repairApp, the custom app the recorded hashes were produced with."
+            }
             try {
                 $entryDate = [DateTimeOffset]::Parse("$([string]$entry.verifiedDate)T00:00:00Z")
                 if ($entryDate -gt [DateTimeOffset]::UtcNow) {
@@ -786,6 +799,17 @@ function Test-PinnedCompatibilityBaseline {
         $anchorPhrase = 'route re-wiring is verified against Spotify'
         $claimTail = ', and against no other build.'
         $occurrences = @([regex]::Matches($readmeSource, [regex]::Escape($anchorPhrase)))
+
+        # Counting the exact phrase does not stop a second claim, because any
+        # rephrasing ("has also been verified on Spotify 1.2.99") avoids it.
+        # Every sentence in the README that asserts a Spotify build was
+        # verified has to be the one gated claim. This does not cover a claim
+        # worded without "verified"; that is the known edge.
+        $verificationClaims = @([regex]::Matches($readmeSource, 'verified (?:against|on) Spotify'))
+        if ($verificationClaims.Count -gt 1) {
+            $failures += "README.md asserts a verified Spotify build $($verificationClaims.Count) times; only the gated route re-wiring claim may do that."
+        }
+
         if ($occurrences.Count -eq 0) {
             $failures += "README.md no longer states which Spotify build the post-apply route re-wiring is verified against ('$anchorPhrase')."
         } elseif ($occurrences.Count -gt 1) {
@@ -797,8 +821,10 @@ function Test-PinnedCompatibilityBaseline {
             }
 
             # Backticked or bare, both count. Spotify builds are 1.2.x, so this
-            # never picks up the Spicetify version in the same paragraph.
-            $claimedBuilds = @([regex]::Matches($claim.Groups['builds'].Value, '\b1\.2\.\d+(?:\.\d+)?\b') |
+            # never picks up the Spicetify version in the same paragraph. Match
+            # every component, not just four: capping the pattern let
+            # "1.2.93.667.9" pass because its 1.2.93.667 prefix matched.
+            $claimedBuilds = @([regex]::Matches($claim.Groups['builds'].Value, '\b1\.2\.\d+(?:\.\d+)*\b') |
                 ForEach-Object { $_.Value } |
                 Select-Object -Unique)
             if ($claim.Success -and $claimedBuilds.Count -eq 0) {
@@ -3436,6 +3462,17 @@ if ($CatalogTruth) {
     Test-CommunityCatalogTruth -FetchRemote
     Test-CommunityKnownIssueStates
     Test-CustomizationCatalogTruth
+    exit 0
+}
+
+if ($ProposeCatalogRefresh) {
+    # Reads upstream and writes a review file. It applies nothing, which is
+    # why it sits beside -CatalogTruth rather than in the release lane.
+    $proposalTool = Join-Path $PSScriptRoot 'tools/Propose-CatalogRefresh.ps1'
+    if (-not (Test-Path -LiteralPath $proposalTool -PathType Leaf)) {
+        throw "Cannot find the catalog refresh proposal tool at $proposalTool"
+    }
+    & $proposalTool -RepoRoot $PSScriptRoot
     exit 0
 }
 

@@ -5,7 +5,7 @@ Describe 'Community catalog cross-edition output' {
         # publishes both manifests' hashes as trust evidence. Recompute with
         # tools\Build-CommunityCatalog.ps1 -GeneratedDate 2026-09-04, and
         # republish gh-pages in the same pass or -Validate stays red.
-        $script:reviewedCatalogSha256 = 'fb33c128217d6bb0a795f19535d03213df32e488a5818955f157fc4351f13822'
+        $script:reviewedCatalogSha256 = '5e95459bdd21f52d2bd81961843e46dbe9c765066d2b985ca14664beeaf4149f'
         $script:catalogGenerator = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..\..\tools\Build-CommunityCatalog.ps1')).Path
         $script:catalogTestRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("librespot-catalog-editions-{0}" -f ([guid]::NewGuid().ToString('N')))
         $script:windowsPowerShellOutput = Join-Path $script:catalogTestRoot 'windows-powershell'
