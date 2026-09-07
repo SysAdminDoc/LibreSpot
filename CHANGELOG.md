@@ -6,6 +6,7 @@ All notable changes to LibreSpot will be documented in this file.
 
 ### Fixed
 
+- Built-in preset cards now compare the settings they own instead of the profile name. Editing an applied preset returns its action to Apply, and a custom profile with the same title does not get mistaken for the built-in.
 - Dynamic artwork accents now use request generations, so a late result from an older track cannot replace the current colors. Material palettes survive route changes, previews, and timer reapplication until the effective scheme or accent inputs change, then scheduled light and dark transitions derive a fresh palette.
 - Panel render failures are now contained inside the LibreSpot surface. Navigation and Health stay available, the error view omits raw exception details, and Retry panel leaves saved settings untouched.
 - Live engine startup now has a 30-second companion API deadline and a persistent retry surface. Failed pre-start runtimes are cleaned up before a retry, and background or stalled frame probes defer without blocking listener setup.

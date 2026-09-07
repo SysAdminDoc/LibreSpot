@@ -14,7 +14,7 @@ Priority order:
 4. Make backup restoration and Marketplace reset preserve recoverable data (RD-228, RD-229).
 5. Serialize mutations across hosts, own installer descendants, and replace installed assets through staging and rollback (RD-230 through RD-232).
 6. Repair Marketplace storage lifecycle and migration handling, then make cache writes survive concurrent work and process death (RD-234 through RD-237).
-7. Finish recovery and accessibility inside Spotify: truthful preset state and connected announcements (RD-241 and RD-242); RD-239 and RD-240 are implemented below.
+7. Finish recovery and accessibility inside Spotify: connected announcements (RD-242); RD-239 through RD-241 are implemented below.
 8. Make diagnostics observable and test the Windows crash artifact itself (RD-233, RD-243 through RD-245); correct contradictory public documentation (RD-246).
 
 The remaining entries are recommendations unless an implemented item is called out below. Findings marked **Verified** were traced in source; exercised findings identify their synthetic reproduction. **Likely** describes a failure consequence not reproduced on a real installation. **Needs live validation** means a fixture or static check cannot establish the installed-client result.
@@ -102,6 +102,8 @@ Pinned [Marketplace Storage.ts](https://raw.githubusercontent.com/spicetify/mark
 **Implemented and exercised (RD-238, RD-239):** the companion API wait now has a 30-second deadline and publishes a persistent loading, ready or error status. The in-client surface listens for that status, binds a runtime only after the loaded marker is true, removes a failed pre-start runtime, and offers an accessible retry action. Frame probes have a 1.5-second deadline, defer while the document is hidden or frames never arrive, and run after engine initialization without blocking listener setup. A deferred sample leaves the current effects tier unchanged. Each panel now sits inside a React error boundary that preserves navigation and Health access, redacts exception details from the view, and retries without changing saved state.
 
 **Implemented and exercised (RD-240):** `core/engine.ts:refreshAccent` now captures the state, scheme and dynamic-accent inputs for each request and discards late results when those inputs or the request generation changed. A derived Material palette is retained through `apply`, preview cancellation, navigation and timer reapplication. Scheduled light and dark changes invalidate the old derivation and trigger a fresh request. Reversed artwork completions and a scheduled boundary fixture cover both paths.
+
+**Implemented and exercised (RD-241):** the Presets panel now derives the Applied state from each built-in profile's owned fields, including optional scale and accessibility settings. It ignores the display name and unrelated profile values, so editing a preset-owned control re-enables Apply while a same-name custom profile remains distinct. Surface fixtures cover both false-match cases and unrelated state changes.
 
 **Verified source UI gaps:** `panels/presets.ts` disables Apply using the preset name alone, even after edits retain that name. `surface/ui.ts` renders descriptions without associating them with controls; Store result changes lack the announcement already present in Features (RD-241, RD-242). Existing six-panel and four WPF screenshots were inspected. Live interaction, screen-reader output and newly changed visual states require isolated validation; existing pictures do not establish those results.
 

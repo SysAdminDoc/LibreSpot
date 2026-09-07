@@ -4,7 +4,7 @@ import compactPreview from "../assets/theme-previews/compact.png";
 import prismPreview from "../assets/theme-previews/prism.png";
 import type { UiNode } from "../spicetify-globals.d.ts";
 import { applyUserPreset, captureUserPreset } from "../core/index.ts";
-import { SURFACE_PRESETS } from "../surface/builtins.ts";
+import { isSurfacePresetApplied, SURFACE_PRESETS } from "../surface/builtins.ts";
 import type { PanelProperties } from "../surface/panel-types.ts";
 import { displaySchemeName } from "../surface/labels.ts";
 import {
@@ -105,14 +105,14 @@ export function PresetsPanel(properties: PanelProperties): UiNode {
       children: h(
         "div",
         { className: "librespot-preset-grid" },
-        ...SURFACE_PRESETS.map((preset) =>
-          h(
+        ...SURFACE_PRESETS.map((preset) => {
+          const applied = isSurfacePresetApplied(properties.snapshot.state, preset);
+          return h(
             "article",
             {
-              className:
-                properties.snapshot.state.name === preset.title
-                  ? "librespot-preset-card is-active"
-                  : "librespot-preset-card",
+              className: applied
+                ? "librespot-preset-card is-active"
+                : "librespot-preset-card",
               key: preset.id,
             },
             presetPreview(preset.id),
@@ -130,16 +130,13 @@ export function PresetsPanel(properties: PanelProperties): UiNode {
               )),
             ),
             ActionButton({
-              label:
-                properties.snapshot.state.name === preset.title
-                  ? "Applied"
-                  : "Apply",
+              label: applied ? "Applied" : "Apply",
               accessibleLabel:
-                properties.snapshot.state.name === preset.title
+                applied
                   ? `${preset.title} preset applied`
                   : `Apply ${preset.title} preset`,
               secondary: true,
-              disabled: properties.snapshot.state.name === preset.title,
+              disabled: applied,
               onClick: () => {
                 void properties.runtime.update(
                   (draft) => {
@@ -149,8 +146,8 @@ export function PresetsPanel(properties: PanelProperties): UiNode {
                 );
               },
             }),
-          ),
-        ),
+          );
+        }),
       ),
     }),
     Section({

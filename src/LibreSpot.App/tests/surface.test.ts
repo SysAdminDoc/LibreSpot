@@ -19,9 +19,11 @@ import {
 import { updateSnippetSelection } from "../src/panels/tweaks.ts";
 import {
   BUILTIN_SCHEMES,
+  isSurfacePresetApplied,
   SURFACE_PRESETS,
   SURFACE_SNIPPETS,
 } from "../src/surface/builtins.ts";
+import { createDefaultState } from "../src/core/state.ts";
 import {
   PANEL_DEFINITIONS,
   panelFromPath,
@@ -87,6 +89,38 @@ describe("LibreSpot surface contract", () => {
       "compact",
       "performance",
     ]);
+  });
+
+  it("identifies built-in presets from their owned settings", () => {
+    const preset = SURFACE_PRESETS.find((item) => item.id === "compact");
+    expect(preset).toBeDefined();
+    if (!preset) throw new Error("Compact preset fixture is missing.");
+    const state = createDefaultState();
+    state.name = "Compact";
+    expect(isSurfacePresetApplied(state, preset)).toBe(false);
+
+    preset.apply(state);
+    expect(isSurfacePresetApplied(state, preset)).toBe(true);
+
+    state.name = "Compact (edited)";
+    state.appearance.radius = 4;
+    state.dynamicAccent.fixed = "AA0000";
+    state.dynamicAccent.materialVariant = "fidelity";
+    expect(isSurfacePresetApplied(state, preset)).toBe(true);
+
+    state.appearance.scale.content = 1;
+    expect(isSurfacePresetApplied(state, preset)).toBe(false);
+  });
+
+  it("does not match a built-in title when preset-owned values differ", () => {
+    const preset = SURFACE_PRESETS.find((item) => item.id === "oled");
+    expect(preset).toBeDefined();
+    if (!preset) throw new Error("OLED preset fixture is missing.");
+    const state = createDefaultState();
+    state.name = "OLED";
+    state.theme = "Prism";
+    state.scheme = "Dark";
+    expect(isSurfacePresetApplied(state, preset)).toBe(false);
   });
 
   it("keeps reviewed snippet metadata and hot-path CSS constraints", () => {

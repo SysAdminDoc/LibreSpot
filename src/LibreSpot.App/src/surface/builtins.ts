@@ -116,6 +116,77 @@ function applyPreset(preset: CatalogPreset, draft: EngineState): void {
   draft.autoEffects = preset.id !== "performance";
 }
 
+function ownedPresetValues(
+  state: EngineState,
+  preset: CatalogPreset,
+): Record<string, unknown> {
+  const profile = preset.profile;
+  const values: Record<string, unknown> = {
+    theme: state.theme,
+    scheme: state.scheme,
+    effectsTier: state.effectsTier,
+    accentMode: state.dynamicAccent.mode,
+    materialPalette: state.dynamicAccent.materialPalette,
+    snippets: [...state.enabledSnippets],
+    autoEffects: state.autoEffects,
+  };
+  if (profile.contentScale !== undefined) {
+    values.contentScale = state.appearance.scale.content;
+  }
+  if (profile.navigationScale !== undefined) {
+    values.navigationScale = state.appearance.scale.navigation;
+  }
+  if (profile.playbarScale !== undefined) {
+    values.playbarScale = state.appearance.scale.playbar;
+  }
+  if (profile.fontFamily !== undefined) {
+    values.fontFamily = state.appearance.fontFamily;
+  }
+  if (preset.id === "accessibility") {
+    values.accessibilityLayer = state.layers.accessibility;
+  }
+  return values;
+}
+
+function expectedPresetValues(preset: CatalogPreset): Record<string, unknown> {
+  const profile = preset.profile;
+  const values: Record<string, unknown> = {
+    theme: profile.theme,
+    scheme: profile.scheme,
+    effectsTier: profile.effectsTier,
+    accentMode: profile.accentMode,
+    materialPalette: profile.materialPalette,
+    snippets: [...profile.snippets],
+    autoEffects: preset.id !== "performance",
+  };
+  if (profile.contentScale !== undefined) {
+    values.contentScale = profile.contentScale;
+  }
+  if (profile.navigationScale !== undefined) {
+    values.navigationScale = profile.navigationScale;
+  }
+  if (profile.playbarScale !== undefined) {
+    values.playbarScale = profile.playbarScale;
+  }
+  if (profile.fontFamily !== undefined) {
+    values.fontFamily = profile.fontFamily;
+  }
+  if (preset.id === "accessibility") {
+    values.accessibilityLayer = true;
+  }
+  return values;
+}
+
+export function isSurfacePresetApplied(
+  state: EngineState,
+  preset: CatalogPreset,
+): boolean {
+  return (
+    JSON.stringify(ownedPresetValues(state, preset)) ===
+    JSON.stringify(expectedPresetValues(preset))
+  );
+}
+
 export const SURFACE_SNIPPETS: readonly CatalogSnippet[] =
   CUSTOMIZATION_CATALOG.snippets;
 

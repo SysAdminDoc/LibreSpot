@@ -13,6 +13,7 @@ The engine keeps one managed style element for the active palette and another fo
 - Companion startup has a 30-second API deadline and publishes an accessible error with a retry action. The app binds only after the engine's loaded marker is true, and frame measurement runs after startup with a timeout that defers hidden or stalled samples.
 - Each panel is mounted inside a React error boundary. A failed panel shows a redacted retry view while the rail and Health route remain available.
 - Dynamic artwork accents are generation-aware. A late result cannot replace newer colors, and a derived Material palette survives route changes, previews, and timer reapplication until its effective scheme or accent inputs change.
+- Built-in presets compare their owned settings, so edited profiles and user profiles with matching names do not produce false Applied states.
 - `src/panels` contains the six native React surfaces. The controls update the live runtime or clearly identify settings that need a desktop apply.
 - `tests` uses Vitest with happy-dom. Files run one at a time to stay within the Spotify fixture memory limit.
 - `vendor` holds pinned upstream source parts. See [third-party notices](THIRD_PARTY_NOTICES.md).

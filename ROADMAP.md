@@ -22,13 +22,6 @@ Incomplete, implementer-actionable work only. Operator-dependent decisions remai
 
 ### P2: Next
 
-- [ ] P2: RD-241. Detect preset edits by contents instead of name
-  Why: Impact 3/5. Editing an applied preset retains its name, leaves Applied selected and disables restoring that preset.
-  Evidence: RESEARCH.md; src/LibreSpot.App/src/panels/presets.ts uses state.name to select/disable preset actions; WindowBlinds editable-preset comparison.
-  Touches: Component presets panel and preset identity/comparison helper; tests/surface.test.ts.
-  Acceptance: Apply a preset, change one included control, then reapply it successfully. A user preset sharing a built-in title but differing in preset-owned settings must not select or disable the built-in. Compare only preset-owned settings so unrelated state does not create false differences.
-  Complexity: S
-
 - [ ] P2: RD-242. Connect in-client descriptions and result changes to accessibility APIs
   Why: Impact 4/5. Controls expose names but omit associated consequences/scope, and Store search changes are not announced.
   Evidence: RESEARCH.md; src/LibreSpot.App/src/surface/ui.ts description renderers; Store versus Features result status; WCAG 4.1.3.
