@@ -778,19 +778,41 @@ function Test-PinnedCompatibilityBaseline {
         $failures += 'README.md is missing, so the route re-wiring claim cannot be checked.'
     } else {
         $readmeSource = [System.IO.File]::ReadAllText($readmePath, [System.Text.Encoding]::UTF8)
-        # Stop at the first period that is not part of a version number, so the
-        # window covers every build the sentence names and nothing after it.
-        $claim = [regex]::Match($readmeSource, 'route re-wiring is verified against Spotify (?<builds>(?:[^.]|\.(?=\d))*)')
-        if (-not $claim.Success) {
-            $failures += 'README.md no longer states which Spotify build the post-apply route re-wiring is verified against.'
+        # The claim is delimited by a fixed closing phrase rather than by
+        # sentence punctuation, because the surrounding paragraph names other
+        # Spotify versions for unrelated reasons and a build number's own dots
+        # make "end of sentence" unreliable. Requiring the phrase to appear
+        # once keeps a second claim from being added beside it.
+        $anchorPhrase = 'route re-wiring is verified against Spotify'
+        $claimTail = ', and against no other build.'
+        $occurrences = @([regex]::Matches($readmeSource, [regex]::Escape($anchorPhrase)))
+        if ($occurrences.Count -eq 0) {
+            $failures += "README.md no longer states which Spotify build the post-apply route re-wiring is verified against ('$anchorPhrase')."
+        } elseif ($occurrences.Count -gt 1) {
+            $failures += "README.md makes the route re-wiring claim $($occurrences.Count) times; keep it to one so the gate covers all of it."
         } else {
-            $claimedBuilds = @([regex]::Matches($claim.Groups['builds'].Value, '`(?<build>\d+(?:\.\d+)+)`') | ForEach-Object { $_.Groups['build'].Value })
-            if ($claimedBuilds.Count -eq 0) {
-                $failures += 'The README route re-wiring sentence names no Spotify build in backticks.'
+            $claim = [regex]::Match($readmeSource, [regex]::Escape($anchorPhrase) + '(?<builds>.*?)' + [regex]::Escape($claimTail))
+            if (-not $claim.Success) {
+                $failures += "The README route re-wiring claim must end with '$claimTail' so the gate knows where the build list stops."
+            }
+
+            # Backticked or bare, both count. Spotify builds are 1.2.x, so this
+            # never picks up the Spicetify version in the same paragraph.
+            $claimedBuilds = @([regex]::Matches($claim.Groups['builds'].Value, '\b1\.2\.\d+(?:\.\d+)?\b') |
+                ForEach-Object { $_.Value } |
+                Select-Object -Unique)
+            if ($claim.Success -and $claimedBuilds.Count -eq 0) {
+                $failures += 'The README route re-wiring claim names no Spotify build.'
             }
             foreach ($claimed in $claimedBuilds) {
-                if ($verifiedBuilds -notcontains $claimed) {
-                    $failures += "README claims route re-wiring on Spotify '$claimed', which is not in routeWiring.verified. Run the LIBRESPOT_XPUI_FIXTURES proof for that build and record it."
+                # A shorter claim is satisfied by a longer verified build, so
+                # "1.2.93" is covered by a recorded 1.2.93.667, but "1.2.9" is
+                # not: the match has to land on a dot boundary.
+                $covered = @($verifiedBuilds | Where-Object {
+                    $_ -eq $claimed -or $_.StartsWith("$claimed.", [System.StringComparison]::Ordinal)
+                })
+                if ($covered.Count -eq 0) {
+                    $failures += "README claims route re-wiring on Spotify '$claimed', which is not in routeWiring.verified. Run the LIBRESPOT_XPUI_FIXTURES proof for that build and record it, or move the unrelated sentence to its own line."
                 }
             }
         }

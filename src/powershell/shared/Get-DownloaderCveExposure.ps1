@@ -56,6 +56,6 @@ function Get-DownloaderCveExposure {
     $pending = (@($advisories | Where-Object { $latest.InstalledOn -lt $_.Fixed } | ForEach-Object { $_.Id })) -join ', '
     $result.Exposed = $true
     $result.Status  = 'PossiblyExposed'
-    $result.Reason  = "The newest Windows update on this host is from $($latest.InstalledOn.ToString('yyyy-MM-dd')), before the $($patchWave.ToString('yyyy-MM-dd')) cumulative update. Tracked Windows PowerShell 5.1 advisories: $tracked. Still unfixed at this host's patch level: $pending. LibreSpot still hash-verifies every download, but install pending Windows updates to close the parse-time and path-traversal vectors."
+    $result.Reason  = "The newest Windows update on this host is from $($latest.InstalledOn.ToString('yyyy-MM-dd')), before the $($patchWave.ToString('yyyy-MM-dd')) cumulative update. Tracked Windows PowerShell 5.1 advisories: $tracked. Still unfixed at this host's patch level: $pending. LibreSpot still hash-verifies every download, which does not close any of them; install pending Windows updates."
     return [pscustomobject]$result
 }

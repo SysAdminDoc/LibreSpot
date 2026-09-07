@@ -89,7 +89,7 @@ LibreSpot's pinned Spicetify v2.44.0 flow does not read the v3 support document.
 
 - **SHA256 pinning**, every download is verified against a pinned hash before use. This guarantees the *integrity* of the payload (a tampered or substituted file is rejected) but does **not** by itself remove the parse-time execution vector on an unpatched PowerShell 5.1 host.
 - **Patch-level preflight**, the downloader runs a non-blocking check (`Get-DownloaderCveExposure`) the first time it fetches anything. On Windows PowerShell 5.1 (Desktop edition) it inspects the host's most recent Windows update and logs a `WARN` when the host predates the newest tracked fix, naming every advisory below and the ones still unfixed at that host's patch level. It never blocks the install, it tells you to update Windows.
-- **PowerShell 7+ is unaffected**, PowerShell 7 (Core) is a separate product and isn't affected by this CVE, so the preflight skips it.
+- **PowerShell 7+ is unaffected**, PowerShell 7 (Core) is a separate product and none of the three advisories in this section apply to it, so the preflight skips it. It has its own floor, described below.
 
 **Required action for users:** keep Windows fully updated. Hosts on the December 2025 cumulative update or later have this fix; the two 2026 advisories below need a later update still.
 

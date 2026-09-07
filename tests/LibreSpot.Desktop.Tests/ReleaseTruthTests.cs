@@ -336,7 +336,15 @@ public sealed class ReleaseTruthTests
         // the bare "<n> themes" heading form too, but not "27 Lyrics Color
         // Themes", which counts SpotX lyrics options rather than themes.
         var matches = Regex.Matches(readme, @"\b(?<count>\d+) (?:supported )?themes\b", RegexOptions.IgnoreCase);
-        Assert.True(matches.Count > 1, "README.md no longer states a theme count in both the heading and the body.");
+        // Both forms have to be present, not just two of either. The heading
+        // carries the bare form and the body carries "supported themes"; a
+        // count-only check passed while the heading had lost its number.
+        Assert.True(
+            Regex.IsMatch(readme, @"\b\d+ themes\b", RegexOptions.IgnoreCase),
+            "README.md no longer states a bare theme count in the section heading.");
+        Assert.True(
+            Regex.IsMatch(readme, @"\b\d+ supported themes\b", RegexOptions.IgnoreCase),
+            "README.md no longer states a supported theme count in the body.");
 
         foreach (Match match in matches)
         {

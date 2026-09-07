@@ -60,7 +60,10 @@
         "verifiedDate": "2026-09-07",
         "spotxCommit": "550bc72c",
         "spicetifyCli": "2.44.0",
-        "evidence": "Repairing the pre-repair SpotX bundle (xpui.js.librespot.bak) reproduced the live repaired xpui.js byte for byte, SHA256 38c04695a9f5ea8977f7746281222da99e45cf418d6cd25de0833e865d6993a8. All five anchors matched and the second pass reported Wired without writing."
+        "preRepairSha256": "83d804a47227e84a57df7274bacda46726d75007bef95064b14040f1149b26e3",
+        "repairApp": "librespot",
+        "repairedSha256": "38c04695a9f5ea8977f7746281222da99e45cf418d6cd25de0833e865d6993a8",
+        "evidence": "Repairing the pre-repair SpotX bundle (xpui.js.librespot.bak, SHA256 83d804a4...) reproduced the live repaired xpui.js byte for byte. All five anchors matched and the second pass reported Wired without writing. The two hashes are what identify the fixture: a hand-written stand-in cannot match them, so the Pester proof refuses anything that is not the bundle this entry was recorded against."
       }
     ]
   }

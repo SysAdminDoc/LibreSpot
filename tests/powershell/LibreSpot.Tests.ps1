@@ -4916,16 +4916,28 @@ Describe 'Custom-app route wiring against real xpui bundles' {
     # has actually been run against an extracted Spotify bundle, and every one
     # of them has to still hold. Synthetic anchors live in the Describe above.
     $routeWiringBaseline = (Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot '..\..\schemas\compatibility-baseline.json') | ConvertFrom-Json).routeWiring
-    $routeWiringCases = @($routeWiringBaseline.verified | ForEach-Object { @{ Build = [string]$_.build } })
+    $routeWiringCases = @($routeWiringBaseline.verified | ForEach-Object {
+        @{
+            Build           = [string]$_.build
+            PreRepairSha256 = [string]$_.preRepairSha256
+            RepairApp       = [string]$_.repairApp
+            RepairedSha256  = [string]$_.repairedSha256
+            Anchors         = @($routeWiringBaseline.anchors)
+        }
+    })
 
     BeforeAll {
         $sharedRoot = Join-Path $PSScriptRoot '..\..\src\powershell\shared'
         . (Join-Path $sharedRoot 'Test-SpicetifyCustomAppRouteWiring.ps1')
         . (Join-Path $sharedRoot 'Repair-SpicetifyCustomAppWiring.ps1')
         $script:routeWiringSkipReason = 'LIBRESPOT_XPUI_FIXTURES is not set. Extracted xpui bundles are Spotify''s bytes and stay outside the repository. Point the variable at a directory holding <build>/xpui/ copies (index.html, the pre-repair xpui.js, and the spicetify-routes-*.js chunks) to run this proof.'
-        function global:Write-Log {
+
+        # Not global: the file-level BeforeAll defines a no-op Write-Log in an
+        # ancestor scope, and a global function loses to it. Declaring it here
+        # puts it in this container's scope, which is nearer than that one.
+        function Write-Log {
             param([string]$Message, [string]$Level = 'INFO')
-            if ($null -ne $global:LibreSpotWiringLog) { [void]$global:LibreSpotWiringLog.Add("$Level|$Message") }
+            if ($null -ne $script:routeWiringLog) { [void]$script:routeWiringLog.Add("$Level|$Message") }
         }
     }
 
@@ -4945,41 +4957,68 @@ Describe 'Custom-app route wiring against real xpui bundles' {
         $apps = Split-Path $work -Parent
         $bundle = Join-Path $work 'xpui.js'
 
-        # Pick a managed app the fixture bundle has not been wired for yet.
-        $probe = $null
-        foreach ($candidate in @('librespot', 'marketplace', 'stats')) {
-            $state = Test-SpicetifyCustomAppRouteWiring -AppName $candidate -AppsDirectory $apps
-            if ($state.State -eq 'NotWired' -and $state.RouteBundlePresent) { $probe = $candidate; break }
-        }
-        $probe | Should -Not -BeNullOrEmpty -Because 'the fixture must hold the pre-repair bundle and at least one unwired route chunk'
+        # The fixture has to be the bundle this entry was recorded against. A
+        # hand-written stand-in passes every anchor check but proves nothing,
+        # so pin its identity before anything else runs.
+        $actualPreRepair = (Get-FileHash -LiteralPath $bundle -Algorithm SHA256).Hash.ToLowerInvariant()
+        $actualPreRepair | Should -BeExactly $PreRepairSha256 -Because "the fixture for $Build must be the pre-repair Spotify bundle the baseline recorded, not a stand-in"
 
-        $global:LibreSpotWiringLog = New-Object System.Collections.Generic.List[string]
-        $beforeHash = (Get-FileHash -LiteralPath $bundle -Algorithm SHA256).Hash
-        $result = Repair-SpicetifyCustomAppWiring -AppName $probe -AppsDirectory $apps
+        # A copied fixture can carry the backup the live install left behind.
+        # Clear it so the post-repair assertion is about this run.
+        $backup = "$bundle.librespot.bak"
+        if (Test-Path -LiteralPath $backup) { Remove-Item -LiteralPath $backup -Force }
 
-        # reactLazy and settingsRoute: the repair reports AnchorsMissing instead
-        # of writing when either regex fails against this build's bundle.
-        $result.Status | Should -Be 'Patched' -Because "the React lazy and /settings route anchors must still match Spotify $Build"
+        (Test-SpicetifyCustomAppRouteWiring -AppName $RepairApp -AppsDirectory $apps).State |
+            Should -Be 'NotWired' -Because "the recorded fixture has not been repaired for $RepairApp yet"
 
+        $script:routeWiringLog = New-Object System.Collections.Generic.List[string]
+        $repairResult = Repair-SpicetifyCustomAppWiring -AppName $RepairApp -AppsDirectory $apps
         $patched = [System.IO.File]::ReadAllText($bundle)
-        $chunk = "spicetify-routes-$probe"
-        # chunkUrlMap and miniCssUrlMap: one chunk-name entry inserted into each.
-        ([regex]::Matches($patched, [regex]::Escape('"' + $chunk + '":"' + $chunk + '",'))).Count |
-            Should -Be 2 -Because 'the .u and .miniCssF chunk maps both need the route entry'
-        # miniCssGate: without it the store route loads with no stylesheet.
-        $patched.Contains(',"' + $chunk + '":1') | Should -BeTrue -Because 'the miniCss chunk gate must carry the route'
-        @($global:LibreSpotWiringLog | Where-Object { $_ -like 'WARN|*' }) |
-            Should -BeNullOrEmpty -Because 'a missing miniCss gate only warns, so it has to be asserted here'
+        $chunk = "spicetify-routes-$RepairApp"
+        $mapEntry = [regex]::Escape('"' + $chunk + '":"' + $chunk + '",')
 
-        Test-Path -LiteralPath "$bundle.librespot.bak" -PathType Leaf | Should -BeTrue
-        (Test-SpicetifyCustomAppRouteWiring -AppName $probe -AppsDirectory $apps).State | Should -Be 'Wired'
+        # Each anchor the baseline names gets its own check, and the two lists
+        # have to agree, so neither can drift away from the other unnoticed.
+        $anchorChecks = [ordered]@{
+            # The repair reports AnchorsMissing instead of writing when either
+            # of the two structural regexes fails against this build.
+            reactLazy     = { $repairResult.Status -eq 'Patched' }
+            settingsRoute = { $repairResult.Status -eq 'Patched' }
+            chunkUrlMap   = { [regex]::IsMatch($patched, '\.u=\w+=>""\+\(\(\{' + $mapEntry) }
+            miniCssUrlMap = { [regex]::IsMatch($patched, '\.miniCssF=\w+=>""\+\(\(\{' + $mapEntry) }
+            # Without this the route loads with no stylesheet, and the repair
+            # only warns, so nothing else would catch it.
+            miniCssGate   = { $patched.Contains(',"' + $chunk + '":1') }
+        }
 
-        $afterHash = (Get-FileHash -LiteralPath $bundle -Algorithm SHA256).Hash
-        $afterHash | Should -Not -Be $beforeHash
+        @($Anchors) | Should -Not -BeNullOrEmpty -Because 'the baseline must name the anchors this proof covers'
+        foreach ($anchor in @($Anchors)) {
+            $check = $anchorChecks[$anchor]
+            if ($null -eq $check) {
+                throw "The baseline records the anchor '$anchor', which this test does not check. Add the check or drop the anchor."
+            }
+            (& $check) | Should -BeTrue -Because "anchor $anchor must still match Spotify $Build (repair status: $($repairResult.Status))"
+        }
+        foreach ($checked in $anchorChecks.Keys) {
+            @($Anchors) | Should -Contain $checked -Because 'every anchor this proof checks has to be recorded in the baseline'
+        }
+
+        # Positive control first: a successful repair logs its INFO line, so an
+        # empty log means the capture is broken and the WARN check below would
+        # pass no matter what the repair did.
+        @($script:routeWiringLog) | Should -Not -BeNullOrEmpty -Because 'the repair logs through Write-Log, so this collector has to be the one it reaches'
+        @($script:routeWiringLog | Where-Object { $_ -like 'WARN|*' }) |
+            Should -BeNullOrEmpty -Because 'the repair downgrades a missing miniCss gate to a warning'
+        Test-Path -LiteralPath $backup -PathType Leaf | Should -BeTrue -Because 'the repair keeps a pre-patch copy beside the bundle'
+        (Test-SpicetifyCustomAppRouteWiring -AppName $RepairApp -AppsDirectory $apps).State | Should -Be 'Wired'
+
+        # The whole point: the repair reproduces the bundle this entry recorded.
+        (Get-FileHash -LiteralPath $bundle -Algorithm SHA256).Hash.ToLowerInvariant() |
+            Should -BeExactly $RepairedSha256 -Because "repairing $RepairApp on $Build must reproduce the recorded result byte for byte"
 
         # Idempotent: a second pass reports the wired state without rewriting.
-        (Repair-SpicetifyCustomAppWiring -AppName $probe -AppsDirectory $apps).Status | Should -Be 'Wired'
-        (Get-FileHash -LiteralPath $bundle -Algorithm SHA256).Hash | Should -Be $afterHash
+        (Repair-SpicetifyCustomAppWiring -AppName $RepairApp -AppsDirectory $apps).Status | Should -Be 'Wired'
+        (Get-FileHash -LiteralPath $bundle -Algorithm SHA256).Hash.ToLowerInvariant() | Should -BeExactly $RepairedSha256
     }
 
     It 'records every locally proven build in the compatibility baseline' {
