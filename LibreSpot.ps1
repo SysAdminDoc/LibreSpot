@@ -67,32 +67,171 @@ public class Win32 {
         } catch { return false; }
     }
 }
-public sealed class LibreSpotNativeOutputCollector {
-    private readonly ConcurrentQueue<string> lines = new ConcurrentQueue<string>();
-    private readonly DataReceivedEventHandler handler;
+public sealed class LibreSpotNativeOutputCollector : System.IDisposable {
+    public const int MaxLineCharacters = 32768;
+    public const int MaxQueuedLines = 256;
+    public const int MaxQueuedCharacters = 262144;
 
-    public LibreSpotNativeOutputCollector() {
-        handler = OnDataReceived;
-    }
+    private const string OversizedLineMarker = " [output truncated: oversized line]";
+    private const string QueueTruncationMarker = "[output truncated: collector queue bounded]";
+    private readonly ConcurrentQueue<string> lines = new ConcurrentQueue<string>();
+    private readonly object gate = new object();
+    private readonly System.Collections.Generic.List<System.Threading.Tasks.Task> readers = new System.Collections.Generic.List<System.Threading.Tasks.Task>();
+    private System.Threading.CancellationTokenSource cancellation;
+    private bool truncationPending;
+    private int queuedCharacters;
 
     public void Attach(Process process) {
-        process.OutputDataReceived += handler;
-        process.ErrorDataReceived += handler;
+        if (process == null) throw new ArgumentNullException("process");
+        var source = new System.Threading.CancellationTokenSource();
+        lock (gate) {
+            if (cancellation != null) throw new InvalidOperationException("Collector is already attached.");
+            cancellation = source;
+            readers.Clear();
+        }
+
+        try {
+            var outputReader = ReadStreamAsync(process.StandardOutput, source.Token);
+            var errorReader = ReadStreamAsync(process.StandardError, source.Token);
+            lock (gate) {
+                readers.Add(outputReader);
+                readers.Add(errorReader);
+            }
+        } catch {
+            source.Cancel();
+            source.Dispose();
+            lock (gate) { cancellation = null; }
+            throw;
+        }
     }
 
     public void Detach(Process process) {
-        process.OutputDataReceived -= handler;
-        process.ErrorDataReceived -= handler;
+        System.Threading.CancellationTokenSource source;
+        lock (gate) {
+            source = cancellation;
+            cancellation = null;
+        }
+        if (source != null) {
+            try { source.Cancel(); } catch { }
+            source.Dispose();
+        }
+    }
+
+    public void WaitForCompletion(int timeoutMilliseconds) {
+        System.Threading.Tasks.Task[] pending;
+        lock (gate) { pending = readers.ToArray(); }
+        if (pending.Length > 0) {
+            try { System.Threading.Tasks.Task.WaitAll(pending, Math.Max(0, timeoutMilliseconds)); } catch { }
+        }
+        lock (gate) { QueuePendingMarkerLocked(); }
     }
 
     public bool TryDequeue(out string line) {
-        return lines.TryDequeue(out line);
+        lock (gate) {
+            QueuePendingMarkerLocked();
+            if (lines.TryDequeue(out line)) {
+                queuedCharacters -= line.Length;
+                QueuePendingMarkerLocked();
+                return true;
+            }
+            line = null;
+            return false;
+        }
     }
 
-    private void OnDataReceived(object sender, DataReceivedEventArgs eventArgs) {
-        if (eventArgs != null && eventArgs.Data != null) {
-            lines.Enqueue(eventArgs.Data);
+    public void Dispose() {
+        Detach(null);
+        GC.SuppressFinalize(this);
+    }
+
+    private async System.Threading.Tasks.Task ReadStreamAsync(System.IO.StreamReader reader, System.Threading.CancellationToken token) {
+        var buffer = new char[4096];
+        var line = new System.Text.StringBuilder();
+        var oversized = false;
+        var skipLf = false;
+        var fragmentLimit = MaxLineCharacters - OversizedLineMarker.Length;
+        try {
+            while (true) {
+                var count = await reader.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
+                if (token.IsCancellationRequested) break;
+                if (count == 0) break;
+                for (var i = 0; i < count; i++) {
+                    var character = buffer[i];
+                    if (skipLf) {
+                        skipLf = false;
+                        if (character == '\n') continue;
+                    }
+                    if (character == '\r' || character == '\n') {
+                        if (line.Length > 0) EnqueueLine(BuildLine(line, oversized));
+                        line.Clear();
+                        oversized = false;
+                        skipLf = character == '\r';
+                        continue;
+                    }
+
+                    line.Append(character);
+                    if (line.Length >= fragmentLimit) {
+                        EnqueueLine(BuildLine(line, true));
+                        line.Clear();
+                        oversized = true;
+                    }
+                }
+            }
+            if (line.Length > 0) EnqueueLine(BuildLine(line, oversized));
+        } catch (OperationCanceledException) { }
+          catch (ObjectDisposedException) { }
+          catch (System.IO.IOException) { }
+    }
+
+    private static string BuildLine(System.Text.StringBuilder line, bool oversized) {
+        var value = line.ToString();
+        if (!oversized) return value;
+        var available = Math.Max(0, MaxLineCharacters - OversizedLineMarker.Length);
+        if (value.Length > available) value = value.Substring(0, available);
+        return value + OversizedLineMarker;
+    }
+
+    private void EnqueueLine(string line) {
+        if (string.IsNullOrEmpty(line)) return;
+        lock (gate) {
+            var markerLength = QueueTruncationMarker.Length;
+            var needMarker = truncationPending;
+            var dropped = false;
+            while (lines.Count + (needMarker ? 1 : 0) >= MaxQueuedLines ||
+                   queuedCharacters + (needMarker ? markerLength : 0) + line.Length > MaxQueuedCharacters) {
+                string discarded;
+                if (!lines.TryDequeue(out discarded)) break;
+                queuedCharacters -= discarded.Length;
+                dropped = true;
+            }
+            if (dropped) {
+                truncationPending = true;
+                needMarker = true;
+            }
+            if (needMarker) {
+                while (lines.Count + 2 > MaxQueuedLines ||
+                       queuedCharacters + markerLength + line.Length > MaxQueuedCharacters) {
+                    string discarded;
+                    if (!lines.TryDequeue(out discarded)) break;
+                    queuedCharacters -= discarded.Length;
+                }
+                if (lines.Count + 2 > MaxQueuedLines ||
+                    queuedCharacters + markerLength + line.Length > MaxQueuedCharacters) return;
+                lines.Enqueue(QueueTruncationMarker);
+                queuedCharacters += markerLength;
+                truncationPending = false;
+            }
+            lines.Enqueue(line);
+            queuedCharacters += line.Length;
         }
+    }
+
+    private void QueuePendingMarkerLocked() {
+        if (!truncationPending || lines.Count >= MaxQueuedLines ||
+            queuedCharacters + QueueTruncationMarker.Length > MaxQueuedCharacters) return;
+        lines.Enqueue(QueueTruncationMarker);
+        queuedCharacters += QueueTruncationMarker.Length;
+        truncationPending = false;
     }
 }
 '@ -ErrorAction SilentlyContinue
@@ -6466,6 +6605,7 @@ function Invoke-SpicetifyCli {
 
     $progressState = @{ LastPatchBucket = -1; LastUiPatchPercent = -1; LastStage = '' }
     $outputLines = [System.Collections.Generic.List[string]]::new()
+    $maxOutputTailLines = 32
     $process = $null
     $collector = $null
 
@@ -6490,13 +6630,11 @@ function Invoke-SpicetifyCli {
         $process = New-Object System.Diagnostics.Process
         $process.StartInfo = $startInfo
         $collector = New-Object LibreSpotNativeOutputCollector
-        $collector.Attach($process)
 
         $null = $process.Start()
+        $collector.Attach($process)
         Write-Log "  Spicetify ($($integration.Version)) command: spicetify $displayArguments"
         Write-Log "  Spicetify PID: $($process.Id)"
-        $process.BeginOutputReadLine()
-        $process.BeginErrorReadLine()
 
         $startedAt = Get-Date
         $lastOutputAt = $startedAt
@@ -6511,7 +6649,12 @@ function Invoke-SpicetifyCli {
             while ($collector.TryDequeue([ref]$queuedLine)) {
                 if (-not [string]::IsNullOrWhiteSpace($queuedLine)) {
                     $processed = Write-SpicetifyCliOutputLine -Line $queuedLine -ProgressState $progressState
-                    if ($processed) { [void]$outputLines.Add($processed) }
+                    if ($processed) {
+                        [void]$outputLines.Add($processed)
+                        if ($outputLines.Count -gt $maxOutputTailLines) {
+                            $outputLines.RemoveAt(0)
+                        }
+                    }
                     $count++
                 }
                 $queuedLine = $null
@@ -6534,6 +6677,8 @@ function Invoke-SpicetifyCli {
             if ($now -gt $deadline) {
                 Write-Log "Spicetify command exceeded ${TimeoutSeconds}s timeout and will be terminated." -Level 'WARN'
                 try { $process.Kill(); $process.WaitForExit(5000) } catch {}
+                try { $collector.WaitForCompletion(1000) } catch {}
+                $null = & $drainOutput
                 $tail = & $getTail
                 throw "$FailureMessage Timed out after $TimeoutSeconds seconds.$tail"
             }
@@ -6553,6 +6698,7 @@ function Invoke-SpicetifyCli {
             }
         }
 
+        try { $collector.WaitForCompletion(1000) } catch {}
         Start-Sleep -Milliseconds 200
         $null = & $drainOutput
 
@@ -6570,8 +6716,7 @@ function Invoke-SpicetifyCli {
         $ErrorActionPreference = $previousPreference
         if ($process) {
             if ($collector) { try { $collector.Detach($process) } catch {} }
-            try { $process.CancelOutputRead() } catch {}
-            try { $process.CancelErrorRead() } catch {}
+            if ($collector) { try { $collector.Dispose() } catch {} }
             try { $process.Dispose() } catch {}
         }
     }
@@ -8726,40 +8871,155 @@ function Read-ProcessOutputDelta {
     param(
         [string]$Path,
         [long]$Offset = 0,
-        [string]$Remainder = ''
+        [string]$Remainder = '',
+        [int]$MaxChunkBytes = 262144,
+        [int]$MaxRemainderCharacters = 32768
     )
+
+    $maxChunkBytes = [Math]::Max(64, [Math]::Min($MaxChunkBytes, 1048576))
+    $maxRemainderCharacters = [Math]::Max(64, [Math]::Min($MaxRemainderCharacters, 262144))
+    $maxOutputLines = 256
+    $maxOutputCharacters = 262144
+    $strictUtf8 = New-Object System.Text.UTF8Encoding($false, $true)
     $result = @{
         Offset = $Offset
-        Remainder = $Remainder
+        Remainder = if ($Remainder.Length -le $maxRemainderCharacters) { $Remainder } else { $Remainder.Substring($Remainder.Length - $maxRemainderCharacters) }
         Lines = @()
     }
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return $result }
+
     try {
-        $stream = [System.IO.File]::Open($Path, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
-        $reader = $null
+        $stream = [System.IO.File]::Open(
+            $Path,
+            [System.IO.FileMode]::Open,
+            [System.IO.FileAccess]::Read,
+            [System.IO.FileShare]::ReadWrite)
         try {
-            if ($result.Offset -gt $stream.Length) { $result.Offset = 0; $result.Remainder = '' }
+            if ($result.Offset -gt $stream.Length) {
+                $result.Offset = 0
+                $result.Remainder = ''
+            }
+
             $null = $stream.Seek($result.Offset, [System.IO.SeekOrigin]::Begin)
-            $reader = New-Object System.IO.StreamReader($stream, [System.Text.Encoding]::UTF8, $true, 4096, $true)
-            $chunk = $reader.ReadToEnd()
-            $result.Offset = $stream.Position
+            $buffer = New-Object byte[] $maxChunkBytes
+            $read = $stream.Read($buffer, 0, $buffer.Length)
+            if ($read -le 0) {
+                $chunk = ''
+            } else {
+                $decodedBytes = $read
+                $chunk = $null
+                while ($decodedBytes -gt 0 -and $null -eq $chunk) {
+                    try {
+                        $chunk = $strictUtf8.GetString($buffer, 0, $decodedBytes)
+                    } catch [System.Text.DecoderFallbackException] {
+                        # A concurrent writer can leave a partial UTF-8 codepoint
+                        # at the capture boundary. Leave those bytes for the next
+                        # invocation rather than replacing them or losing offset.
+                        $decodedBytes--
+                    }
+                }
+                if ($null -eq $chunk) { $chunk = '' }
+                $result.Offset = $result.Offset + $decodedBytes
+                if ($result.Offset -eq $decodedBytes -and $decodedBytes -ge 3 -and
+                    $buffer[0] -eq 0xEF -and $buffer[1] -eq 0xBB -and $buffer[2] -eq 0xBF) {
+                    $chunk = $chunk.Substring(1)
+                }
+            }
         } finally {
-            if ($reader) { try { $reader.Dispose() } catch {} }
             try { $stream.Dispose() } catch {}
         }
+
         if ([string]::IsNullOrEmpty($chunk)) { return $result }
-        $text = [string]$result.Remainder + $chunk
-        $parts = $text -split "\r\n|\n|\r"
-        $hasTrailingNewline = $text.EndsWith("`n") -or $text.EndsWith("`r")
-        if ($hasTrailingNewline) {
-            $result.Remainder = ''
-            $result.Lines = @($parts | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
-        } elseif ($parts.Count -gt 0) {
-            $result.Remainder = [string]$parts[-1]
-            if ($parts.Count -gt 1) {
-                $result.Lines = @($parts[0..($parts.Count - 2)] | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+
+        $lines = New-Object System.Collections.Generic.List[string]
+        $pending = [string]$result.Remainder
+        $fragmentMarker = '[output truncated: oversized line]'
+        $batchMarker = '[output truncated: reader batch bounded]'
+        $batchMarkerLength = $batchMarker.Length
+        $lineCharacters = 0
+        $batchTruncationPending = $false
+        $batchMarkerAdded = $false
+        $addOutputLine = {
+            param([string]$Line)
+
+            if ([string]::IsNullOrWhiteSpace($Line)) { return }
+            $needMarker = $batchTruncationPending
+            $markerSlots = if ($needMarker) { 1 } else { 0 }
+            $dropped = $false
+            while ($lines.Count + $markerSlots -ge $maxOutputLines -or
+                   $lineCharacters + ($markerSlots * $batchMarkerLength) + $Line.Length -gt $maxOutputCharacters) {
+                if ($lines.Count -le 0) { break }
+                $discardIndex = if ($batchMarkerAdded -and [string]$lines[0] -eq $batchMarker) { 1 } else { 0 }
+                if ($discardIndex -ge $lines.Count) { break }
+                $discarded = [string]$lines[$discardIndex]
+                $lines.RemoveAt($discardIndex)
+                $lineCharacters -= $discarded.Length
+                $dropped = $true
+            }
+            if ($dropped -and -not $batchMarkerAdded) {
+                $batchTruncationPending = $true
+                $needMarker = $true
+                $markerSlots = 1
+            }
+            if ($needMarker) {
+                while ($lines.Count + 2 -gt $maxOutputLines -or
+                       $lineCharacters + $batchMarkerLength + $Line.Length -gt $maxOutputCharacters) {
+                    if ($lines.Count -le 0) { break }
+                    $discardIndex = if ($batchMarkerAdded -and [string]$lines[0] -eq $batchMarker) { 1 } else { 0 }
+                    if ($discardIndex -ge $lines.Count) { break }
+                    $discarded = [string]$lines[$discardIndex]
+                    $lines.RemoveAt($discardIndex)
+                    $lineCharacters -= $discarded.Length
+                }
+                if ($lines.Count + 2 -gt $maxOutputLines -or
+                    $lineCharacters + $batchMarkerLength + $Line.Length -gt $maxOutputCharacters) { return }
+                [void]$lines.Add($batchMarker)
+                $lineCharacters += $batchMarkerLength
+                $batchTruncationPending = $false
+                $batchMarkerAdded = $true
+            }
+            [void]$lines.Add($Line)
+            $lineCharacters += $Line.Length
+        }
+        $appendSegment = {
+            param(
+                [string]$Segment,
+                [bool]$Complete
+            )
+
+            $combined = $pending + [string]$Segment
+            while ($combined.Length -gt $maxRemainderCharacters) {
+                $fragment = $combined.Substring(0, $maxRemainderCharacters)
+                if (-not [string]::IsNullOrWhiteSpace($fragment)) {
+                    $null = . $addOutputLine ($fragment + ' ' + $fragmentMarker)
+                }
+                $combined = $combined.Substring($maxRemainderCharacters)
+            }
+
+            if ($Complete) {
+                if (-not [string]::IsNullOrWhiteSpace($combined)) {
+                    $null = . $addOutputLine $combined
+                }
+                $pending = ''
+            } else {
+                $pending = $combined
             }
         }
+
+        $text = [string]$chunk
+        $parts = [regex]::Split($text, "\r\n|\n|\r")
+        $hasTrailingNewline = $text.EndsWith("`n") -or $text.EndsWith("`r")
+        for ($i = 0; $i -lt ($parts.Count - 1); $i++) {
+            $null = . $appendSegment ([string]$parts[$i]) $true
+        }
+        if (-not $hasTrailingNewline -and $parts.Count -gt 0) {
+            $null = . $appendSegment ([string]$parts[-1]) $false
+        } else {
+            $pending = ''
+        }
+
+        $result.Remainder = $pending
+        $result.Lines = @($lines.ToArray())
     } catch {}
     return $result
 }
@@ -10711,6 +10971,44 @@ function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Argume
     $stderrPath = Join-Path $global:TEMP_DIR ("LibreSpot-stderr-" + [Guid]::NewGuid().ToString('N') + '.log')
     $stdoutState = @{ Offset = 0L; Remainder = '' }
     $stderrState = @{ Offset = 0L; Remainder = '' }
+    $maxCaptureBytes = 1024 * 1024
+    $diskTruncationMarker = [System.Text.Encoding]::UTF8.GetBytes("[output truncated: disk capture bounded]`r`n")
+    $trimOutputFile = {
+        param([string]$Path)
+
+        if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return $false }
+        $stream = $null
+        try {
+            $stream = [System.IO.File]::Open(
+                $Path,
+                [System.IO.FileMode]::Open,
+                [System.IO.FileAccess]::ReadWrite,
+                [System.IO.FileShare]::ReadWrite)
+            if ($stream.Length -le $maxCaptureBytes) { return $false }
+
+            $keepBytes = [Math]::Max(0, $maxCaptureBytes - $diskTruncationMarker.Length)
+            $start = [Math]::Max(0, $stream.Length - $keepBytes)
+            $null = $stream.Seek($start, [System.IO.SeekOrigin]::Begin)
+            $tail = New-Object byte[] $keepBytes
+            $total = 0
+            while ($total -lt $tail.Length) {
+                $read = $stream.Read($tail, $total, $tail.Length - $total)
+                if ($read -le 0) { break }
+                $total += $read
+            }
+
+            $stream.SetLength(0)
+            $stream.Position = 0
+            $stream.Write($diskTruncationMarker, 0, $diskTruncationMarker.Length)
+            if ($total -gt 0) { $stream.Write($tail, 0, $total) }
+            try { $stream.Flush($true) } catch { $stream.Flush() }
+            return $true
+        } catch {
+            return $false
+        } finally {
+            if ($stream) { try { $stream.Dispose() } catch {} }
+        }
+    }
     # The spawned powershell.exe can be forced into ConstrainedLanguage by WDAC /
     # AppLocker even when this host is FullLanguage; classify that from stderr.
     $appControlHintShown = $false
@@ -10734,8 +11032,11 @@ function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Argume
                 Write-Log "Process exceeded ${TimeoutSeconds}s timeout - terminating." -Level 'WARN'
                 try { $ownedProcess.Job.Terminate() } catch {}
                 try { $p.WaitForExit(5000) } catch {}
+                try { $null = & $trimOutputFile -Path $stdoutPath } catch {}
+                try { $null = & $trimOutputFile -Path $stderrPath } catch {}
                 throw "External process timed out after ${TimeoutSeconds} seconds. It may have hung or entered an interactive prompt."
             }
+            if (& $trimOutputFile -Path $stdoutPath) { $stdoutState = @{ Offset = 0L; Remainder = '' } }
             $stdoutRead = Read-ProcessOutputDelta -Path $stdoutPath -Offset $stdoutState.Offset -Remainder $stdoutState.Remainder
             $stdoutState = @{ Offset = $stdoutRead.Offset; Remainder = $stdoutRead.Remainder }
             foreach ($line in $stdoutRead.Lines) {
@@ -10743,6 +11044,7 @@ function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Argume
                 if (-not $childFailure) { $childFailure = Get-SpotXChildFailureClassification -Line $line }
             }
 
+            if (& $trimOutputFile -Path $stderrPath) { $stderrState = @{ Offset = 0L; Remainder = '' } }
             $stderrRead = Read-ProcessOutputDelta -Path $stderrPath -Offset $stderrState.Offset -Remainder $stderrState.Remainder
             $stderrState = @{ Offset = $stderrRead.Offset; Remainder = $stderrRead.Remainder }
             foreach ($line in $stderrRead.Lines) {
@@ -10757,11 +11059,13 @@ function Invoke-ExternalScriptIsolated { param([string]$FilePath,[string]$Argume
         }
         $p.WaitForExit()
 
+        if (& $trimOutputFile -Path $stdoutPath) { $stdoutState = @{ Offset = 0L; Remainder = '' } }
         $stdoutRead = Read-ProcessOutputDelta -Path $stdoutPath -Offset $stdoutState.Offset -Remainder $stdoutState.Remainder
         foreach ($line in $stdoutRead.Lines + @($stdoutRead.Remainder) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) {
             Write-Log $line -Level 'OUT'
             if (-not $childFailure) { $childFailure = Get-SpotXChildFailureClassification -Line $line }
         }
+        if (& $trimOutputFile -Path $stderrPath) { $stderrState = @{ Offset = 0L; Remainder = '' } }
         $stderrRead = Read-ProcessOutputDelta -Path $stderrPath -Offset $stderrState.Offset -Remainder $stderrState.Remainder
         foreach ($line in $stderrRead.Lines + @($stderrRead.Remainder) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) {
             Write-Log "[STDERR] $line" -Level 'WARN'

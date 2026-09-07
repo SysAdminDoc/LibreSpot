@@ -1227,8 +1227,8 @@ public sealed class PowerShellRegressionTests
         Assert.Contains("$collector.Attach($process)", body);
         Assert.Contains("$collector.TryDequeue", body);
         Assert.Contains("$collector.Detach($process)", body);
-        Assert.Contains("BeginOutputReadLine", body);
-        Assert.Contains("BeginErrorReadLine", body);
+        Assert.Contains("$collector.WaitForCompletion", body);
+        Assert.Contains("$collector.Dispose()", body);
         Assert.Contains("WaitForExit(250)", body);
         Assert.Contains("RedirectStandardOutput", body);
         Assert.Contains("RedirectStandardError", body);
@@ -1247,11 +1247,33 @@ public sealed class PowerShellRegressionTests
         Assert.DoesNotContain("Start-Process", body);
         Assert.DoesNotContain("$process.HasExited", body);
         Assert.DoesNotContain("System.Diagnostics.DataReceivedEventHandler", body);
+        Assert.DoesNotContain("BeginOutputReadLine", body);
+        Assert.DoesNotContain("BeginErrorReadLine", body);
         Assert.DoesNotContain("add_OutputDataReceived", body);
         Assert.DoesNotContain("Read-ProcessOutputDelta", body);
         Assert.DoesNotContain("ReadToEndAsync", body);
         Assert.DoesNotContain("Write-Log \"  $line\"", body);
         Assert.DoesNotMatch(@"(?m)^\s*return\s+\$output\b", body);
+    }
+
+    [Theory]
+    [InlineData("LibreSpot.ps1")]
+    [InlineData("src/LibreSpot.Desktop/Backend/LibreSpot.Backend.ps1")]
+    [InlineData("src/powershell/shared/Invoke-ExternalScriptIsolated.ps1")]
+    public void ExternalScriptRunner_BoundsRedirectedOutputCapture(string relativePath)
+    {
+        var script = ReadFile(relativePath.Split('/'));
+        var fnBody = Regex.Match(
+            script,
+            @"function\s+Invoke-ExternalScriptIsolated\s*\{(?<body>.+?)^\}",
+            RegexOptions.Singleline | RegexOptions.Multiline);
+
+        Assert.True(fnBody.Success, $"Invoke-ExternalScriptIsolated function block not found in {relativePath}.");
+        var body = fnBody.Groups["body"].Value;
+        Assert.Contains("maxCaptureBytes", body);
+        Assert.Contains("diskTruncationMarker", body);
+        Assert.Contains("$trimOutputFile", body);
+        Assert.Contains("SetLength(0)", body);
     }
 
     [Theory]
@@ -1263,7 +1285,12 @@ public sealed class PowerShellRegressionTests
 
         Assert.Contains("public sealed class LibreSpotNativeOutputCollector", script);
         Assert.Contains("ConcurrentQueue<string>", script);
-        Assert.Contains("DataReceivedEventHandler handler", script);
+        Assert.Contains("ReadStreamAsync", script);
+        Assert.Contains("MaxQueuedCharacters", script);
+        Assert.Contains("MaxLineCharacters", script);
+        Assert.Contains("StreamReader", script);
+        Assert.Contains("ReadAsync", script);
+        Assert.DoesNotContain("DataReceivedEventHandler handler", script);
         Assert.DoesNotContain("[System.Diagnostics.DataReceivedEventHandler]{", script);
     }
 
@@ -1339,7 +1366,14 @@ public sealed class PowerShellRegressionTests
             RegexOptions.Singleline | RegexOptions.Multiline);
 
         Assert.True(fnBody.Success, $"Read-ProcessOutputDelta function block not found in {relativePath}.");
-        Assert.Matches(@"-split\s+[""`'](?:\\r\\n\|\\n\|\\r|`r`n\|`n\|`r)[""`']", fnBody.Groups["body"].Value);
+        var body = fnBody.Groups["body"].Value;
+        Assert.Contains("MaxChunkBytes", body);
+        Assert.Contains("MaxRemainderCharacters", body);
+        Assert.Contains("maxOutputLines", body);
+        Assert.Contains("reader batch bounded", body);
+        Assert.Contains("$stream.Read", body);
+        Assert.Contains("output truncated: oversized line", body);
+        Assert.Contains("[regex]::Split", body);
     }
 
     [Theory]

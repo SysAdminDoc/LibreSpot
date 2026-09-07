@@ -4239,6 +4239,118 @@ Describe 'Check-ForUpdates when GitHub cannot be reached' {
 }
 
 # =============================================================================
+# Bounded process output capture
+# =============================================================================
+Describe 'Bounded process output capture' {
+    BeforeAll {
+        . (Join-Path $PSScriptRoot '..\..\src\powershell\shared\Read-ProcessOutputDelta.ps1')
+    }
+
+    It 'bounds chunk, line, and remainder memory while preserving output markers' {
+        $path = Join-Path $TestDrive 'bounded-output.log'
+        $shortLines = (1..400 | ForEach-Object { "line-$_" }) -join "`n"
+        $oversizedLine = 'failure-signature ' + ('x' * 300)
+        [System.IO.File]::WriteAllText($path, $shortLines + "`n" + $oversizedLine + "`n")
+
+        $offset = 0L
+        $remainder = ''
+        $allLines = [System.Collections.Generic.List[string]]::new()
+        $largestBatch = 0
+        for ($attempt = 0; $attempt -lt 100; $attempt++) {
+            $read = Read-ProcessOutputDelta `
+                -Path $path `
+                -Offset $offset `
+                -Remainder $remainder `
+                -MaxChunkBytes 64 `
+                -MaxRemainderCharacters 64
+            $batch = @($read.Lines)
+            $largestBatch = [Math]::Max($largestBatch, $batch.Count)
+            foreach ($line in $batch) { [void]$allLines.Add([string]$line) }
+            $offset = [long]$read.Offset
+            $remainder = [string]$read.Remainder
+            if ($offset -ge (Get-Item -LiteralPath $path).Length -and [string]::IsNullOrEmpty($remainder)) { break }
+        }
+
+        $offset | Should -Be ([System.IO.FileInfo]$path).Length
+        $largestBatch | Should -BeLessOrEqual 16
+        ($allLines | ForEach-Object Length | Measure-Object -Maximum).Maximum | Should -BeLessThan 128
+        ($allLines -join "`n") | Should -Match 'failure-signature'
+        ($allLines -match 'output truncated: oversized line').Count | Should -BeGreaterThan 0
+        $remainder.Length | Should -BeLessOrEqual 64
+
+        $manyPath = Join-Path $TestDrive 'bounded-batch.log'
+        [System.IO.File]::WriteAllText($manyPath, ((1..5000 | ForEach-Object { "short-$_" }) -join "`n"))
+        $batchRead = Read-ProcessOutputDelta -Path $manyPath -MaxChunkBytes 1048576
+        @($batchRead.Lines).Count | Should -BeLessOrEqual 256
+        @($batchRead.Lines) -join "`n" | Should -Match 'output truncated: reader batch bounded'
+        $batchRead.Remainder.Length | Should -BeLessOrEqual 32768
+    }
+
+    It 'keeps redirected disk capture bounded and emits a disk marker' {
+        $source = Get-Content -LiteralPath (Join-Path $PSScriptRoot '..\..\src\powershell\shared\Invoke-ExternalScriptIsolated.ps1') -Raw
+
+        $source | Should -Match '\$maxCaptureBytes\s*=\s*1024\s*\*\s*1024'
+        $source | Should -Match '\$diskTruncationMarker'
+        $source | Should -Match '\$stream\.SetLength\(0\)'
+        $source | Should -Match '\$trimOutputFile'
+    }
+
+    It 'drains a noisy native process with a bounded collector queue' {
+        $root = Join-Path $TestDrive 'collector-fixture'
+        New-Item -Path $root -ItemType Directory -Force | Out-Null
+        $child = Join-Path $root 'writer.ps1'
+        @'
+1..1200 | ForEach-Object { [Console]::Out.WriteLine("line-$($_)") }
+[Console]::Out.Write("failure-signature " + ("x" * 100000))
+'@ | Set-Content -LiteralPath $child -Encoding UTF8
+
+        if (-not ('LibreSpotNativeOutputCollector' -as [type])) {
+            $mainSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot '..\..\LibreSpot.ps1') -Raw
+            $classMatch = [regex]::Match(
+                $mainSource,
+                "public sealed class LibreSpotNativeOutputCollector\s*:\s*System\.IDisposable\s*\{.*?^\}\r?\n(?='@)",
+                [System.Text.RegularExpressions.RegexOptions]::Singleline -bor [System.Text.RegularExpressions.RegexOptions]::Multiline)
+            $classMatch.Success | Should -BeTrue
+            Add-Type -TypeDefinition @"
+using System;
+using System.Collections.Concurrent;
+using System.Diagnostics;
+$($classMatch.Value)
+"@
+        }
+
+        $startInfo = New-Object System.Diagnostics.ProcessStartInfo
+        $startInfo.FileName = 'powershell.exe'
+        $startInfo.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$child`""
+        $startInfo.UseShellExecute = $false
+        $startInfo.RedirectStandardOutput = $true
+        $startInfo.RedirectStandardError = $true
+        $startInfo.CreateNoWindow = $true
+        $process = New-Object System.Diagnostics.Process
+        $process.StartInfo = $startInfo
+        $collector = New-Object LibreSpotNativeOutputCollector
+        try {
+            $process.Start() | Should -BeTrue
+            $collector.Attach($process)
+            $process.WaitForExit(10000) | Should -BeTrue
+            $collector.WaitForCompletion(5000)
+
+            $lines = [System.Collections.Generic.List[string]]::new()
+            [string]$line = $null
+            while ($collector.TryDequeue([ref]$line)) { [void]$lines.Add($line) }
+            $lines.Count | Should -BeLessOrEqual ([LibreSpotNativeOutputCollector]::MaxQueuedLines + 1)
+            ($lines | ForEach-Object Length | Measure-Object -Maximum).Maximum | Should -BeLessOrEqual ([LibreSpotNativeOutputCollector]::MaxLineCharacters)
+            ($lines -match 'output truncated').Count | Should -BeGreaterThan 0
+            ($lines -join "`n") | Should -Match 'failure-signature'
+        } finally {
+            try { $collector.Detach($process) } catch {}
+            try { $collector.Dispose() } catch {}
+            try { $process.Dispose() } catch {}
+        }
+    }
+}
+
+# =============================================================================
 # Owned external process trees
 # =============================================================================
 Describe 'Owned external process trees' {

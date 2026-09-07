@@ -22,13 +22,6 @@ Incomplete, implementer-actionable work only. Operator-dependent decisions remai
 
 ### P2: Next
 
-- [ ] P2: RD-244. Bound native process output and error-tail retention
-  Why: Impact 3/5. A noisy or hung worker can grow the retained line buffer and full output list throughout its timeout.
-  Evidence: RESEARCH.md; src/powershell/shared/Read-ProcessOutputDelta.ps1 and Invoke-SpicetifyCli.ps1; LibreSpotNativeOutputCollector in both host preambles.
-  Touches: Shared process-output reader, native collector, external-script capture and Spicetify runner; composed hosts and PowerShell output fixtures.
-  Acceptance: Bound buffering in the underlying stream reader and collector as well as retained byte/line/remainder and error tails; continue draining output. Emit a truncation marker. Many short lines and one oversized unterminated line must stay bounded before the first line callback, preserve exit/failure classification and not deadlock. Apply a bounded disk-capture policy to redirected logs as well as memory.
-  Complexity: M
-
 - [ ] P2: RD-245. Verify crash capture with an isolated Windows release fixture
   Why: Impact 4/5. Mocked launches and synthetic headers cannot prove that the shipped single-file model creates the intended dump.
   Evidence: RESEARCH.md; MinidumpSettingsServiceTests fake launch/environment; actual .NET 10.0.11 Windows createdump source supports checking platform behavior rather than guessing from generic documentation.

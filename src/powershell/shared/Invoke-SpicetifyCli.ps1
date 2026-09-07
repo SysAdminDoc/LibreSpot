@@ -19,6 +19,7 @@ function Invoke-SpicetifyCli {
 
     $progressState = @{ LastPatchBucket = -1; LastUiPatchPercent = -1; LastStage = '' }
     $outputLines = [System.Collections.Generic.List[string]]::new()
+    $maxOutputTailLines = 32
     $process = $null
     $collector = $null
 
@@ -43,13 +44,11 @@ function Invoke-SpicetifyCli {
         $process = New-Object System.Diagnostics.Process
         $process.StartInfo = $startInfo
         $collector = New-Object LibreSpotNativeOutputCollector
-        $collector.Attach($process)
 
         $null = $process.Start()
+        $collector.Attach($process)
         Write-Log "  Spicetify ($($integration.Version)) command: spicetify $displayArguments"
         Write-Log "  Spicetify PID: $($process.Id)"
-        $process.BeginOutputReadLine()
-        $process.BeginErrorReadLine()
 
         $startedAt = Get-Date
         $lastOutputAt = $startedAt
@@ -64,7 +63,12 @@ function Invoke-SpicetifyCli {
             while ($collector.TryDequeue([ref]$queuedLine)) {
                 if (-not [string]::IsNullOrWhiteSpace($queuedLine)) {
                     $processed = Write-SpicetifyCliOutputLine -Line $queuedLine -ProgressState $progressState
-                    if ($processed) { [void]$outputLines.Add($processed) }
+                    if ($processed) {
+                        [void]$outputLines.Add($processed)
+                        if ($outputLines.Count -gt $maxOutputTailLines) {
+                            $outputLines.RemoveAt(0)
+                        }
+                    }
                     $count++
                 }
                 $queuedLine = $null
@@ -87,6 +91,8 @@ function Invoke-SpicetifyCli {
             if ($now -gt $deadline) {
                 Write-Log "Spicetify command exceeded ${TimeoutSeconds}s timeout and will be terminated." -Level 'WARN'
                 try { $process.Kill(); $process.WaitForExit(5000) } catch {}
+                try { $collector.WaitForCompletion(1000) } catch {}
+                $null = & $drainOutput
                 $tail = & $getTail
                 throw "$FailureMessage Timed out after $TimeoutSeconds seconds.$tail"
             }
@@ -106,6 +112,7 @@ function Invoke-SpicetifyCli {
             }
         }
 
+        try { $collector.WaitForCompletion(1000) } catch {}
         Start-Sleep -Milliseconds 200
         $null = & $drainOutput
 
@@ -123,8 +130,7 @@ function Invoke-SpicetifyCli {
         $ErrorActionPreference = $previousPreference
         if ($process) {
             if ($collector) { try { $collector.Detach($process) } catch {} }
-            try { $process.CancelOutputRead() } catch {}
-            try { $process.CancelErrorRead() } catch {}
+            if ($collector) { try { $collector.Dispose() } catch {} }
             try { $process.Dispose() } catch {}
         }
     }
