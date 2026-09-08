@@ -15,7 +15,7 @@ Copy-paste ready. Update the maintainer email on submit if you want that field t
 - **Project name**: `LibreSpot`
 - **Project URL**: `https://github.com/SysAdminDoc/LibreSpot`
 - **License**: MIT (see `LICENSE` in the repo)
-- **Primary maintainer**: Matthew Parker, `matt@mavenimaging.com` (or whatever contact address you want SignPath notifications to land at)
+- **Primary maintainer**: Matthew Parker, `matt_parker@outlook.com` (or whatever contact address you want SignPath notifications to land at)
 
 ### Short description
 
