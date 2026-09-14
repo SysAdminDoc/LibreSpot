@@ -12,6 +12,16 @@ Installs, configures, and maintains Spotify with themes, extensions, custom apps
 [![Version](https://img.shields.io/badge/Version-4.6.0-brightgreen.svg)](https://github.com/SysAdminDoc/LibreSpot/releases)
 [![Stable](https://img.shields.io/badge/Stable-4.5.1-blue.svg)](https://github.com/SysAdminDoc/LibreSpot/releases/latest)
 
+<p align="center">
+  <a href="https://ko-fi.com/X8K126YVER">
+    <img height="42" src="https://storage.ko-fi.com/cdn/kofi2.png?v=3" alt="Buy me a coffee on Ko-fi" />
+  </a>
+</p>
+
+<p align="center">
+  <sub><em>If LibreSpot keeps your Spotify setup working, a coffee helps me keep its compatibility fixes current.</em></sub>
+</p>
+
 The two badges say different things on purpose. **Version** is what this source tree builds, 4.6.0, which is prepared and has not been published. **Stable** is 4.5.1, the newest release on GitHub and what every download link below gives you.
 
 </div>
