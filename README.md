@@ -54,29 +54,17 @@ Windows SmartScreen may warn because the file is unsigned by design. A hash that
 <details>
 <summary><strong>Advanced: the PowerShell script</strong></summary>
 
-`LibreSpot.ps1` is the single-file script the v4 apps grew out of, and `LibreSpot.exe` is that script compiled with PS2EXE. Both ship in every release. This block downloads `LibreSpot.ps1` and `checksums.txt` from the latest release, validates SHA256 before anything runs, and keeps the script at a reusable local path:
+`LibreSpot.ps1` is the single-file script the v4 apps grew out of, and `LibreSpot.exe` is that script compiled with PS2EXE. Both ship in every release.
 
-```powershell
-$d = "$env:LOCALAPPDATA\LibreSpot\bootstrap"; New-Item -ItemType Directory -Path $d -Force | Out-Null
-$base = 'https://github.com/SysAdminDoc/LibreSpot/releases/latest/download'
-Invoke-WebRequest "$base/LibreSpot.ps1" -OutFile "$d\LibreSpot.ps1" -UseBasicParsing
-Invoke-WebRequest "$base/checksums.txt" -OutFile "$d\checksums.txt" -UseBasicParsing
-function Get-LibreSpotBootstrapSha256 {
-  param([string]$Path)
-  $cmd = Get-Command Get-FileHash -ErrorAction SilentlyContinue
-  if ($cmd) { return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToUpperInvariant() }
-  $stream = [System.IO.File]::OpenRead($Path); $sha = [System.Security.Cryptography.SHA256]::Create()
-  try { return (($sha.ComputeHash($stream) | ForEach-Object { $_.ToString('x2') }) -join '').ToUpperInvariant() }
-  finally { $stream.Dispose(); $sha.Dispose() }
-}
-$expected = (((Get-Content "$d\checksums.txt" | Where-Object { $_ -match 'LibreSpot\.ps1$' }) -split '\s+')[0]).ToUpperInvariant()
-$actual = Get-LibreSpotBootstrapSha256 "$d\LibreSpot.ps1"
-if ($actual -ne $expected) { Remove-Item "$d\LibreSpot.ps1" -Force; throw "SHA256 mismatch, expected $expected, got $actual. The download may be corrupted or tampered with." }
-Write-Host "SHA256 verified: $actual" -ForegroundColor Green
-& "$d\LibreSpot.ps1"
-```
-
-Or [download LibreSpot.ps1](https://github.com/SysAdminDoc/LibreSpot/releases/latest) and right-click **Run with PowerShell**. Either way the script asks for admin only when a step needs it.
+1. Download [LibreSpot.ps1](https://github.com/SysAdminDoc/LibreSpot/releases/latest/download/LibreSpot.ps1) and [checksums.txt](https://github.com/SysAdminDoc/LibreSpot/releases/latest/download/checksums.txt) from the [latest release](https://github.com/SysAdminDoc/LibreSpot/releases/latest).
+2. Read the script, then unblock it and check its hash against the published checksum before you run it:
+   ```powershell
+   Unblock-File .\LibreSpot.ps1
+   Get-FileHash .\LibreSpot.ps1 -Algorithm SHA256
+   Get-Content .\checksums.txt | Select-String 'LibreSpot\.ps1$'
+   ```
+   The two hashes need to match. If they don't, delete the file and don't run it.
+3. Right-click `LibreSpot.ps1` and choose **Run with PowerShell**, or run `.\LibreSpot.ps1` from the folder you saved it to. It asks for admin only when a step needs it.
 
 </details>
 
